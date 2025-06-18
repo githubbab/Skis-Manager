@@ -1,0 +1,103 @@
+import React, {createContext, ReactNode, useEffect, useState} from "react";
+import {useColorScheme} from "react-native";
+import AppColors from "@/constants/AppColors";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+type ThemeContextType = {
+  isSystemTheme: boolean,
+  currentTheme: "light" | "dark";
+  colorsTheme: typeof AppColors['light'];
+  toggleTheme: (newTheme: "light" | "dark") => void;
+  useSystemTheme: () => void;
+}
+
+export const ThemeContext = createContext<ThemeContextType>({
+  isSystemTheme: true,
+  currentTheme: 'light',
+  colorsTheme: AppColors['light'],
+  toggleTheme: () => {},
+  useSystemTheme: () => {}
+});
+
+const ThemeProvider = ({children}: { children: ReactNode }) => {
+  const colorScheme = useColorScheme() ?? 'light';
+  const [theme, setTheme] = useState<"light" | "dark">(colorScheme);
+  const [systemTheme, setSystemTheme] = useState<boolean>(false);
+
+  useEffect(() => {
+    const getTheme = async () => {
+      try {
+        const savedThemeObject = await AsyncStorage.getItem("theme");
+        console.log(savedThemeObject);
+        const savedThemeObjectData = JSON.parse(savedThemeObject!);
+
+        if (savedThemeObjectData) {
+          setTheme(savedThemeObjectData.mode);
+          setSystemTheme(savedThemeObjectData.system);
+        }
+        else {
+          const themeObject = {
+            mode: colorScheme,
+            system: true
+          }
+          await AsyncStorage.setItem("theme", JSON.stringify(themeObject));
+          setTheme(colorScheme);
+          setSystemTheme(true);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    getTheme();
+  });
+
+  useEffect(() => {
+    if (colorScheme && systemTheme) {
+      const themeObject = {
+        mode: colorScheme,
+        system: true
+      }
+      AsyncStorage.setItem("theme", JSON.stringify(themeObject));
+      setTheme(colorScheme);
+      setSystemTheme(true)
+    }
+  }, [colorScheme, systemTheme]);
+
+  const toggleTheme = (newTheme: "light" | "dark") => {
+    const themeObject = {
+      mode: newTheme,
+      system: false
+    }
+    AsyncStorage.setItem("theme", JSON.stringify(themeObject));
+    setTheme(newTheme);
+    setSystemTheme(false)
+  }
+
+  const useSystemTheme = () => {
+    if (colorScheme) {
+      const themeObject = {
+        mode: colorScheme,
+        system: true
+      }
+      AsyncStorage.setItem("theme", JSON.stringify(themeObject));
+      setTheme(colorScheme);
+      setSystemTheme(true);
+    }
+  }
+
+
+  return (
+    <ThemeContext.Provider value={{
+      currentTheme: theme,
+      colorsTheme: AppColors[theme],
+      toggleTheme,
+      useSystemTheme,
+      isSystemTheme: systemTheme
+    }}>
+
+      {children}
+    </ThemeContext.Provider>
+  )
+}
+
+export default ThemeProvider;
