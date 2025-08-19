@@ -2,7 +2,7 @@ import {Text, StyleSheet, View, ViewStyle} from "react-native";
 
 type PastilleProps = {
   name: string,
-  size: number,
+  size?: number,
   color?: string,
   textColor?: string,
   style?: ViewStyle,
@@ -32,8 +32,8 @@ function getInitials(name: string): string {
   return (firstInitial + lastInitial).toUpperCase();
 }
 
-const Pastille = ({name, size, color, textColor, style}: PastilleProps) => {
-  const initial = name.length<4 ? name : getInitials(name);
+const Pastille = ({name, size=24, color, textColor, style}: PastilleProps) => {
+  const initial = name.length<3 ? name : getInitials(name);
   const bgColor = color ??
     (name.length < 4 ?
       stringToColor(initial+initial+initial+initial):
@@ -61,7 +61,7 @@ const Pastille = ({name, size, color, textColor, style}: PastilleProps) => {
   
   return (
     <View style={[styles.pastille,style]} >
-      <Text style={styles.text}>
+      <Text style={styles.text} numberOfLines={1} ellipsizeMode={'clip'}>
       {initial}
       </Text>
     </View>

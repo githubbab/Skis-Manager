@@ -1,103 +1,87 @@
-import {DrawerContentScrollView, DrawerItem} from "@react-navigation/drawer";
-import {router} from "expo-router";
-import {Image, Text, View, StyleSheet, TouchableOpacity} from "react-native";
 import AppIcon from "@/components/AppIcon";
-import React, {useContext, useEffect, useState} from "react";
-import {ThemeContext} from "@/context/ThemeContext";
-import {StatusBar} from "expo-status-bar";
-import AppStyles from "@/constants/AppStyles";
-import {useSQLiteContext} from "expo-sqlite";
-import DateTimePicker from '@react-native-community/datetimepicker';
-import {Drawer} from "expo-router/drawer";
-import DrawerMenu from "@/components/DrawerMenu";
-import {changeSetting} from "@/hooks/DataManager";
+import OpenMenu from "@/components/OpenMenu";
+import Row from "@/components/Row";
+import Separator from "@/components/Separator";
+import { useEnvContext } from "@/context/EnvContext";
+import { ThemeContext } from "@/context/ThemeContext";
+import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
+import { router } from "expo-router";
+import { Drawer } from "expo-router/drawer";
+import { useSQLiteContext } from "expo-sqlite";
+import { StatusBar } from "expo-status-bar";
+import React, { useContext } from "react";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 const DrawerLayout = () => {
-  const {currentTheme, colorsTheme} = useContext(ThemeContext)
-  const appStyles = AppStyles(colorsTheme);
+  const { currentTheme, colorsTheme } = useContext(ThemeContext);
+  const { t, lang, seasonDate } = useEnvContext();
 
-  const db = useSQLiteContext()
-  const [seasonDate, setSeasonDate] = useState(new Date());
-  const [showPicker, setShowPicker] = useState(false);
-
-  useEffect(() => {
-    async function setup() {
-      // @ts-ignore
-      const { value: result } = await db.getFirstAsync("SELECT value FROM settings WHERE name = 'seasonDate'") ?? {"value":'nad'};
-      console.debug("seasonDate: ", result);
-      if (result === 'nad') {
-        setSeasonDate(new Date(0));
-      }
-      else {
-        setSeasonDate(new Date(parseInt(result)))
-      }
-    }
-    setup();
-  });
+  const db = useSQLiteContext();
 
   console.log("DrawerLayout: ", currentTheme);
   const styles = StyleSheet.create({
-      drawerHeaderStyle: {
-        backgroundColor: colorsTheme.bar,
-      },
-      drawerHeaderTitleStyle: {
-        color: colorsTheme.text,
-        fontSize: 24,
-      },
-      drawerContent: {
-        flex: 1,
-        backgroundColor: colorsTheme.bar,
-      },
-      drawerIco: {
-        height: 64,
-        width: 64,
-        alignItems: 'center',
-        justifyContent: 'center',
-      },
-      drawerHeaderTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        paddingStart: 8,
-        flex: 1,
-        marginVertical: 'auto',
-        color: colorsTheme.text,
-      },
-      drawerHeaderTitleLight: {
-        fontSize: 18,
-        paddingHorizontal: 4,
-        color: colorsTheme.text,
-      },
-      drawerHeaderIcoTitleLight: {
-        fontSize: 24,
-        paddingHorizontal: 24,
-      },
-      drawerTitle: {
-        fontSize: 18,
-        marginVertical: -4,
-      },
-      drawerRow: {
-        flex: 1,
-        flexDirection: "row",
-        justifyContent: "flex-end",
-        alignItems: "center",
-      },
-    })
+    drawerHeaderStyle: {
+      backgroundColor: colorsTheme.bar,
+    },
+    drawerHeaderTitleStyle: {
+      color: colorsTheme.text,
+      fontSize: 24,
+    },
+    drawerContent: {
+      flex: 1,
+      backgroundColor: colorsTheme.bar,
+    },
+    drawerIco: {
+      height: 64,
+      width: 64,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    drawerHeaderTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      paddingStart: 8,
+      flex: 1,
+      marginVertical: 'auto',
+      color: colorsTheme.text,
+    },
+    drawerHeaderTitleLight: {
+      fontSize: 18,
+      paddingHorizontal: 4,
+      color: colorsTheme.text,
+    },
+    drawerHeaderIcoTitleLight: {
+      fontSize: 24,
+      paddingHorizontal: 4,
+    },
+    drawerTitle: {
+      fontSize: 18,
+      marginVertical: -4,
+    },
+    drawerRow: {
+      flex: 1,
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      alignItems: "center",
+    },
+  })
 
   const CustomDrawerContent = (props: any) => {
+    const { viewOuting, viewFriends } = useEnvContext();
     return (
       <DrawerContentScrollView style={styles.drawerContent} {...props} >
-        <StatusBar style={currentTheme === 'dark' ? 'light' : 'dark'}/>
+        <StatusBar style={currentTheme === 'dark' ? 'light' : 'dark'} />
 
-        <View style={appStyles.row}>
-          <Image style={styles.drawerIco} source={require('@/assets/images/icon.png')}/>
+        <Row>
+          <Image style={styles.drawerIco} source={require('@/assets/images/icon.png')} />
           <Text style={styles.drawerHeaderTitle}>Skis Manager</Text>
-        </View>
-        <View style={appStyles.separator}/>
+        </Row>
+        <Separator />
 
         <DrawerItem
-          label={'Accueil'}
+          label={t('home')}
           labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"home"} color={color} styles={{fontSize: size}}/>)}
+          icon={({ color, size }) => (<AppIcon name={"home"} color={color} styles={{ fontSize: size }} />)}
           focused={props.state.index === props.state.routes.findIndex((e: { name: string; }) => e.name === "(tabs)")}
           inactiveTintColor={colorsTheme.text}
           activeTintColor={colorsTheme.primary}
@@ -107,9 +91,9 @@ const DrawerLayout = () => {
           }}
         />
         <DrawerItem
-          label={'Mes skis'}
+          label={t('menu_skis')}
           labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"skis"} color={color} styles={{fontSize: size}}/>)}
+          icon={({ color, size }) => (<AppIcon name={"skis"} color={color} styles={{ fontSize: size }} />)}
           focused={props.state.index === props.state.routes.findIndex((e: {
             name: string;
           }) => e.name === "skis-management")}
@@ -121,9 +105,9 @@ const DrawerLayout = () => {
           }}
         />
         <DrawerItem
-          label={'Mes chaussures'}
+          label={t('menu_boots')}
           labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"ski-boot"} color={color} styles={{fontSize: size}}/>)}
+          icon={({ color, size }) => (<AppIcon name={"ski-boot"} color={color} styles={{ fontSize: size }} />)}
           focused={props.state.index === props.state.routes.findIndex((e: {
             name: string;
           }) => e.name === "boots-management")}
@@ -135,9 +119,9 @@ const DrawerLayout = () => {
           }}
         />
         <DrawerItem
-          label={'Mes skieurs'}
+          label={t('menu_users')}
           labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"users"} color={color} styles={{fontSize: size}}/>)}
+          icon={({ color, size }) => (<AppIcon name={"users"} color={color} styles={{ fontSize: size }} />)}
           focused={props.state.index === props.state.routes.findIndex((e: {
             name: string;
           }) => e.name === "users-management")}
@@ -148,39 +132,41 @@ const DrawerLayout = () => {
             router.push("/(drawer)/users-management");
           }}
         />
+        {viewOuting &&
+          <DrawerItem
+            label={t('menu_offpistes')}
+            labelStyle={styles.drawerTitle}
+            icon={({ color, size }) => (<AppIcon name={"hors-piste"} color={color} styles={{ fontSize: size }} />)}
+            focused={props.state.index === props.state.routes.findIndex((e: {
+              name: string;
+            }) => e.name === "offpistes-management")}
+            inactiveTintColor={colorsTheme.text}
+            activeTintColor={colorsTheme.primary}
+            activeBackgroundColor={colorsTheme.activeBackground}
+            onPress={() => {
+              router.push("/(drawer)/offpistes-management");
+            }}
+          />}
+        {viewFriends &&
+          <DrawerItem
+            label={t('menu_friends')}
+            labelStyle={styles.drawerTitle}
+            icon={({ color, size }) => (<AppIcon name={"accessibility"} color={color} styles={{ fontSize: size }} />)}
+            focused={props.state.index === props.state.routes.findIndex((e: {
+              name: string;
+            }) => e.name === "friends-management")}
+            inactiveTintColor={colorsTheme.text}
+            activeTintColor={colorsTheme.primary}
+            activeBackgroundColor={colorsTheme.activeBackground}
+            onPress={() => {
+              router.push("/(drawer)/friends-management");
+            }}
+          />}
+        <Separator />
         <DrawerItem
-          label={'Mes hors-Pistes'}
+          label={t('menu_stats')}
           labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"hors-piste"} color={color} styles={{fontSize: size}}/>)}
-          focused={props.state.index === props.state.routes.findIndex((e: {
-            name: string;
-          }) => e.name === "outing-management")}
-          inactiveTintColor={colorsTheme.text}
-          activeTintColor={colorsTheme.primary}
-          activeBackgroundColor={colorsTheme.activeBackground}
-          onPress={() => {
-            router.push("/(drawer)/outing-management");
-          }}
-        />
-        <DrawerItem
-          label={'Mes amis'}
-          labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"accessibility"} color={color} styles={{fontSize: size}}/>)}
-          focused={props.state.index === props.state.routes.findIndex((e: {
-            name: string;
-          }) => e.name === "friends-management")}
-          inactiveTintColor={colorsTheme.text}
-          activeTintColor={colorsTheme.primary}
-          activeBackgroundColor={colorsTheme.activeBackground}
-          onPress={() => {
-            router.push("/(drawer)/friends-management");
-          }}
-        />
-        <View style={appStyles.separator}/>
-        <DrawerItem
-          label={'Statistiques'}
-          labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"stats"} color={color} styles={{fontSize: size}}/>)}
+          icon={({ color, size }) => (<AppIcon name={"stats"} color={color} styles={{ fontSize: size }} />)}
           focused={props.state.index === props.state.routes.findIndex((e: { name: string; }) => e.name === "stats")}
           inactiveTintColor={colorsTheme.text}
           activeTintColor={colorsTheme.primary}
@@ -189,25 +175,39 @@ const DrawerLayout = () => {
             router.push("/(drawer)/stats");
           }}
         />
-        <View style={appStyles.separator}/>
+        <Separator />
         <DrawerItem
-          label={"Gérer les styles d'entretiens"}
+          label={t('menu_seasons')}
           labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"entretien"} color={color} styles={{fontSize: size}}/>)}
+          icon={({ color, size }) => (<AppIcon name={"calendar"} color={color} styles={{ fontSize: size }} />)}
           focused={props.state.index === props.state.routes.findIndex((e: {
             name: string;
-          }) => e.name === "type-of-maintains-management")}
+          }) => e.name === "seasons-management")}
           inactiveTintColor={colorsTheme.text}
           activeTintColor={colorsTheme.primary}
           activeBackgroundColor={colorsTheme.activeBackground}
           onPress={() => {
-            router.push("/(drawer)/type-of-maintains-management");
+            router.push("/(drawer)/seasons-management");
           }}
         />
         <DrawerItem
-          label={'Gérer les styles de skis'}
+          label={t('menu_brands')}
           labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"quill"} color={color} styles={{fontSize: size}}/>)}
+          icon={({ color, size }) => (<AppIcon name={"trademark"} color={color} styles={{ fontSize: size }} />)}
+          focused={props.state.index === props.state.routes.findIndex((e: {
+            name: string;
+          }) => e.name === "brands-management")}
+          inactiveTintColor={colorsTheme.text}
+          activeTintColor={colorsTheme.primary}
+          activeBackgroundColor={colorsTheme.activeBackground}
+          onPress={() => {
+            router.push("/(drawer)/brands-management");
+          }}
+        />
+        <DrawerItem
+          label={t('menu_tos')}
+          labelStyle={styles.drawerTitle}
+          icon={({ color, size }) => (<AppIcon name={"quill"} color={color} styles={{ fontSize: size }} />)}
           focused={props.state.index === props.state.routes.findIndex((e: {
             name: string;
           }) => e.name === "type-of-skis-management")}
@@ -218,25 +218,26 @@ const DrawerLayout = () => {
             router.push("/(drawer)/type-of-skis-management");
           }}
         />
+        {viewOuting &&
+          <DrawerItem
+            label={t('menu_too')}
+            labelStyle={styles.drawerTitle}
+            icon={({ color, size }) => (<AppIcon name={"slope"} color={color} styles={{ fontSize: size }} />)}
+            focused={props.state.index === props.state.routes.findIndex((e: {
+              name: string;
+            }) => e.name === "type-of-outings-management")}
+            inactiveTintColor={colorsTheme.text}
+            activeTintColor={colorsTheme.primary}
+            activeBackgroundColor={colorsTheme.activeBackground}
+            onPress={() => {
+              router.push("/(drawer)/type-of-outings-management");
+            }}
+          />}
+        <Separator />
         <DrawerItem
-          label={'Gérer les styles de sortie'}
+          label={t('menu_svg')}
           labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"slope"} color={color} styles={{fontSize: size}}/>)}
-          focused={props.state.index === props.state.routes.findIndex((e: {
-            name: string;
-          }) => e.name === "type-of-outings-management")}
-          inactiveTintColor={colorsTheme.text}
-          activeTintColor={colorsTheme.primary}
-          activeBackgroundColor={colorsTheme.activeBackground}
-          onPress={() => {
-            router.push("/(drawer)/type-of-outings-management");
-          }}
-        />
-        <View style={appStyles.separator}/>
-        <DrawerItem
-          label={'Sauvegarde/Synchronisation'}
-          labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"database"} color={color} styles={{fontSize: size}}/>)}
+          icon={({ color, size }) => (<AppIcon name={"database"} color={color} styles={{ fontSize: size }} />)}
           focused={props.state.index === props.state.routes.findIndex((e: {
             name: string;
           }) => e.name === "backup-sync-settings")}
@@ -247,11 +248,11 @@ const DrawerLayout = () => {
             router.push("/(drawer)/backup-sync-settings");
           }}
         />
-        <View style={appStyles.separator}/>
+        <Separator />
         <DrawerItem
-          label={'Paramètres'}
+          label={t('menu_settings')}
           labelStyle={styles.drawerTitle}
-          icon={({color, size}) => (<AppIcon name={"settings"} color={color} styles={{fontSize: size}}/>)}
+          icon={({ color, size }) => (<AppIcon name={"settings"} color={color} styles={{ fontSize: size }} />)}
           focused={props.state.index === props.state.routes.findIndex((e: { name: string; }) => e.name === "settings")}
           inactiveTintColor={colorsTheme.text}
           activeTintColor={colorsTheme.primary}
@@ -264,146 +265,120 @@ const DrawerLayout = () => {
     )
   }
 
-  const handleDateChange = async (event: any, selectedDate: any) => {
-    setShowPicker(false);
-    if (event.type === "set") {
-      const currentDate = selectedDate || seasonDate;
-      setSeasonDate(currentDate);
-      await changeSetting(db,{name: "seasonDate", value: currentDate.getTime().toString()});
-    }
-    router.push("/(drawer)/(tabs)")
-  };
-
   return (
     <Drawer drawerContent={(props) => <CustomDrawerContent {...props} />}
-            screenOptions={{
-              headerShown: true,
-              headerStyle: styles.drawerHeaderStyle,
-              headerTitleStyle: styles.drawerHeaderTitleStyle,
-              headerTitle: "Skis Manager",
-              headerLeft: () => {
-                return (<DrawerMenu color={colorsTheme.primary}/>)
-              }
-            }
-            }
-    >
-
-      <Drawer.Screen name="(tabs)" options={{
-        headerRight: () => {
-          return (
-            <View style={styles.drawerRow}>
-              <AppIcon name={"arrow-right"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
-              <Text style={styles.drawerHeaderTitleLight}>{seasonDate.toLocaleDateString()}</Text>
-              <TouchableOpacity onPress={() => setShowPicker(true)} >
-                <AppIcon name={"calendar"} color={colorsTheme.primary} styles={styles.drawerHeaderIcoTitleLight}/>
-              </TouchableOpacity>
-              {
-                showPicker && <DateTimePicker mode={'date'} value={seasonDate} onChange={handleDateChange} maximumDate={new Date()} />
-              }
-            </View>
-          )
+      screenOptions={{
+        headerShown: true,
+        headerStyle: styles.drawerHeaderStyle,
+        headerTitleStyle: styles.drawerHeaderTitleStyle,
+        headerTitle: "Skis Manager",
+        headerLeft: () => {
+          return (<OpenMenu />)
         }
       }
-      }/>
+      }
+    >
+
+      <Drawer.Screen name="(tabs)" />
       <Drawer.Screen name="skis-management" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"skis"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
+              <AppIcon name={"skis"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
-      }}/>
+      }} />
       <Drawer.Screen name="boots-management" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"ski-boot"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
+              <AppIcon name={"ski-boot"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
-      }}/>
+      }} />
       <Drawer.Screen name="users-management" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"users"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
+              <AppIcon name={"users"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
-      }}/>
-      <Drawer.Screen name="outing-management" options={{
+      }} />
+      <Drawer.Screen name="offpistes-management" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"hors-piste"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
+              <AppIcon name={"hors-piste"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
-      }}/>
+      }} />
       <Drawer.Screen name="friends-management" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"accessibility"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
+              <AppIcon name={"accessibility"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
-      }}/>
+      }} />
       <Drawer.Screen name="backup-sync-settings" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"database"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
+              <AppIcon name={"database"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
-      }}/>
+      }} />
       <Drawer.Screen name="type-of-outings-management" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"slope"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
+              <AppIcon name={"slope"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
-      }}/>
-      <Drawer.Screen name="type-of-maintains-management" options={{
-        headerRight: () => {
-          return (
-            <View style={styles.drawerRow}>
-              <AppIcon name={"entretien"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
-            </View>
-          )
-        }
-      }}/>
+      }} />
       <Drawer.Screen name="type-of-skis-management" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"quill"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
+              <AppIcon name={"quill"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
-      }}/>
+      }} />
+      <Drawer.Screen name="brands-management" options={{
+        headerRight: () => {
+          return (
+            <View style={styles.drawerRow}>
+              <AppIcon name={"trademark"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
+            </View>
+          )
+        }
+      }} />
       <Drawer.Screen name="stats" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"stats"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
+              <AppIcon name={"stats"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
-      }}/>
+      }} />
       <Drawer.Screen name="settings" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"settings"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight}/>
+              <AppIcon name={"settings"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
-      }}/>
+      }} />
     </Drawer>
   )
 }

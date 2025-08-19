@@ -6,7 +6,7 @@ import Body from "@/components/Body";
 import Separator from "@/components/Separator";
 
 
-export default function Outings() {
+export default function Offpistes() {
   const {colorsTheme} = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   return (

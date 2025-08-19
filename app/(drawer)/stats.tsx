@@ -1,17 +1,19 @@
-import {Text, View} from 'react-native';
+import Body from "@/components/Body";
+import Separator from "@/components/Separator";
 import AppStyles from "@/constants/AppStyles";
-import {useContext} from "react";
-import {ThemeContext} from "@/context/ThemeContext";
+import { ThemeContext } from "@/context/ThemeContext";
+import { useContext } from "react";
+import { Text } from 'react-native';
 
 
 export default function Stats() {
   const {colorsTheme} = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   return (
-    <View style={appStyles.container}>
+    <Body>
       <Text style={appStyles.title}>Statistiques</Text>
-      <View style={appStyles.separator} />
+      <Separator />
       <Text>TEST</Text>
-    </View>
+    </Body>
   );
 }

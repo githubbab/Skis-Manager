@@ -1,126 +1,115 @@
-import {StyleSheet} from "react-native";
 import AppColors from "@/constants/AppColors";
+import { StyleSheet } from "react-native";
+
+export const appFontSize = 20;
 
 export default function (colors: typeof AppColors['light']) {
   return (
     StyleSheet.create({
-        row: {
-          flexDirection: 'row',
-          gap: 8,
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        },
-        tile: {
-          flexDirection: 'column',
-          width: "100%",
-          backgroundColor: colors.tileBG,
-          padding: 4,
-          borderRadius: 10,
-          marginVertical: 4
-        },
-        editField: {
-          borderWidth: 1,
-          borderColor: colors.text,
-          color: colors.text,
-          fontSize: 18,
-          padding: 8,
-          margin: 4,
-          flex:1,
-        },
-        addButton: {
-          alignItems: 'center',
-          height: 80,
-          width: 80,
-          marginHorizontal: 'auto',
-          justifyContent: 'center',
-          flexDirection: 'row',
-          backgroundColor: colors.primary,
-          borderRadius: '100%',
-          position: 'relative',
-        },
-// Old
-        container: {
-          flex: 1,
-          backgroundColor: colors.background,
-        },
-
-
-        headerTitle: {
-          fontSize: 20,
-          fontWeight: 'bold',
-          paddingStart: 8,
-          flex: 1,
-        },
-        title: {
-          fontSize: 20,
-          fontWeight: '600',
-          color: colors.text,
-          paddingBottom: 4,
-          paddingStart: 4,
-        },
-        lightTitle: {
-          fontSize: 18,
-          fontWeight: '600',
-          paddingBottom: 4,
-          paddingStart: 4,
-          color: colors.text,
-        },
-        verticalTitle: {
-          marginRight: -14,
-          marginLeft: -20,
-          width: 80,
-          alignSelf: 'center',
-          justifyContent: 'center',
-          fontSize: 16,
-          fontWeight: '600',
-          color: colors.text,
-          transform: 'rotate(-90deg) ',
-        },
-        text: {
-          fontSize: 18,
-          paddingStart: 8,
-          color: colors.text,
-        },
-        rowTitle: {
-          marginStart: 8,
-          fontSize: 16,
-          flex: 1,
-        },
-        separator: {
-          height: 1,
-          width: '80%',
-          alignItems: 'center',
-          marginHorizontal: 'auto',
-          marginVertical: 8,
-          backgroundColor: colors.separator,
-        },
-        button: {
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          backgroundColor: colors.tileBG,
-          padding: 8,
-          borderRadius: 10,
-          marginVertical: 4
-        },
-        buttonBody: {
-          flexDirection: "row",
-          margin: "auto",
-          padding: 4,
-        },
-        buttonIcon: {
-          fontSize: 32,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        buttonText: {
-          fontSize: 20,
-          paddingStart: 8,
-          fontWeight: '600',
-          color: colors.text,
-          alignSelf: "center",
-        },
-      }
+      editField: {
+        borderWidth: 1,
+        borderColor: colors.text,
+        color: colors.text,
+        fontSize: 20,
+        padding: 8,
+        margin: 4,
+        flex: 1,
+      },
+      text: {
+        fontSize: appFontSize,
+        color: colors.text,
+        margin: 4,
+      },
+      inactiveText: {
+        fontSize: appFontSize,
+        color: colors.inactiveText,
+        margin: 4,
+      },
+      textBold: {
+        fontSize: appFontSize,
+        color: colors.text,
+        fontWeight: 'bold',
+        margin: 4,
+      },
+      textItalic: {
+        fontSize: appFontSize,
+        color: colors.text,
+        fontStyle: 'italic',
+        margin: 4,
+      },
+      textButton: {
+        fontSize: appFontSize,
+        marginHorizontal: 8,
+        color: colors.text,
+        fontWeight: '600',
+      },
+      inactiveTextButton: {
+        fontSize: appFontSize,
+        marginHorizontal: 8,
+        color: colors.inactiveText,
+        fontWeight: '600',
+      },
+      modalRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 4,
+        marginLeft: 4,
+        borderRadius: 8,
+      },
+      modalTittle: {
+        fontSize: appFontSize,
+        fontWeight: '600',
+        color: colors.text,
+        marginHorizontal: 'auto',
+        marginBottom: 8,
+      },
+      item: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderColor: colors.separator,
+      },
+      renderItem: {
+        borderBottomWidth: 1,
+        borderBottomColor: colors.separator,
+        paddingVertical: 8,
+        borderLeftColor: colors.primary,
+        borderLeftWidth: 1,
+      },
+      title: {
+        fontSize: appFontSize,
+        fontWeight: '600',
+        color: colors.text,
+        paddingBottom: 4,
+        paddingStart: 4,
+      },
+      swipePrimary: {
+        backgroundColor: colors.primary,
+        width: 80,
+        paddingVertical: "auto",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 99,
+      },
+      swipeAlert: {
+        backgroundColor: colors.alert,
+        width: 80,
+        paddingVertical: "auto",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 99,
+      },
+      swipeWarning: {
+        backgroundColor: colors.warning,
+        width: 80,
+        paddingVertical: "auto",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 99,
+      },
+    }
     )
   )
 }

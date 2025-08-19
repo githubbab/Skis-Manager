@@ -39,3 +39,7 @@ yarn-error.*
 app-example
 *.db-shm
 *.db-wal
+# Expo
+.expo
+dist/
+web-build/

@@ -1,64 +1,115 @@
-import React, {useContext} from 'react';
-import {Tabs} from 'expo-router';
 import AppIcon from "@/components/AppIcon";
-import {View} from "react-native";
-import {ThemeContext} from "@/context/ThemeContext";
-import AppStyles from "@/constants/AppStyles";
+import Row from "@/components/Row";
+import { appFontSize } from "@/constants/AppStyles";
+import { useEnvContext } from "@/context/EnvContext";
+import { ThemeContext } from "@/context/ThemeContext";
+import { router, Tabs } from 'expo-router';
+import React, { useContext } from 'react';
+import { Pressable, StyleSheet, Text } from "react-native";
 
 export default function TabLayout() {
-  const {colorsTheme} = useContext(ThemeContext);
-  const styles = AppStyles(colorsTheme);
+  const { colorsTheme } = useContext(ThemeContext);
+  const { t, viewOuting, seasonDate, seasonName, lang } = useEnvContext();
+
+
+  const styles = StyleSheet.create({
+    headerTitle: {
+      color: colorsTheme.text,
+      fontSize: appFontSize,
+      fontWeight: 'bold',
+      fontVariant: ['small-caps'],
+      textDecorationLine: 'underline',
+    },
+    headerSubtitle: {
+      color: colorsTheme.inactiveText,
+      fontSize: appFontSize - 2,
+      fontWeight: 'normal',
+      fontStyle: 'italic',
+    },
+    header: {
+      backgroundColor: colorsTheme.background,
+      padding: 4,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+  })
 
   return (
-    <View style={[styles.container,{borderColor: "yellow", borderStyle: "solid"}]}>
-      <Tabs
-        screenOptions={{
-          tabBarIconStyle: {height: 32},
-          tabBarStyle: { minHeight: 80, paddingBottom: -50 },
-          tabBarLabelStyle: { fontSize: 14 },
-          tabBarActiveTintColor: colorsTheme.primary,
-          tabBarInactiveTintColor: colorsTheme.inactiveText,
-          tabBarActiveBackgroundColor: colorsTheme.bar,
-          tabBarInactiveBackgroundColor: colorsTheme.bar,
-          headerBackgroundContainerStyle: styles.header,
-          // Disable the static render of the header on web
-          // to prevent a hydration error in React Navigation v6.
-          headerShown: false,
-        }}>
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Accueil',
-            tabBarIcon: ({color}) =>
-              <AppIcon name="home" color={color} styles={styles.icoFont} />,
-          }}
-        />
-
-        <Tabs.Screen
-          name="skidays"
-          options={{
-            title: 'Sorties',
-            tabBarIcon: ({color}) =>
-              <AppIcon name="slope" color={color} styles={styles.icoFont} />,
-          }}
-        />
-        <Tabs.Screen
-          name="maintains"
-          options={{
-            title: 'Entretiens',
-            tabBarIcon: ({color}) =>
-              <AppIcon name="entretien" color={color} styles={styles.icoFont} />,
-          }}
-        />
-        <Tabs.Screen
-          name="outings"
-          options={{
-            title: 'Hors-pistes',
-            tabBarIcon: ({color}) =>
-              <AppIcon name="hors-piste" color={color} styles={styles.icoFont} />,
-          }}
-        />
-      </Tabs>
-    </View>
+    <Tabs
+      screenOptions={{
+      tabBarIconStyle: { height: 34 },
+      tabBarStyle: { paddingBottom: -50 },
+      tabBarLabelStyle: { display: 'none' }, // Hide tabBarLabel
+      tabBarActiveTintColor: colorsTheme.primary,
+      tabBarInactiveTintColor: colorsTheme.inactiveText,
+      tabBarActiveBackgroundColor: colorsTheme.bar,
+      tabBarInactiveBackgroundColor: colorsTheme.bar,
+      header(props) {
+        return (
+        <Pressable onPress={() => router.navigate({ pathname: '/(drawer)/seasons-management' })}>
+          <Row style={styles.header}>
+          <Text style={[styles.headerTitle, { marginHorizontal: 'auto' }]}>{seasonName}</Text>
+          <Row style={{ marginHorizontal: 'auto' }}>
+            <AppIcon name="calendar1" color={colorsTheme.inactiveText} size={18} />
+            <Text style={[styles.headerSubtitle, { marginHorizontal: 'auto' }]}>
+            {seasonDate.toLocaleDateString(lang, { day: '2-digit', month: 'short', year: 'numeric' })}
+            </Text>
+          </Row>
+          </Row>
+        </Pressable>
+        );
+      },
+      headerTintColor: colorsTheme.text,
+      headerShadowVisible: false,
+      }}>
+      <Tabs.Screen
+      name="index"
+      options={{
+        title: t('home'),
+        tabBarIcon: ({ color }) =>
+        <AppIcon name="home" color={color} size={32} />,
+      }}
+      />
+      <Tabs.Screen
+      name="events"
+      options={{
+        tabBarLabel: "",
+        tabBarIcon: ({ color }) =>
+            <Row>
+              <AppIcon name="sortie" color={color} size={32} />
+              <AppIcon name="loop" color={color} size={24} />
+              <AppIcon name="entretien" color={color} size={32} />
+            </Row>,
+        }}
+      />
+      <Tabs.Screen
+        name="outings"
+        options={{
+          href: null,
+          title: t('tab_outings'),
+          tabBarIcon: ({ color }) =>
+            <AppIcon name="sortie" color={color} size={32} />,
+        }}
+      />
+      <Tabs.Screen
+        name="maintains"
+        options={{
+          href: null,
+          title: t('tab_maintains'),
+          tabBarIcon: ({ color }) =>
+            <AppIcon name="entretien" color={color} size={32} />,
+        }}
+      />
+      <Tabs.Screen
+        name="offpistes"
+        options={{
+          href: viewOuting ? undefined : null,
+          title: t('tab_offpistes'),
+          tabBarIcon: ({ color }) =>
+            <AppIcon name="hors-piste" color={color} size={32} />,
+        }}
+      />
+    </Tabs>
   );
 }

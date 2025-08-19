@@ -1,26 +1,32 @@
-import React from "react";
-import { View, StyleSheet } from "react-native";
-import AppIcon from "@/components/AppIcon";
+import AppIcon, { AppIconName } from "@/components/AppIcon";
 import Pastille from "@/components/Pastille";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 
 type Props = {
-  littleIconName: "star-full" | "warning";
-  usersIconName: string;
+  littleIconName: AppIconName;
+  usersIconName: AppIconName;
   textColor: string;
   pastilleValue?: string;
   pastilleColor?: string;
 };
 
 const TileIconTitle = ({
-                                          littleIconName,
-                                          usersIconName,
-                                          pastilleValue,
-                                          pastilleColor,
-                                          textColor,
-                                        }: Props) => (
+                         littleIconName,
+                         usersIconName,
+                         pastilleValue,
+                         pastilleColor,
+                         textColor,
+                       }: Props) => (
   <View style={styles.listMainView}>
-    <AppIcon name={littleIconName} color={littleIconName === "warning"?"red":"orange"} styles={styles.iconBadge} />
-    <AppIcon name={usersIconName} color={textColor} styles={styles.iconList} />
+    {littleIconName !== "none" &&
+      <AppIcon
+        name={littleIconName}
+        color={littleIconName === "warning" ? "red" : "orange" }
+        styles={styles.iconBadge}
+      />
+    }
+    <AppIcon name={usersIconName} color={textColor} styles={styles.iconList}/>
     {pastilleValue && (
       <Pastille
         name={pastilleValue}

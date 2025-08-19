@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="024a8f83-a99c-47a5-b0ad-f5895b47846f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/assets/images/add.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/images/brands/init-fischer.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/images/brands/init-lange.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/skis-manager.db" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/AddButton.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/Body.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/Card.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/CheckButton.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/Row.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/Separator.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/Tile.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/TileIconTitle.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/constants/Translations.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/constants/colorPickerStyle.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hooks/DatabaseManager.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hooks/FileSystemManager.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/(tabs)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/(tabs)/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/(tabs)/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/(tabs)/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/(tabs)/maintains.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/(tabs)/maintains.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/(tabs)/outings.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/(tabs)/outings.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/(tabs)/skidays.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/(tabs)/offpistes.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/backup-sync-settings.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/backup-sync-settings.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/boots-management.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/boots-management.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/friends-management.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/friends-management.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/outing-management.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/settings.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/settings.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/skis-management.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/skis-management.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/stats.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/stats.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/type-of-maintains-management.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/brands-management.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/type-of-outings-management.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/type-of-outings-management.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/type-of-skis-management.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/type-of-skis-management.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(drawer)/users-management.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(drawer)/users-management.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/brands/init-atomic.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/brands/init-atomic.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/brands/init-fisher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/brands/init-volk.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/tos/init-gs.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/tos/init-gs.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/tos/init-powder.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/tos/init-powder.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/tos/init-rock.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/tos/init-rock.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/tos/init-skating.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/tos/init-skating.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/tos/init-sl.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/tos/init-sl.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/tos/init-slope.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/tos/init-slope.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/tos/init-surf.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/tos/init-surf.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/AppIcon.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/AppIcon.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/DrawerMenu.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/OpenMenu.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/Pastille.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Pastille.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/SettingsButton.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/AppColors.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/AppColors.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/AppQuery.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/AppStyles.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/AppStyles.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/context/ThemeContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/context/ThemeContext.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/DataManager.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;githubbab&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/githubbab/Skis-Manager.git&quot;,
+    &quot;accountId&quot;: &quot;86306dcc-49db-45e8-8c4c-45238f4f8d5e&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="30twUabsU5zLfH24bCObXydvRYW" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "master",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/sebm/Téléchargements"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="024a8f83-a99c-47a5-b0ad-f5895b47846f" name="Changes" comment="" />
+      <created>1754460193603</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1754460193603</updated>
+    </task>
+    <servers />
+  </component>
+</project>

@@ -1,290 +1,1086 @@
-import {FlatList, ListRenderItem, Text, TouchableOpacity, View, Image} from 'react-native';
-import AppStyles from "@/constants/AppStyles";
-import {useCallback, useContext, useState} from "react";
-import {ThemeContext} from "@/context/ThemeContext";
+import AppButton from "@/components/AppButton";
 import AppIcon from "@/components/AppIcon";
+import Body from "@/components/Body";
+import Card from "@/components/Card";
+import ModalEditor from "@/components/ModalEditor";
 import Pastille from "@/components/Pastille";
-import {useSQLiteContext} from "expo-sqlite";
-import AppQuery from "@/constants/AppQuery";
-import {useFocusEffect} from "expo-router";
-import {documentDirectory, getInfoAsync} from "expo-file-system";
-import {lastDBWrite} from "@/hooks/DataManager";
-import {randomUUID} from "node:crypto";
+import Row from "@/components/Row";
+import Separator from "@/components/Separator";
+import Tile from "@/components/Tile";
+import TileIconTitle from "@/components/TileIconTitle";
+import AppStyles from "@/constants/AppStyles";
+import { useEnvContext } from "@/context/EnvContext";
+import { ThemeContext } from "@/context/ThemeContext";
+import { getLastDBWrite } from "@/hooks/DatabaseManager";
+import { Boots, getAllBoots } from "@/hooks/dbBoots";
+import { Friends, getAllFriends } from "@/hooks/dbFriends";
+import { initMaintain, Maintains } from "@/hooks/dbMaintains";
+import { getAllOffPistes, OffPistes } from "@/hooks/dbOffPistes";
+import { initOuting, insertOuting, Outings } from "@/hooks/dbOutings";
+import { getAllSkis, getSkis2Sharp, getSkis2Wax, getTopSkis, Skis } from "@/hooks/dbSkis";
+import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
+import { getAllUsers, getTopUsers, Users } from "@/hooks/dbUsers";
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
+import React, { useCallback, useContext, useEffect, useState } from "react";
+import { FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-interface Users {
-  key: string;
-  name: string;
-  pcolor: string | undefined;
-  nb: number;
+
+
+
+
+const iconSize: number = 32;
+
+const getCountColor = (count: number) => {
+  const safeColor = Math.max(0, Math.min(255, 137 - count * 10));
+  return `rgb(255,${safeColor},0)`;
 }
-
-interface Skis {
-  key: string;
-  brand: string;
-  name: string;
-  idStyle: string;
-  style: string;
-  icoStyleUri: string,
-  users: string;
-  nb: number;
-}
-
-let dbState: string = "none"
-const imgStore: string = documentDirectory+"images/";
-let lastCheck = 0;
 
 export default function Index() {
-  const {colorsTheme} = useContext(ThemeContext);
+  //  #####                                         
+  // #     #  ####  #    # ##### ###### #    # #####
+  // #       #    # ##   #   #   #       #  #    #  
+  // #       #    # # #  #   #   #####    ##     #  
+  // #       #    # #  # #   #   #        ##     #  
+  // #     # #    # #   ##   #   #       #  #    #  
+  //  #####   ####  #    #   #   ###### #    #   #   
+  const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
+  const { t, smDate, lang, seasonDate, viewFriends, viewOuting } = useEnvContext();
+  const [addOutingMode, setAddOutingMode] = useState<boolean>(false);
+  const [addMaintainMode, setAddMaintainMode] = useState<boolean>(false);
 
   const db = useSQLiteContext()
-
   const [topUsers, setTopUsers] = useState<Users[]>([]);
   const [topSkis, setTopSkis] = useState<Skis[]>([]);
   const [toSharp, setToSharp] = useState<Skis[]>([]);
   const [toWax, setToWax] = useState<Skis[]>([]);
+  const [lastCheck, setLastCheck] = useState<number>(0);
+  const [dbState, setDbState] = useState<'none' | 'loading' | 'done'>('none');
 
-  const loadData = async () => {
+  const [dateTimePickerVisible, setDateTimePickerVisible] = useState<"none" | "outing" | "maintain">("none");
+  const [outing2write, setOuting2Write] = useState<Outings>(initOuting());
+  const [maintain2write, setMaintain2Write] = useState<Maintains>(initMaintain());
+  const [listUsers, setListUsers] = useState<Users[]>([]);
+  const [listSkis, setListSkis] = useState<Skis[]>([]);
+  const [listBoots, setListBoots] = useState<Boots[]>([]);
+  const [listOutingTypes, setListOutingTypes] = useState<TOO[]>([]);
+  const [listFriends, setListFriends] = useState<Friends[]>([]);
+  const [listOffPistes, setListOffPistes] = useState<OffPistes[]>([]);
+  const [friendsVisible, setFriendsVisible] = useState<boolean>(false);
+  const [outingVisible, setOutingVisible] = useState<boolean>(false);
+  const [offPisteVisible, setOffPisteVisible] = useState<boolean>(false);
+  const [selectedSkis, setSelectedSkis] = useState<string>("");
+  const [partOfDay, setPartOfDay] = useState<"am" | "noon" | "pm">("am");
+  const [outingViewUser, setOutingViewUser] = useState<boolean>(false);
+  const [outingViewSkis, setOutingViewSkis] = useState<boolean>(false);
+  const [outingViewBoots, setOutingViewBoots] = useState<boolean>(false);
+  const [outingViewToOuting, setOutingViewToOuting] = useState<boolean>(false);
+  const [outingViewOffPiste, setOutingViewOffPiste] = useState<boolean>(false);
+  const [outingViewFriends, setOutingViewFriends] = useState<boolean>(false);
+  const [effectActive, setEffectActive] = useState<boolean>(false);
+
+  const filterOutingSkis = (idUser: string) => listSkis.filter(ski => ski.listUsers?.includes(idUser)).sort((a, b) => {
+    const aNb = a.nbOutings || 0;
+    const bNb = b.nbOutings || 0;
+    return bNb - aNb;
+  });
+  const filterOutingBoots = (idSkis: string) => listBoots.filter(boots => listSkis.find(ski => ski.id === idSkis)?.listBoots?.includes(boots.id || "") || false).sort((a, b) => {
+    const aNb = a.nbOutings || 0;
+    const bNb = b.nbOutings || 0;
+    return bNb - aNb;
+  });
+
+  // #                            ######                     
+  // #        ####    ##   #####  #     #   ##   #####   ##  
+  // #       #    #  #  #  #    # #     #  #  #    #    #  # 
+  // #       #    # #    # #    # #     # #    #   #   #    #
+  // #       #    # ###### #    # #     # ######   #   ######
+  // #       #    # #    # #    # #     # #    #   #   #    #
+  // #######  ####  #    # #####  ######  #    #   #   #    #
+  const loadData = useCallback(async () => {
     console.debug("refresh index - db load data")
 
     try {
-      dbState = "loading";
-      const topUsersResult: Users[] = await db.getAllAsync(AppQuery.topUsers);
-      console.debug("AppQuery.topUsers: ", topUsersResult, typeof topUsers);
+      setDbState("loading");
+      const topUsersResult: Users[] = await getTopUsers(db);
       setTopUsers(topUsersResult);
-      const topSkisResult: Skis[] = await db.getAllAsync(AppQuery.topSkis)
-      for (const skis of topSkisResult) {
-        const file = await getInfoAsync(imgStore+"tos/"+skis.idStyle+".png");
-        if (file.exists) {
-          skis.icoStyleUri = file.uri;
-        }
-      }
-      console.debug("AppQuery.topSkis: ", topSkisResult);
+      const topSkisResult: Skis[] = await getTopSkis(db);
       setTopSkis(topSkisResult);
-      const toSharpResult: Skis[] = await db.getAllAsync(AppQuery.toSharp)
-      for (const skis of toSharpResult) {
-        const file = await getInfoAsync(imgStore+"tos/"+skis.idStyle+".png");
-        if (file.exists) {
-          skis.icoStyleUri = file.uri;
-        }
-      }
-      console.debug("AppQuery.toSharp: ", toSharpResult, typeof toSharpResult);
-      const toWaxResult: Skis[] = await db.getAllAsync(AppQuery.toWax)
+      const toSharpResult: Skis[] = await getSkis2Sharp(db);
       setToSharp(toSharpResult);
-      for (const skis of toSharpResult) {
-        const file = await getInfoAsync(imgStore+"tos/"+skis.idStyle+".png");
-        if (file.exists) {
-          skis.icoStyleUri = file.uri;
-        }
-      }
-      console.debug("AppQuery.toWax: ", toWaxResult, typeof toWaxResult);
+      const toWaxResult: Skis[] = await getSkis2Wax(db);
       setToWax(toWaxResult);
-      dbState = "done"
+      const usersResult: Users[] = await getAllUsers(db, smDate(seasonDate));
+      setListUsers(usersResult);
+      const skisResult: Skis[] = await getAllSkis(db, smDate(seasonDate));
+      setListSkis(skisResult);
+      const bootsResult: Boots[] = await getAllBoots(db, smDate(seasonDate));
+      setListBoots(bootsResult);
+      const typeOfOutings: TOO[] = await getAllTypeOfOutings(db);
+      setListOutingTypes(typeOfOutings);
+      const friendsResult: Friends[] = await getAllFriends(db);
+      setListFriends(friendsResult);
+      const offPistesResult: OffPistes[] = await getAllOffPistes(db);
+      setListOffPistes(offPistesResult);
+      console.debug("index - db load data done", { friendsResult });
+      setDbState("done");
     } catch (error) {
       console.error(error);
     }
-  }
+  }, [])
 
+  // #     #               #######                             #######                                  
+  // #     #  ####  ###### #        ####   ####  #    #  ####  #       ###### ###### ######  ####  #####
+  // #     # #      #      #       #    # #    # #    # #      #       #      #      #      #    #   #  
+  // #     #  ####  #####  #####   #    # #      #    #  ####  #####   #####  #####  #####  #        #  
+  // #     #      # #      #       #    # #      #    #      # #       #      #      #      #        #  
+  // #     # #    # #      #       #    # #    # #    # #    # #       #      #      #      #    #   #  
+  //  #####   ####  ###### #        ####   ####   ####   ####  ####### #      #      ######  ####    #  
   useFocusEffect(
     useCallback(() => {
       if (dbState === "loading") return;
-      if (lastCheck < lastDBWrite) loadData().then(() => lastCheck = lastDBWrite);
+      const lastWrite = getLastDBWrite();
+      if (lastWrite > lastCheck) {
+        console.log('La base a été modifiée, je recharge mes données');
+        loadData().then(() => setLastCheck(lastWrite))
+      }
     }, [])
   )
 
+  useEffect(() => {
+    if (effectActive) {
+      console.debug("useEffect active, skipping outing2write update");
+      return;
+    }
+    setEffectActive(true);
+    if (outing2write.date) {
+      setOutingViewUser(true);
+    }
+    else {
+      setOutingViewUser(false);
+    }
+    let outing = outing2write
+    if (outing2write.idUser) {
+      setOutingViewSkis(true);
+      const skis = filterOutingSkis(outing2write.idUser || "");
+      if (skis.length === 1) {
+        outing = { ...outing, idSkis: skis[0].id };
+      }
+    }
+    else {
+      setOutingViewSkis(false);
+    }
+    if (outing2write.idSkis) {
+      setOutingViewBoots(true);
+      const boots = filterOutingBoots(outing2write.idSkis || "");
+      if (boots.length === 1) {
+        outing = { ...outing, idBoots: boots[0].id };
+      }
+    } else {
+      setOutingViewBoots(false);
+    }
+    if (outing2write.idBoots) {
+      if (viewOuting) {
+        setOutingViewToOuting(true);
+        const majorType = listSkis.find(ski => ski.id === outing2write.idSkis)?.majorTypeOfOuting;
+        if (majorType) {
+          outing = { ...outing, idOutingType: majorType };
+        }
+        if (outing2write.idOutingType) {
+          if (listOutingTypes.find(type => type.id === outing2write.idOutingType)?.canOffPiste) {
+            setOutingViewOffPiste(true);
+          }
+          else {
+            setOutingViewOffPiste(false);
+          }
+        }
+        else {
+          setOutingViewOffPiste(false);
+        }
+      } else {
+        setOutingViewToOuting(false);
+      }
+      if (viewFriends) {
+        if (listFriends.length > 0) {
+          setOutingViewFriends(true);
+        }
+        else {
+          setOutingViewFriends(false);
+        }
+      }
+    }
+    else {
+      setOutingViewToOuting(false);
+      setOutingViewOffPiste(false);
+      setOutingViewFriends(false);
+    }
+    if (JSON.stringify(outing) !== JSON.stringify(outing2write)) {
+      setOuting2Write(outing);
+    }
+    setEffectActive(false);
+  }, [outing2write])
+  //                                            #####                               
+  // #####  ###### #    # #####  ###### #####  #     # #    # # ###### #####   #### 
+  // #    # #      ##   # #    # #      #    # #       #   #  # #      #    # #     
+  // #    # #####  # #  # #    # #####  #    #  #####  ####   # #####  #    #  #### 
+  // #####  #      #  # # #    # #      #####        # #  #   # #      #####       #
+  // #   #  #      #   ## #    # #      #   #  #     # #   #  # #      #   #  #    #
+  // #    # ###### #    # #####  ###### #    #  #####  #    # # ###### #    #  #### 
+  const renderSkiers: ListRenderItem<Users> = ({ item }) => (
+    <View style={{ alignItems: 'center', justifyContent: 'center', width: 85 }}>
+      <Pastille size={iconSize + 8} name={item.name} color={item.pcolor} />
+      <Pastille size={iconSize} name={item.nbOutings?.toString() || "0"} color={colorsTheme.pastille} textColor={colorsTheme.text}
+        style={{ marginTop: -16, marginRight: -40 }} />
+      <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 16, marginTop: -16, marginRight: -64 }} />
+      <Text numberOfLines={1} style={{
+        color: colorsTheme.text,
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginTop: -8,
+        marginRight: -16
+      }}>{item.name}</Text>
+    </View>
+  )
 
+  //                                            #####                 
+  // #####  ###### #    # #####  ###### #####  #     # #    # #  #### 
+  // #    # #      ##   # #    # #      #    # #       #   #  # #     
+  // #    # #####  # #  # #    # #####  #    #  #####  ####   #  #### 
+  // #####  #      #  # # #    # #      #####        # #  #   #      #
+  // #   #  #      #   ## #    # #      #   #  #     # #   #  # #    #
+  // #    # ###### #    # #####  ###### #    #  #####  #    # #  #### 
+  const renderSkis: ListRenderItem<Skis> = ({ item }) => {
+    return (
+      <View>
+        <TouchableOpacity onPress={() => {
+          if (selectedSkis !== item.id) {
+            setSelectedSkis(item.id)
+          }
+          else {
+            setSelectedSkis("")
+          }
+        }}>
+          <Row style={{ marginBottom: 8 }}>
+            {item.icoTypeOfSkisUri ?
+              <Image source={{ uri: item.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+              <Pastille size={iconSize} name={item.typeOfSkis || ""} color={"#fbe2cb"} />
+            }
+            <Image source={{ uri: item.icoBrandUri }}
+              style={{ width: iconSize, height: iconSize }} />
+            <Text numberOfLines={1}
+              style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
+            >
+              {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
+            </Text>
+            {item.listUserNames?.map((value: string, index: number) => {
+              return <Pastille key={"SKIS" + value + index} name={value} size={iconSize}
+                style={{ marginRight: -10, zIndex: index * -1 }} />;
+            })}
+            <Text numberOfLines={1}
+              style={{ color: colorsTheme.text, fontSize: 20, flex: 1, textAlign: 'right' }}>{item.nbOutings?.toString()}</Text>
+            <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 20 }} />
+          </Row>
+        </TouchableOpacity>
+        {selectedSkis === item.id && (
+          <Row>
+            <AppIcon name={'stopwatch'} color={colorsTheme.text}  />
+            <Card>
+              <AppIcon name={'sortie'} color={colorsTheme.text} size={18} />
+              <Text numberOfLines={1}
+                style={[appStyles.text, { fontSize: 18 }]}>
+                {item.lastOutingDate !== undefined ? new Date(item.lastOutingDate).toLocaleString(lang, { month: 'short', day: 'numeric' }) : "N/A"}
+              </Text>
+            </Card>
+            <Card>
+              <AppIcon name={'affuteuse'} color={colorsTheme.text} size={18} />
+              <Text numberOfLines={1}
+                style={[appStyles.text, { fontSize: 18 }]}>
+                {item.lastSharpDate !== undefined ? new Date(item.lastSharpDate).toLocaleString(lang, { month: 'short', day: 'numeric' }) : "N/A"}
+              </Text>
+            </Card>
+            <Card>
+              <AppIcon name={'fartage'} color={colorsTheme.text} size={18} />
+              <Text numberOfLines={1}
+                style={[appStyles.text, { fontSize: 18 }]}>
+                {item.lastWaxDate !== undefined ? new Date(item.lastWaxDate).toLocaleString(lang, { month: 'short', day: 'numeric' }) : "N/A"}
+              </Text>
+            </Card>
+          </Row>
+        )}
+        <Separator />
+      </View>
+    )
+  }
+
+  //                                           #######         #####                             
+  // #####  ###### #    # #####  ###### #####     #     ####  #     # #    #   ##   #####  ##### 
+  // #    # #      ##   # #    # #      #    #    #    #    # #       #    #  #  #  #    # #    #
+  // #    # #####  # #  # #    # #####  #    #    #    #    #  #####  ###### #    # #    # #    #
+  // #####  #      #  # # #    # #      #####     #    #    #       # #    # ###### #####  ##### 
+  // #   #  #      #   ## #    # #      #   #     #    #    # #     # #    # #    # #   #  #     
+  // #    # ###### #    # #####  ###### #    #    #     ####   #####  #    # #    # #    # #     
+  const renderToSharp: ListRenderItem<Skis> = ({ item }) => {
+    const count = item.nbMaintains || 0;
+    const countColor = getCountColor(count)
+    return (
+      <Row>
+        {item.icoTypeOfSkisUri ?
+          <Image source={{ uri: item.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+          <Pastille size={iconSize} name={item.typeOfSkis || ""} color={"#fbe2cb"} />
+        }
+
+        <Image source={{ uri: item.icoBrandUri }}
+          style={{ width: iconSize, height: iconSize }} />
+        <Text numberOfLines={1}
+          style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
+        >
+          {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
+        </Text>
+        {item.listUserNames?.map((value: string, index: number) => {
+          return <Pastille key={"SHARP" + value + index} name={value} size={iconSize}
+            style={{ marginRight: -10, zIndex: index * -1 }} />;
+        })}
+        {count === 0 ?
+          <AppIcon name={"affuteuse"} color={colorsTheme.warning}
+            styles={{ fontSize: iconSize, flex: 1, textAlign: 'right' }} />
+          :
+          <>
+            <AppIcon name={"affuteuse"} color={countColor} styles={{ fontSize: 20, flex: 1, textAlign: 'right' }} />
+            <Text numberOfLines={1}
+              style={{ color: countColor, fontSize: 14, marginLeft: -12, marginBottom: -12, textAlign: 'right' }}>
+              +{count.toString()}
+            </Text>
+          </>
+        }
+
+      </Row>
+    )
+  }
+
+  //                                           #######        #     #              
+  // #####  ###### #    # #####  ###### #####     #     ####  #  #  #   ##   #    #
+  // #    # #      ##   # #    # #      #    #    #    #    # #  #  #  #  #   #  # 
+  // #    # #####  # #  # #    # #####  #    #    #    #    # #  #  # #    #   ##  
+  // #####  #      #  # # #    # #      #####     #    #    # #  #  # ######   ##  
+  // #   #  #      #   ## #    # #      #   #     #    #    # #  #  # #    #  #  # 
+  // #    # ###### #    # #####  ###### #    #    #     ####   ## ##  #    # #    #
+  const renderToWax: ListRenderItem<Skis> = ({ item }) => {
+    const count = item.nbMaintains || 0;
+    const countColor = getCountColor(count)
+    return (
+      <Row >
+        {item.icoTypeOfSkisUri ?
+          <Image source={{ uri: item.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+          <Pastille size={iconSize} name={item.typeOfSkis || ""} color={"#fbe2cb"} />
+        }
+
+        <Image source={{ uri: item.icoBrandUri }}
+          style={{ width: iconSize, height: iconSize }} />
+        <Text numberOfLines={1}
+          style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
+        >
+          {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
+        </Text>
+        {item.listUserNames?.map((value: string, index: number) => {
+          return <Pastille key={"WAX" + value + index} name={value} size={iconSize}
+            style={{ marginRight: -10, zIndex: index * -1 }} />;
+        })}
+        {count === 0 ?
+          <AppIcon name={"fartage"} color={colorsTheme.warning} styles={{ fontSize: 24, flex: 1, textAlign: 'right' }} />
+          :
+          <>
+            <AppIcon name={"fartage"} color={countColor}
+              styles={{ fontSize: 20, flex: 1, marginTop: -10, textAlign: 'right' }} />
+            <Text numberOfLines={1}
+              style={{ color: countColor, fontSize: 14, marginLeft: -12, marginBottom: -10, textAlign: 'right' }}>
+              +{count.toString()}
+            </Text>
+          </>
+        }
+
+      </Row>
+    )
+  }
+  //                                           #######                               #####                 
+  // #####  ###### #    # #####  ###### #####  #     # #    # ##### # #    #  ####  #     # #    # #  #### 
+  // #    # #      ##   # #    # #      #    # #     # #    #   #   # ##   # #    # #       #   #  # #     
+  // #    # #####  # #  # #    # #####  #    # #     # #    #   #   # # #  # #       #####  ####   #  #### 
+  // #####  #      #  # # #    # #      #####  #     # #    #   #   # #  # # #  ###       # #  #   #      #
+  // #   #  #      #   ## #    # #      #   #  #     # #    #   #   # #   ## #    # #     # #   #  # #    #
+  // #    # ###### #    # #####  ###### #    # #######  ####    #   # #    #  ####   #####  #    # #  #### 
+  const renderOutingSkis: ListRenderItem<Skis> = ({ item }) => {
+    return (
+      <TouchableOpacity onPress={() => {
+        console.debug("renderOutingSkis:", item);
+        console.debug("majorOutingType:", item.majorTypeOfOuting);
+        if (outing2write.idSkis === item.id) {
+          const skis = filterOutingSkis(outing2write.idUser || "");
+          if (skis.length !== 1) {
+            setOuting2Write({ ...outing2write, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
+          }
+        } else {
+          const boots = filterOutingBoots(item.id);
+          if (boots.length === 1) {
+            setOuting2Write({ ...outing2write, idSkis: item.id, idBoots: boots[0].id, idOutingType: item.majorTypeOfOuting || undefined });
+          } else {
+            setOuting2Write({ ...outing2write, idSkis: item.id, idBoots: undefined, idOutingType: item.majorTypeOfOuting || undefined });
+          }
+        }
+      }}>
+        <Row style={{ marginVertical: 2 }}>
+          {item.icoTypeOfSkisUri ?
+            <Image source={{ uri: item.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+            <Pastille size={iconSize} name={item.typeOfSkis || ""} color={"#fbe2cb"} />
+          }
+          <Image source={{ uri: item.icoBrandUri }}
+            style={{ width: iconSize, height: iconSize }} />
+          <Text numberOfLines={1}
+            style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
+          >
+            {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
+          </Text>
+
+        </Row>
+      </TouchableOpacity>
+    )
+  }
+
+  //                                           #######                              ######                            
+  // #####  ###### #    # #####  ###### #####  #     # #    # ##### # #    #  ####  #     #  ####   ####  #####  #### 
+  // #    # #      ##   # #    # #      #    # #     # #    #   #   # ##   # #    # #     # #    # #    #   #   #     
+  // #    # #####  # #  # #    # #####  #    # #     # #    #   #   # # #  # #      ######  #    # #    #   #    #### 
+  // #####  #      #  # # #    # #      #####  #     # #    #   #   # #  # # #  ### #     # #    # #    #   #        #
+  // #   #  #      #   ## #    # #      #   #  #     # #    #   #   # #   ## #    # #     # #    # #    #   #   #    #
+  // #    # ###### #    # #####  ###### #    # #######  ####    #   # #    #  ####  ######   ####   ####    #    #### 
+  const renderOutingBoots: ListRenderItem<Boots> = ({ item }) => {
+    return (
+      <TouchableOpacity onPress={() => {
+        if (outing2write.idBoots === item.id) {
+          const boots = filterOutingBoots(outing2write.idSkis || "");
+          if (boots.length !== 1) {
+            setOuting2Write({ ...outing2write, idBoots: undefined });
+          }
+        } else {
+          setOuting2Write({ ...outing2write, idBoots: item.id })
+        }
+      }}>
+        <Row style={{ marginVertical: 2 }}>
+          <Image source={{ uri: item.icoBrandUri }}
+            style={{ width: iconSize, height: iconSize }} />
+          <Text style={[appStyles.title, { flex: 1 }]}>
+            {item.idBrand === "init-unknown" ? "" : item.brand + " "}
+            {item.flex ? item.flex + " " : ""}
+            {item.size ? "T" + item.size + " " : ""}
+            {item.name}
+          </Text>
+        </Row>
+      </TouchableOpacity>
+    )
+  }
+
+  //                             #######                             
+  //  ####    ##   #    # ###### #     # #    # ##### # #    #  #### 
+  // #       #  #  #    # #      #     # #    #   #   # ##   # #    #
+  //  ####  #    # #    # #####  #     # #    #   #   # # #  # #     
+  //      # ###### #    # #      #     # #    #   #   # #  # # #  ###
+  // #    # #    #  #  #  #      #     # #    #   #   # #   ## #    #
+  //  ####  #    #   ##   ###### #######  ####    #   # #    #  #### 
+  const saveOuting = async () => {
+    console.debug("Saving outing", outing2write);
+    setAddOutingMode(false);
+    await insertOuting(db, outing2write);
+    setOuting2Write(initOuting());
+    await loadData(); // Reload data after saving
+  }
+  //                             #     #                                      
+  //  ####    ##   #    # ###### ##   ##   ##   # #    # #####   ##   # #    #
+  // #       #  #  #    # #      # # # #  #  #  # ##   #   #    #  #  # ##   #
+  //  ####  #    # #    # #####  #  #  # #    # # # #  #   #   #    # # # #  #
+  //      # ###### #    # #      #     # ###### # #  # #   #   ###### # #  # #
+  // #    # #    #  #  #  #      #     # #    # # #   ##   #   #    # # #   ##
+  //  ####  #    #   ##   ###### #     # #    # # #    #   #   #    # # #    #
+  const saveMaintain = async () => {
+    console.debug("Saving maintain");
+    setAddMaintainMode(false);
+    // Here you would save the maintain data to the database
+  }
+  //                                              #                 
+  //  ####    ##   #    #  ####  ###### #        # #   #####  ##### 
+  // #    #  #  #  ##   # #    # #      #       #   #  #    # #    #
+  // #      #    # # #  # #      #####  #      #     # #    # #    #
+  // #      ###### #  # # #      #      #      ####### #    # #    #
+  // #    # #    # #   ## #    # #      #      #     # #    # #    #
+  //  ####  #    # #    #  ####  ###### ###### #     # #####  ##### 
+  const cancelAdd = () => {
+    console.debug("Cancel add outing");
+    setAddOutingMode(false);
+    setAddMaintainMode(false);
+    setOuting2Write(initOuting());
+    setMaintain2Write(initMaintain());
+    setDateTimePickerVisible("none");
+    setOutingVisible(false);
+    setOffPisteVisible(false);
+    setFriendsVisible(false);
+    // Here you would reset any form data if necessary
+  }
+
+  //               ######                       #####                                    
+  //  ####  #    # #     #   ##   ##### ###### #     # #    #   ##   #    #  ####  ######
+  // #    # ##   # #     #  #  #    #   #      #       #    #  #  #  ##   # #    # #     
+  // #    # # #  # #     # #    #   #   #####  #       ###### #    # # #  # #      ##### 
+  // #    # #  # # #     # ######   #   #      #       #    # ###### #  # # #  ### #     
+  // #    # #   ## #     # #    #   #   #      #     # #    # #    # #   ## #    # #     
+  //  ####  #    # ######  #    #   #   ######  #####  #    # #    # #    #  ####  ######
+
+  function changeDate(date: Date, type: "outing" | "maintain") {
+    const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : 16));
+    console.debug("changeDate", date2Save);
+
+    if (type === "outing") {
+      if (listUsers.length === 1) {
+        const skis = filterOutingSkis(listUsers[0].id);
+        if (skis.length === 1) {
+          const boots = filterOutingBoots(skis[0].id);
+          if (boots.length === 1) {
+            setOuting2Write({ ...outing2write, date: date2Save, idUser: listUsers[0].id, idSkis: skis[0].id, idBoots: boots[0].id });
+          } else {
+            setOuting2Write({ ...outing2write, date: date2Save, idUser: listUsers[0].id, idSkis: skis[0].id, idBoots: undefined });
+          }
+        }
+        else {
+          setOuting2Write({ ...outing2write, date: date2Save, idUser: listUsers[0].id, idSkis: undefined, idBoots: undefined });
+        }
+      } else {
+        setOuting2Write({ ...outing2write, date: date2Save });
+      }
+    } else {
+      setMaintain2Write({ ...maintain2write, date: smDate(date2Save) });
+    }
+  }
+
+  function onDateChange(event: any, selectedDate: Date | undefined) {
+    console.debug("onDateChange", event.type, selectedDate);
+    if (event.type === "set" && selectedDate) {
+      changeDate(selectedDate, dateTimePickerVisible as "outing" | "maintain");
+    }
+    else {
+      console.debug("Date selection cancelled");
+    }
+    setDateTimePickerVisible("none");
+  }
+
+  // #####  ###### ##### #    # #####  #    #
+  // #    # #        #   #    # #    # ##   #
+  // #    # #####    #   #    # #    # # #  #
+  // #####  #        #   #    # #####  #  # #
+  // #   #  #        #   #    # #   #  #   ##
+  // #    # ######   #    ####  #    # #    #
 
   if (dbState !== "done") {
     console.debug("Data loading, wait !")
     return <Text>Loading...</Text>;
   }
 
-  const renderSkieurs: ListRenderItem<Users> = ({item}) => (
-      <View style={{alignItems: 'center', justifyContent: 'center', width: 85}}>
-        {(item.picture) ? <Image source={{uri: item.picture}}/> :
-          <Pastille size={40} name={item.name} color={item.pcolor}/>}
-        <Pastille size={32} name={item.nb.toString()} color={colorsTheme.pastille} textColor={colorsTheme.text}
-                  style={{marginTop: -16, marginRight: -40}}/>
-        <AppIcon name={'sortie'} color={colorsTheme.text} styles={{fontSize: 16, marginTop: -16, marginRight: -64}}/>
-        <Text numberOfLines={1} style={{color: colorsTheme.text, fontSize: 16, fontWeight: 'bold',marginTop: -8, marginRight: -16}}>{item.name}</Text>
-      </View>
-    )
-
-  const renderSkis: ListRenderItem<Skis> = ({item}) => {
-    console.debug('assetSource:', Image.resolveAssetSource({uri: '@/assets/images/tos/'+item.idStyle+'.png'}))
-
-    return (
-      <View style={appStyles.flatListRow}>
-        { item.icoStyleUri ?
-          <Image source={{uri: item.icoStyleUri}} style={{width:32,height:32}}/> :
-          <Pastille size={32} name={item.style}/>
-        }
-        <Text numberOfLines={1} style={{color: colorsTheme.text, fontSize: 18, flex: 4}}>{item.brand} {item.name}</Text>
-        {item.users.split(",").map((value: string, index: number) => {
-          return <Pastille key={value} name={value} size={28} style={{marginRight: -10, zIndex: index * -1}}/>;
-        })}
-        <Text numberOfLines={1}
-              style={{color: colorsTheme.text, fontSize: 16, flex: 1, textAlign: 'right'}}>{item.nb.toString()}</Text>
-        <AppIcon name={'sortie'} color={colorsTheme.text} styles={{fontSize: 18}}/>
-      </View>
-    )
-  }
-
-  const renderToSharp: ListRenderItem<Skis> = ({item}) => {
-    console.debug("renderMaintain:", item);
-    const count = item.nb
-    const countColor = "rgb(255," + (137 - (count * 10)).toString() + ",0)"
-    return (
-      <View style={appStyles.flatListRow}>
-        { item.icoStyleUri ?
-          <Image source={{uri: item.icoStyleUri}} style={{width:32,height:32}}/> :
-          <Pastille size={32} name={item.style}/>
-        }        <Text numberOfLines={1} style={{color: colorsTheme.text, fontSize: 18, flex: 2}}>{item.brand} {item.name}</Text>
-        {item.users.split(",").map((value: string, index: number) => {
-          return  <Pastille key={randomUUID()} name={value} size={32} style={{marginRight: -10, zIndex: index * -1}}/>;
-        })}
-        {count === 0 ?
-          <AppIcon name={"affuteuse"} color={"rgb(255,137,0)"} styles={{fontSize: 32, flex: 1, textAlign: 'right'}}/>
-          :
-          <>
-            <AppIcon name={"affuteuse"} color={countColor} styles={{fontSize: 20, flex: 1, textAlign: 'right'}}/>
-            <Text numberOfLines={1}
-                  style={{color: countColor, fontSize: 14, marginLeft: -12, marginBottom: -12, textAlign: 'right'}}>
-              +{count.toString()}
-            </Text>
-          </>
-        }
-
-      </View>
-    )
-  }
-
-  const renderToWax: ListRenderItem<Skis> = ({item}) => {
-    console.debug("renderMaintain:", item);
-    const count = item.nb
-    const countColor = "rgb(255," + (137 - (count * 10)).toString() + ",0)"
-    return (
-      <View style={appStyles.flatListRow}>
-        { item.icoStyleUri ?
-          <Image source={{uri: item.icoStyleUri}} style={{width:32,height:32}}/> :
-          <Pastille size={32} name={item.style}/>
-        }        <Text numberOfLines={1} style={{color: colorsTheme.text, fontSize: 16, flex: 2}}>{item.brand} {item.name}</Text>
-        {item.users.split(",").map((value: string, index: number) => {
-          return <Pastille key={randomUUID()} name={value} size={24} style={{marginRight: -10, zIndex: index * -1}}/>;
-        })}
-        {count === 0 ?
-          <AppIcon name={"fartage"} color={"rgb(255,137,0)"} styles={{fontSize: 24, flex: 1, textAlign: 'right'}}/>
-          :
-          <>
-            <AppIcon name={"fartage"} color={countColor}
-                     styles={{fontSize: 20, flex: 1, marginTop: -10, textAlign: 'right'}}/>
-            <Text numberOfLines={1}
-                  style={{color: countColor, fontSize: 14, marginLeft: -12, marginBottom: -10, textAlign: 'right'}}>
-              +{count.toString()}
-            </Text>
-          </>
-        }
-
-      </View>
-    )
-  }
-
   return (
-    <View style={appStyles.container}>
-      <View style={appStyles.body}>
-
-
-        <View style={[appStyles.button, {flexDirection: 'column', width: "100%"}]}>
-          <View style={appStyles.listMainView}>
-            <AppIcon name={"star-full"} color={"orange"} styles={appStyles.iconBadge}/>
-            <AppIcon name={"users"} color={colorsTheme.text} styles={appStyles.iconList}/>
-            {(topUsers.length > 4) ? <Pastille name={topUsers.length.toString()} size={32} color={colorsTheme.pastille}
-                                               textColor={colorsTheme.text}
-                                               style={appStyles.iconCount}/> : <></>}
-          </View>
-          {(topUsers) ? <FlatList data={topUsers.slice(0, 4)}
-                                  horizontal={true}
-                                  style={{width: '100%'}}
-                                  renderItem={renderSkieurs}
+    <Body inTabs={true}>
+      <Tile style={{ height: 96 }}>
+        <TileIconTitle littleIconName={"star-full"} usersIconName={"users"} textColor={colorsTheme.text}
+          pastilleValue={(topUsers.length > 4) ? topSkis.length.toString() : undefined}
+          pastilleColor={colorsTheme.pastille} />
+        {(topUsers) ? <FlatList data={topUsers.slice(0, 4)}
+          horizontal={true}
+          keyExtractor={(item) => item.id}
+          style={{ width: '100%' }}
+          renderItem={renderSkiers}
+        /> : <></>
+        }
+      </Tile>
+      <Separator />
+      <Tile flex={2}>
+        <TileIconTitle littleIconName={"star-full"} usersIconName={"skis"} textColor={colorsTheme.text}
+          pastilleValue={topSkis.length.toString()} pastilleColor={colorsTheme.pastille} />
+        {(topSkis) ?
+          <FlatList data={topSkis}
+            keyExtractor={(item) => item.id}
+            style={{ width: "100%", padding: 4 }}
+            renderItem={renderSkis}
           /> : <></>
-          }
-
-
-        </View>
-        <View style={appStyles.separator}></View>
-        <View style={[appStyles.button, {flex: 2, flexDirection: 'column', alignItems: 'flex-start'}]}>
-          <View style={appStyles.listMainView}>
-            <AppIcon name={"star-full"} color={"orange"} styles={appStyles.iconBadge}/>
-            <AppIcon name={"skis"} color={colorsTheme.text} styles={appStyles.iconList}/>
-            <Pastille name={topSkis.length.toString()} size={32} color={colorsTheme.pastille}
-                      textColor={colorsTheme.text}
-                      style={appStyles.iconCount}/>
-          </View>
-          {(topSkis) ?
-            <FlatList data={topSkis}
-                      style={{width: "100%", padding: 4}}
-                      renderItem={renderSkis}
-            /> : <></>
-          }
-        </View>
-        {(toSharp.length > 0) ? <>
-          <View style={appStyles.separator}></View>
-          <View style={[appStyles.button, {width: "100%", maxHeight: 112, flexDirection: 'column', alignItems: 'flex-start'}]}>
-            <View style={appStyles.listMainView}>
-              <AppIcon name={"warning"} color={"red"} styles={appStyles.iconBadge}/>
-              <AppIcon name={"affuteuse"} color={colorsTheme.text} styles={appStyles.iconList}/>
-              <Pastille name={toSharp.length.toString()} size={32} color={colorsTheme.notification}
-                        textColor={colorsTheme.text}
-                        style={appStyles.iconCount}/>
-            </View>
-            <FlatList data={toSharp}
-                      style={{width: "100%", padding: 4}}
-                      renderItem={renderToSharp}
-
-            />
-          </View></> : <></>
         }
-        {(toWax.length > 0) ? <>
-          <View style={appStyles.separator}></View>
-          <View style={[appStyles.button, {width: "100%", maxHeight: 112, flexDirection: 'column', alignItems: 'flex-start'}]}>
-            <View style={appStyles.listMainView}>
-              <AppIcon name={"warning"} color={"red"} styles={appStyles.iconBadge}/>
-              <AppIcon name={"fartage"} color={colorsTheme.text} styles={appStyles.iconList}/>
-              <Pastille name={toWax.length.toString()} size={32} color={colorsTheme.notification}
-                        textColor={colorsTheme.text}
-                        style={appStyles.iconCount}/>
-            </View>
-            <FlatList data={toWax}
-                      style={{width: "100%", padding: 4}}
-                      renderItem={renderToWax}
+      </Tile>
+      {(toSharp.length > 0) ? <>
+        <Separator />
+        <Tile style={{ maxHeight: 112 }}>
+          <TileIconTitle littleIconName={"warning"} usersIconName={"affuteuse"} textColor={colorsTheme.text}
+            pastilleValue={toSharp.length.toString()} pastilleColor={colorsTheme.notification} />
+          <FlatList data={toSharp}
+            keyExtractor={(item) => item.id}
+            style={{ width: "100%", padding: 4 }}
+            renderItem={renderToSharp}
 
-            />
-          </View></> : <></>}
-        {(topSkis.length > 0 && topUsers.length > 0) ?
-          <View style={{flexDirection: "row", marginTop: -12, marginBottom: -12, marginHorizontal: 'auto', gap: 48}}>
-            <TouchableOpacity style={[appStyles.addButton, {}]}
-                              disabled={(topSkis.length < 1 || topUsers.length < 1)}
-                              onPress={() => {
-                                console.log("press");
-                              }}>
-              <AppIcon name={"plus"} color={colorsTheme.add}
-                       styles={{fontSize: 20, position: 'absolute', marginLeft: 32, marginBottom: 18}}/>
-              <AppIcon name={"sortie"} color={colorsTheme.text}
-                       styles={{fontSize: 36, position: 'absolute', transform: 'scaleX(-1)'}}/>
-            </TouchableOpacity>
-            <TouchableOpacity style={[appStyles.addButton]}
-                              disabled={(topSkis.length < 1 || topUsers.length < 1)}
-                              onPress={() => {
-                                console.log("press");
-                              }}>
-              <AppIcon name={"plus"} color={colorsTheme.add}
-                       styles={{fontSize: 20, position: 'absolute', marginLeft: 32, marginBottom: 18}}/>
-              <AppIcon name={"entretien"} color={colorsTheme.text}
-                       styles={{fontSize: 36, position: 'absolute', marginRight: 12}}/>
-            </TouchableOpacity>
-          </View> :
-          <></>
+          />
+        </Tile></> : <></>
+      }
+      {(toWax.length > 0) ? <>
+        <Separator />
+        <Tile style={{ maxHeight: 112 }}>
+          <TileIconTitle littleIconName={"warning"} usersIconName={"fartage"} textColor={colorsTheme.text}
+            pastilleValue={toWax.length.toString()} pastilleColor={colorsTheme.notification} />
+          <FlatList data={toWax}
+            keyExtractor={(item) => item.id}
+            style={{ width: "100%", padding: 4 }}
+            renderItem={renderToWax}
+
+          />
+        </Tile></> : <></>}
+
+      <Row style={{ width: "100%" }}>
+        <AppButton flex={1} onPress={() => setAddOutingMode(true)} color={colorsTheme.activeButton} icon={"plus"} caption={""}>
+          <AppIcon name={"sortie"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={40} />
+        </AppButton>
+        <AppButton flex={1} onPress={() => setAddMaintainMode(true)} color={colorsTheme.activeButton} icon={"plus"} caption={""}>
+          <AppIcon name={"entretien"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={40} />
+        </AppButton>
+      </Row>
+      {
+        //    #                                                            #     #                            
+        //   # #   #####  #####      ####  #    # ##### # #    #  ####     ##   ##  ####  #####    ##   #     
+        //  #   #  #    # #    #    #    # #    #   #   # ##   # #    #    # # # # #    # #    #  #  #  #     
+        // #     # #    # #    #    #    # #    #   #   # # #  # #         #  #  # #    # #    # #    # #     
+        // ####### #    # #    #    #    # #    #   #   # #  # # #  ###    #     # #    # #    # ###### #     
+        // #     # #    # #    #    #    # #    #   #   # #   ## #    #    #     # #    # #    # #    # #     
+        // #     # #####  #####      ####   ####    #   # #    #  ####     #     #  ####  #####  #    # ######
+      }
+      <ModalEditor visible={addOutingMode} >
+        <Row>
+          <Text style={appStyles.title}>{t("add_outing")}</Text>
+        </Row>
+        <Row>
+          <AppIcon name="calendar" color={colorsTheme.text} styles={{ marginRight: 8 }} />
+          {outing2write.date === 0 ? (
+            <View style={{ flex: 1 }}>
+              <AppButton onPress={() => changeDate(new Date(), "outing")} caption={t('today')} />
+              <AppButton onPress={() => changeDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "outing")} caption={t('yesterday')} />
+              <AppButton onPress={() => setDateTimePickerVisible("outing")} caption={t('anotherday')} />
+            </View>)
+            : (
+              <Tile flex={1}>
+                <Row>
+                  <TouchableOpacity onPress={() => setDateTimePickerVisible("outing")}>
+
+                    <Text style={appStyles.text}>{new Date(outing2write.date).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
+                  </TouchableOpacity>
+                  {partOfDay !== 'am' ?
+                    <TouchableOpacity
+                      onPress={() => {
+                        setPartOfDay(partOfDay === 'pm' ? 'noon' : 'am');
+                        changeDate(new Date(outing2write.date), "outing");
+                      }}
+                    >
+                      <Card>
+                        <Text style={appStyles.text}>-</Text>
+                      </Card>
+                    </TouchableOpacity> : null}
+                  <Card><Text style={appStyles.text}>{t(partOfDay)}</Text></Card>
+                  {partOfDay !== 'pm' ?
+                    <TouchableOpacity
+                      onPress={() => {
+                        setPartOfDay(partOfDay === 'am' ? 'noon' : 'pm');
+                        changeDate(new Date(outing2write.date), "outing");
+                      }}>
+                      <Card>
+                        <Text style={appStyles.text}>+</Text>
+                      </Card>
+                    </TouchableOpacity> : null}
+                </Row>
+              </Tile>
+
+            )
+          }
+        </Row>
+
+        {outingViewUser &&
+          <Row>
+            <AppIcon name={"users"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1}>
+              {outing2write.idUser ? (
+                <TouchableOpacity onPress={() => setOuting2Write({ ...outing2write, idUser: undefined, idSkis: undefined, idBoots: undefined })}>
+                  <Row>
+                    <Pastille name={listUsers.find(user => user.id === outing2write.idUser)?.name || ""} color={listUsers.find(user => user.id === outing2write.idUser)?.pcolor} textColor={colorsTheme.text} size={iconSize} />
+                    <Text style={[appStyles.text, { flex: 1 }]}>{listUsers.find(user => user.id === outing2write.idUser)?.name || ""}</Text>
+                  </Row>
+                </TouchableOpacity>
+
+              ) : (
+                <FlatList
+                  data={listUsers}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity onPress={() => {
+                      console.debug("Selected user:", item);
+                      const skis = filterOutingSkis(item.id);
+                      if (skis.length === 1) {
+                        const boots = filterOutingBoots(skis[0].id);
+                        if (boots.length === 1) {
+                          setOuting2Write({ ...outing2write, idSkis: skis[0].id, idBoots: boots[0].id, idOutingType: skis[0].majorTypeOfOuting });
+                        } else {
+                          setOuting2Write({ ...outing2write, idSkis: skis[0].id, idBoots: undefined, idOutingType: undefined });
+                        }
+                      }
+                      else {
+                        setOuting2Write({ ...outing2write, idUser: item.id, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
+                      }
+                    }}>
+                      <Row style={{ paddingVertical: 4 }}>
+                        <Pastille name={item.name} color={item.pcolor} textColor={colorsTheme.text} size={iconSize} />
+                        <Text style={[appStyles.text, { flex: 1 }]}> {item.name}</Text>
+                      </Row>
+                    </TouchableOpacity>
+                  )}
+                  keyExtractor={(item) => item.id}
+                />
+              )}
+            </Tile>
+          </Row>
         }
-    </View>
+        {outingViewSkis &&
+          <Row>
+            <AppIcon name={"skis"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1} >
+              {outing2write.idSkis ? (
+                (() => {
+                  const ski = listSkis.find(ski => ski.id === outing2write.idSkis);
+                  return ski ? renderOutingSkis({ item: ski, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } }) : null;
+                })()
+              ) : (
+                <FlatList
+                  data={filterOutingSkis(outing2write.idUser || "")}
+                  renderItem={renderOutingSkis}
+                  keyExtractor={(item) => item.id}
+                  style={{ maxHeight: 200, width: '100%' }}
+                />
+              )}
+            </Tile>
+          </Row>
+        }
+        {outingViewBoots &&
+          <Row>
+            <AppIcon name={"ski-boot"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1} >
+              {outing2write.idBoots ? (
+                (() => {
+                  const boots = listBoots.find(boots => boots.id === outing2write.idBoots);
+                  return boots ? renderOutingBoots({ item: boots, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } }) : null;
+                })()
+              ) : (
+                <FlatList
+                  data={filterOutingBoots(outing2write.idSkis || "")}
+                  renderItem={renderOutingBoots}
+                  keyExtractor={(item) => item.id}
+                  style={{ maxHeight: 200, width: '100%' }}
+                />
+              )}
+            </Tile>
+          </Row>
+        }
+
+
+        {outingViewToOuting &&
+          <Row>
+            <AppIcon name={"slope"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1}>
+              <TouchableOpacity onPress={() => setOutingVisible(!outingVisible)}>
+                {
+                  outing2write.idOutingType ?
+                    <Text style={[appStyles.text]}>{listOutingTypes.find(type => type.id === outing2write.idOutingType)?.name || ""}</Text>
+                    :
+                    <Text style={[appStyles.inactiveText]}>{t('add_too')}</Text>
+                }
+              </TouchableOpacity>
+            </Tile>
+          </Row>
+        }
+        {outingViewOffPiste &&
+          <Row>
+            <AppIcon name={"hors-piste"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1}>
+              <Row>
+                <TouchableOpacity onPress={() => setOffPisteVisible(true)}>
+                  <AppIcon name={"plus"} color={colorsTheme.primary} />
+                </TouchableOpacity>
+                {(outing2write.listOfOffPistes?.length || 0) > 0 ? (
+                  <FlatList
+                    data={outing2write.listOfOffPistes ? listOffPistes.filter(offpiste => outing2write.listOfOffPistes?.find(op => op.id === offpiste.id)) : []}
+                    renderItem={({ item }) => (
+                      <Row >
+                        <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
+                        <Card>
+                          <TouchableOpacity onPress={() => {
+                            let myOP = outing2write.listOfOffPistes?.find(op => op.id === item.id);
+                            if (myOP) {
+                              if (myOP.nb >= 2) {
+                                myOP.nb--;
+                              }
+                            } else {
+                              myOP = {
+                                id: item.id, nb: 1
+                              };
+                            }
+                            outing2write.listOfOffPistes = outing2write.listOfOffPistes?.filter(op => op.id !== item.id) || [];
+                            setOuting2Write({ ...outing2write, listOfOffPistes: [...outing2write.listOfOffPistes, myOP] });
+
+                          }}>
+
+                            <AppIcon name={"minus"} color={colorsTheme.text} styles={{ fontSize: 16 }} />
+                          </TouchableOpacity>
+                          <Text style={[appStyles.text, { marginLeft: 8 }]}>{outing2write.listOfOffPistes?.find(op => op.id === item.id)?.nb || 0}</Text>
+                          <TouchableOpacity onPress={() => {
+                            let myOP = outing2write.listOfOffPistes?.find(op => op.id === item.id);
+                            if (myOP) {
+                              myOP.nb++;
+                            }
+                            else {
+                              myOP = {
+                                id: item.id, nb: 1
+                              }
+                            }
+                            outing2write.listOfOffPistes = outing2write.listOfOffPistes?.filter(op => op.id !== item.id) || [];
+                            setOuting2Write({ ...outing2write, listOfOffPistes: [...outing2write.listOfOffPistes, myOP] });
+
+                          }
+                          }>
+                            <AppIcon name={"plus"} color={colorsTheme.text} styles={{ fontSize: 16 }} />
+                          </TouchableOpacity>
+                        </Card>
+                      </Row>
+                    )}
+                    keyExtractor={(item) => item.id}
+                    style={{ flex: 1, maxHeight: 200 }}
+                  />
+                ) :
+                  <Text style={[appStyles.inactiveText]}>{t('add_offpistes')}</Text>
+                }
+              </Row>
+            </Tile>
+          </Row>
+        }
+        {outingViewFriends &&
+          <Row>
+            <AppIcon name={"accessibility"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1}>
+              <TouchableOpacity onPress={() => { setFriendsVisible(!friendsVisible); }}>
+                {
+                  outing2write.idFriends && outing2write.idFriends.length > 0 ? (
+                    <FlatList
+                      data={outing2write.idFriends ? listFriends.filter(friend => outing2write.idFriends?.includes(friend.id)) : []}
+                      renderItem={({ item }) => (
+                        <Row style={{ padding: 4 }}>
+                          <Pastille name={item.name} textColor={colorsTheme.black} size={iconSize} />
+                          <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
+                        </Row>
+                      )}
+                      horizontal={true}
+                      keyExtractor={(item) => item.id}
+                    />) : (
+                    <Text style={[appStyles.inactiveText]}>{t('add_friends')}</Text>
+                  )
+                }
+              </TouchableOpacity>
+            </Tile>
+          </Row>
+        }
+
+        <Row style={{ marginTop: 8, gap: 16, justifyContent: 'space-between' }}>
+          {outing2write.idBoots ? (
+            <AppButton onPress={saveOuting} color={colorsTheme.activeButton} flex={1} caption={t('add')} />
+          ) : null}
+          <AppButton onPress={cancelAdd} color={colorsTheme.transparentGray} flex={1} caption={t('cancel')} />
+        </Row>
+      </ModalEditor>
+      {
+        //    #                                                                     #     #                            
+        //   # #   #####  #####     #    #   ##   # #    # #####   ##   # #    #    ##   ##  ####  #####    ##   #     
+        //  #   #  #    # #    #    ##  ##  #  #  # ##   #   #    #  #  # ##   #    # # # # #    # #    #  #  #  #     
+        // #     # #    # #    #    # ## # #    # # # #  #   #   #    # # # #  #    #  #  # #    # #    # #    # #     
+        // ####### #    # #    #    #    # ###### # #  # #   #   ###### # #  # #    #     # #    # #    # ###### #     
+        // #     # #    # #    #    #    # #    # # #   ##   #   #    # # #   ##    #     # #    # #    # #    # #     
+        // #     # #####  #####     #    # #    # # #    #   #   #    # # #    #    #     #  ####  #####  #    # ######
+      }
+      <ModalEditor visible={addMaintainMode} >
+        <Row>
+          <Text style={appStyles.title}>{t("add_maintain")}</Text>
+        </Row>
+        <Row style={{ marginTop: 8, gap: 16, justifyContent: 'space-between' }}>
+          <AppButton onPress={saveMaintain} color={colorsTheme.activeButton} flex={1} caption={t('add')} />
+          <AppButton onPress={cancelAdd} color={colorsTheme.transparentGray} flex={1} caption={t('cancel')} />
+        </Row>
+      </ModalEditor>
+      {
+        // ######                      #######                 ######
+        // #     #   ##   ##### ######    #    # #    # ###### #     # #  ####  #    # ###### ##### 
+        // #     #  #  #    #   #         #    # ##  ## #      #     # # #    # #   #  #      #    #
+        // #     # #    #   #   #####     #    # # ## # #####  ######  # #      ####   #####  #    #
+        // #     # ######   #   #         #    # #    # #      #       # #      #  #   #      ##### 
+        // #     # #    #   #   #         #    # #    # #      #       # #    # #   #  #      #   # 
+        // ######  #    #   #   ######    #    # #    # ###### #       #  ####  #    # ###### #    #
+      }
+      {dateTimePickerVisible !== "none" &&
+        <DateTimePicker
+          value={new Date()}
+          maximumDate={new Date()}
+          minimumDate={seasonDate}
+          mode="date"
+          display="default"
+          onChange={onDateChange}
+        />
+      }
+      {
+        // #     #                             #######                                     
+        // ##   ##  ####  #####    ##   #      #       #####  # ###### #    # #####   #### 
+        // # # # # #    # #    #  #  #  #      #       #    # # #      ##   # #    # #     
+        // #  #  # #    # #    # #    # #      #####   #    # # #####  # #  # #    #  #### 
+        // #     # #    # #    # ###### #      #       #####  # #      #  # # #    #      #
+        // #     # #    # #    # #    # #      #       #   #  # #      #   ## #    # #    #
+        // #     #  ####  #####  #    # ###### #       #    # # ###### #    # #####   #### 
+      }
+      <ModalEditor visible={friendsVisible} center={true} onRequestClose={() => setFriendsVisible(false)}>
+        <Tile>
+          <FlatList
+            data={listFriends}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => {
+                if (outing2write.idFriends?.includes(item.id)) {
+                  setOuting2Write({ ...outing2write, idFriends: outing2write.idFriends.filter(id => id !== item.id) });
+                } else {
+                  setOuting2Write({ ...outing2write, idFriends: [...(outing2write.idFriends || []), item.id] });
+                }
+              }}>
+                <Row style={{ paddingVertical: 4 }}>
+                  <Pastille name={item.name} textColor={colorsTheme.black} size={iconSize} />
+                  <Text style={[appStyles.text, { flex: 1, borderRadius: 8, padding: 4, backgroundColor: outing2write.idFriends?.includes(item.id) ? colorsTheme.transparentGray : undefined }]}> {item.name}</Text>
+                </Row>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            style={{ maxHeight: 300, width: '100%' }}
+          />
+        </Tile>
+        <AppButton onPress={() => setFriendsVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
+      </ModalEditor>
+      {
+        // #     #                             ####### ####### #######
+        // ##   ##  ####  #####    ##   #         #    #     # #     #
+        // # # # # #    # #    #  #  #  #         #    #     # #     #
+        // #  #  # #    # #    # #    # #         #    #     # #     #
+        // #     # #    # #    # ###### #         #    #     # #     #
+        // #     # #    # #    # #    # #         #    #     # #     #
+        // #     #  ####  #####  #    # ######    #    ####### #######
+      }
+      <ModalEditor visible={outingVisible} center={true} onRequestClose={() => setOutingVisible(false)}>
+        <Row>
+          <Text style={appStyles.title}>{t("add_outing")}</Text>
+        </Row>
+        <Tile>
+          <FlatList
+            data={listOutingTypes}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => {
+                if (outing2write.idOutingType === item.id) {
+                  setOuting2Write({ ...outing2write, idOutingType: undefined });
+                }
+                else {
+                  setOuting2Write({ ...outing2write, idOutingType: item.id });
+                }
+                setOutingVisible(false);
+              }}>
+                <Row style={{ backgroundColor: outing2write.idOutingType === item.id ? colorsTheme.transparentGray : undefined }}>
+                  <Text style={[appStyles.title, { flex: 1, marginLeft: 8 }]}>
+                    {item.name}
+                    {(item.itemCount || 0) > 0 && (
+                      <Text style={[appStyles.text]}> ({item.itemCount})</Text>
+                    )}
+                  </Text>
+                  {item.canOffPiste ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+                      <AppIcon name="hors-piste" size={28} color={colorsTheme.primary} />
+                    </View>
+                  ) : null}
+                </Row>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            style={{ maxHeight: 300, width: '100%' }}
+          />
+        </Tile>
+        <AppButton onPress={() => setOutingVisible(false)} caption={t('cancel')} color={colorsTheme.transparentGray} style={{ marginTop: 16 }} />
+      </ModalEditor>
+      {
+        // #     #                             #######               ######                       
+        // ##   ##  ####  #####    ##   #      #     # ###### ###### #     # #  ####  ##### ######
+        // # # # # #    # #    #  #  #  #      #     # #      #      #     # # #        #   #     
+        // #  #  # #    # #    # #    # #      #     # #####  #####  ######  #  ####    #   ##### 
+        // #     # #    # #    # ###### #      #     # #      #      #       #      #   #   #     
+        // #     # #    # #    # #    # #      #     # #      #      #       # #    #   #   #     
+        // #     #  ####  #####  #    # ###### ####### #      #      #       #  ####    #   ######
+      }
+      <ModalEditor visible={offPisteVisible} center={true} onRequestClose={() => setOffPisteVisible(false)}>
+        <Row>
+          <Text style={appStyles.title}>{t("offpiste")}</Text>
+        </Row>
+        <Tile>
+          <FlatList
+            data={listOffPistes}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => {
+                if (outing2write.listOfOffPistes?.find(offPiste => offPiste.id === item.id)) {
+                  setOuting2Write({ ...outing2write, listOfOffPistes: outing2write.listOfOffPistes.filter(offPiste => offPiste.id !== item.id) });
+                } else {
+                  setOuting2Write({ ...outing2write, listOfOffPistes: [...outing2write.listOfOffPistes || [], { id: item.id, nb: 1 }] });
+                }
+                setOffPisteVisible(false);
+              }}>
+                <Row>
+                  <Text style={[appStyles.text]}>{item.name}</Text>
+                  {(item.count || 0) > 0 && (
+                    <Text style={[appStyles.text]}>{item.count}</Text>
+                  )}
+                </Row>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            style={{ maxHeight: 300, width: '100%' }}
+          />
+        </Tile>
+        <AppButton onPress={() => setOffPisteVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
+      </ModalEditor>
+    </Body>
+
   );
 }
+
+//  ####  ##### #   # #      ######  #### 
+// #        #    # #  #      #      #     
+//  ####    #     #   #      #####   #### 
+//      #   #     #   #      #           #
+// #    #   #     #   #      #      #    #
+//  ####    #     #   ###### ######  #### 
+const styles = StyleSheet.create({
+  addIcon: {
+    fontSize: 72,
+    textAlign: 'center',
+    zIndex: 3,
+  },
+  inactivate: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+    margin: -8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+    zIndex: 2,
+    backgroundColor: 'rgba(45,45,45,0.5)',
+  },
+})

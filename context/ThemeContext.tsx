@@ -1,7 +1,7 @@
-import React, {createContext, ReactNode, useEffect, useState} from "react";
-import {useColorScheme} from "react-native";
 import AppColors from "@/constants/AppColors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, ReactNode, useEffect, useState } from "react";
+import { useColorScheme } from "react-native";
 
 type ThemeContextType = {
   isSystemTheme: boolean,
@@ -26,6 +26,7 @@ const ThemeProvider = ({children}: { children: ReactNode }) => {
 
   useEffect(() => {
     const getTheme = async () => {
+      console.debug("Getting theme from AsyncStorage");
       try {
         const savedThemeObject = await AsyncStorage.getItem("theme");
         console.log(savedThemeObject);
@@ -51,7 +52,7 @@ const ThemeProvider = ({children}: { children: ReactNode }) => {
     getTheme();
   });
 
-  useEffect(() => {
+/*   useEffect(() => {
     if (colorScheme && systemTheme) {
       const themeObject = {
         mode: colorScheme,
@@ -61,7 +62,7 @@ const ThemeProvider = ({children}: { children: ReactNode }) => {
       setTheme(colorScheme);
       setSystemTheme(true)
     }
-  }, [colorScheme, systemTheme]);
+  }, [colorScheme, systemTheme]); */
 
   const toggleTheme = (newTheme: "light" | "dark") => {
     const themeObject = {

@@ -2,16 +2,18 @@ import {Text, View} from 'react-native';
 import AppStyles from "@/constants/AppStyles";
 import {useContext} from "react";
 import {ThemeContext} from "@/context/ThemeContext";
+import Body from "@/components/Body";
+import Separator from "@/components/Separator";
 
 
 export default function Maintains() {
   const {colorsTheme} = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   return (
-    <View style={appStyles.container}>
+    <Body >
       <Text style={appStyles.title}>Entretiens</Text>
-      <View style={appStyles.separator} />
+      <Separator />
       <Text>TEST</Text>
-    </View>
+    </Body>
   );
 }

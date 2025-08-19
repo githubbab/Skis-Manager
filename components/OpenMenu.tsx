@@ -2,9 +2,12 @@ import { useNavigation } from '@react-navigation/native';
 import {View, StyleSheet, Pressable} from "react-native";
 import AppIcon from "@/components/AppIcon";
 import {DrawerNavigationProp} from "@react-navigation/drawer";
+import {useContext} from "react";
+import {ThemeContext} from "@/context/ThemeContext";
 
-export default function DrawerMenu({color}: {color: string} ) {
+export default function OpenMenu() {
   const navigation: DrawerNavigationProp<any> = useNavigation();
+  const {colorsTheme} = useContext(ThemeContext);
 
   const openMenu = () => {
     navigation.toggleDrawer();
@@ -13,7 +16,7 @@ export default function DrawerMenu({color}: {color: string} ) {
   return (
     <Pressable onPress={openMenu}>
         <View style={styles.header}>
-            <AppIcon name='menu1' styles={styles.icon} color={color}/>
+            <AppIcon name='menu1' styles={styles.icon} color={colorsTheme.primary}/>
         </View>
     </Pressable>
     )
