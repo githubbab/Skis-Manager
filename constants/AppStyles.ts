@@ -4,24 +4,47 @@ import AppColors from "@/constants/AppColors";
 export default function (colors: typeof AppColors['light']) {
   return (
     StyleSheet.create({
+        row: {
+          flexDirection: 'row',
+          gap: 8,
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        },
+        tile: {
+          flexDirection: 'column',
+          width: "100%",
+          backgroundColor: colors.tileBG,
+          padding: 4,
+          borderRadius: 10,
+          marginVertical: 4
+        },
+        editField: {
+          borderWidth: 1,
+          borderColor: colors.text,
+          color: colors.text,
+          fontSize: 18,
+          padding: 8,
+          margin: 4,
+          flex:1,
+        },
+        addButton: {
+          alignItems: 'center',
+          height: 80,
+          width: 80,
+          marginHorizontal: 'auto',
+          justifyContent: 'center',
+          flexDirection: 'row',
+          backgroundColor: colors.primary,
+          borderRadius: '100%',
+          position: 'relative',
+        },
+// Old
         container: {
           flex: 1,
           backgroundColor: colors.background,
         },
-        body: {
-          flex: 1,
-          padding: 16
-        },
-        header: {
-          flexDirection: "row",
-          backgroundColor: colors.background,
-          color: colors.text,
-        },
-        icoFont: {
-          fontSize: 32,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
+
+
         headerTitle: {
           fontSize: 20,
           fontWeight: 'bold',
@@ -58,14 +81,6 @@ export default function (colors: typeof AppColors['light']) {
           paddingStart: 8,
           color: colors.text,
         },
-        row: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          width: '100%',
-          flexWrap: "wrap",
-          paddingLeft: 24,
-          paddingRight: 16,
-        },
         rowTitle: {
           marginStart: 8,
           fontSize: 16,
@@ -83,7 +98,7 @@ export default function (colors: typeof AppColors['light']) {
           flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "center",
-          backgroundColor: colors.card,
+          backgroundColor: colors.tileBG,
           padding: 8,
           borderRadius: 10,
           marginVertical: 4
@@ -105,57 +120,6 @@ export default function (colors: typeof AppColors['light']) {
           color: colors.text,
           alignSelf: "center",
         },
-        addButton: {
-          alignItems: 'center',
-          height: 72,
-          width: 72,
-          marginHorizontal: 'auto',
-          justifyContent: 'center',
-          flexDirection: 'row',
-          backgroundColor: colors.addBG,
-          borderColor: colors.add,
-          borderWidth: 2,
-          borderStyle: 'dotted',
-          borderRadius: '100%',
-          position: 'relative',
-        },
-        flatListRow: {
-          alignItems: 'center',
-          justifyContent: 'flex-start',
-          flex: 1,
-          flexDirection: 'row',
-          gap: 4,
-          paddingBottom: 4
-        },
-        listMainView: {
-          flexDirection: 'row',
-          flexWrap: 'nowrap',
-          alignSelf: 'flex-start',
-          justifyContent: 'center',
-          marginRight: -48,
-        },
-        iconBadge: {
-          fontSize: 12,
-          alignSelf: 'flex-start',
-          justifyContent: 'center',
-          marginLeft: -6,
-          marginTop: -18,
-        },
-        iconList: {
-          fontSize: 24,
-          alignSelf: 'flex-start',
-          justifyContent: 'center',
-          marginLeft: -4,
-          marginTop: -18,
-          marginRight: 16,
-          flex: 1
-        },
-        iconCount: {
-          alignSelf: 'center',
-          justifyContent: 'center',
-          marginTop: -20,
-          marginRight: 36,
-        }
       }
     )
   )

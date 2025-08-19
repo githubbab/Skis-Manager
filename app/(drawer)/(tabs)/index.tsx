@@ -14,7 +14,6 @@ import {randomUUID} from "node:crypto";
 interface Users {
   key: string;
   name: string;
-  picture: string | null;
   pcolor: string | undefined;
   nb: number;
 }
@@ -286,10 +285,6 @@ export default function Index() {
           </View> :
           <></>
         }
-
-      </View>
-
-
     </View>
   );
 }
