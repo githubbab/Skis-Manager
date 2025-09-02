@@ -48,3 +48,4 @@ web-build/
 .vscode
 android
 ios
+*.apk

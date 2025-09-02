@@ -117,8 +117,7 @@ export async function deleteSki(db: SQLiteDatabase, id: string) {
     deleteQuery(TABLES.SKIS, "id = ?", [id]));
 }
 
-export async function getAllSkis(db: SQLiteDatabase, activeUntil?: number): Promise<Skis[]> {
-  const whereClause = activeUntil ? "WHERE s.end > " + activeUntil.toString() + " OR s.end IS NULL" : "";
+export async function getAllSkis(db: SQLiteDatabase): Promise<Skis[]> {
   const data: Skis[] = await db.getAllAsync(
     `SELECT 
       s.id, 
@@ -153,10 +152,62 @@ export async function getAllSkis(db: SQLiteDatabase, activeUntil?: number): Prom
       LEFT JOIN ${TABLES.OUTINGS} o ON s.id = o.idSkis
       LEFT JOIN ${TABLES.MAINTAINS} em ON s.id = em.idSkis
       JOIN ${TABLES.BRANDS} b ON s.idBrand = b.id
-      JOIN ${TABLES.TYPE_OF_SKIS} tos ON s.idTypeOfSkis = tos.id
-    ${whereClause}
+      JOIN ${TABLES.TYPE_OF_SKIS} tos ON s.idTypeOfSkis = tos.id      
     GROUP BY s.id, s.name, s.idBrand, s.idTypeOfSkis, 
       s.begin, s.end, s.size, s.radius, s.waist
+      `);
+  const arrayIcoToSURI = await getDistinctToSIcoURIs(data);
+  const arrayIcoBrandURI = await getDistinctBrandIcoURIs(data);
+  return data.map((ski: any) => ({
+    ...ski,
+    listUsers: ski.listUsers ? ski.listUsers.split(',') : [],
+    listBoots: ski.listBoots ? ski.listBoots.split(',') : [],
+    listUserNames: ski.listUserNames ? ski.listUserNames.split(',') : [],
+    icoTypeOfSkisUri: arrayIcoToSURI[ski.idTypeOfSkis] || undefined,
+    icoBrandUri: arrayIcoBrandURI[ski.idBrand],
+  } as Skis));
+}
+
+export async function getSeasonSkis(db: SQLiteDatabase): Promise<Skis[]> {
+  const data: Skis[] = await db.getAllAsync(
+    `SELECT 
+      s.id, 
+      s.name, 
+      s.idBrand, 
+      b.name as brand,
+      s.idTypeOfSkis, 
+      tos.name as typeOfSkis,
+      s.begin, 
+      s.end, 
+      s.size, 
+      s.radius, 
+      s.waist,
+      COUNT(DISTINCT em.date / 86400000) AS nbMaintains,
+      COUNT(DISTINCT o.date / 86400000) AS nbOutings,
+      GROUP_CONCAT(DISTINCT jsu.idUser) AS listUsers,
+      GROUP_CONCAT(DISTINCT jsb.idBoots) AS listBoots,
+      GROUP_CONCAT(DISTINCT u.name) AS listUserNames,
+      (
+        SELECT o2.idOutingType
+        FROM ${TABLES.OUTINGS} o2
+        WHERE o2.idSkis = s.id AND o2.idOutingType IS NOT NULL
+        GROUP BY o2.idOutingType
+        ORDER BY COUNT(*) DESC
+        LIMIT 1
+      ) AS majorTypeOfOuting
+    FROM 
+      ${TABLES.SKIS} s
+      LEFT JOIN ${TABLES.JOIN_SKIS_USERS} jsu ON s.id = jsu.idSkis
+      LEFT JOIN ${TABLES.JOIN_SKIS_BOOTS} jsb ON s.id = jsb.idSkis
+      LEFT JOIN ${TABLES.USERS} u ON u.id = jsu.idUser
+      LEFT JOIN ${TABLES.OUTINGS} o ON ((s.id = o.idSkis) AND (o.date >= (SELECT begin FROM itemsSeasons ORDER BY begin DESC LIMIT 1)))
+      LEFT JOIN ${TABLES.MAINTAINS} em ON ((s.id = em.idSkis) AND (em.date >= (SELECT begin FROM itemsSeasons ORDER BY begin DESC LIMIT 1)))
+      JOIN ${TABLES.BRANDS} b ON s.idBrand = b.id
+      JOIN ${TABLES.TYPE_OF_SKIS} tos ON s.idTypeOfSkis = tos.id      
+    WHERE (s.end > (SELECT begin FROM itemsSeasons ORDER BY begin DESC LIMIT 1) OR s.end IS NULL)
+    GROUP BY s.id, s.name, s.idBrand, s.idTypeOfSkis, 
+      s.begin, s.end, s.size, s.radius, s.waist
+    ORDER BY nbOutings DESC, nbMaintains DESC, s.begin DESC
       `);
   const arrayIcoToSURI = await getDistinctToSIcoURIs(data);
   const arrayIcoBrandURI = await getDistinctBrandIcoURIs(data);
@@ -227,10 +278,13 @@ export async function getSkis2Sharp(db: SQLiteDatabase): Promise<Skis[]> {
   const data: Skis[] = await db.getAllAsync(
     `SELECT
         CONCAT('toSharp-',s.id) AS id,
-        s.idBrand AS brand, 
+        s.idBrand AS idBrand, 
         s.name AS name, 
         tos.id AS idTypeOfSkis, 
         tos.name AS typeOfSkis,
+        s.size AS size,
+        s.radius AS radius,
+        s.waist AS waist,
         GROUP_CONCAT(DISTINCT u.name) AS listUserNames, 
         (COUNT(DISTINCT eo.date / 86400000) - tos.sharpNeed) AS nbMaintains
       FROM ${TABLES.OUTINGS} eo
@@ -242,6 +296,7 @@ export async function getSkis2Sharp(db: SQLiteDatabase): Promise<Skis[]> {
         (SELECT MAX(m.date)
          FROM ${TABLES.MAINTAINS} m
          WHERE m.swr LIKE '%S%' AND m.idSkis = s.id),0)
+        AND tos.sharpNeed > 0
       GROUP BY s.id
       HAVING nbMaintains >= 0
       ORDER BY nbMaintains DESC`
@@ -262,10 +317,13 @@ export async function getSkis2Wax(db: SQLiteDatabase): Promise<Skis[]> {
   const data: Skis[] = await db.getAllAsync(
     `SELECT
         CONCAT('toWax-',s.id) AS id,
-        s.idBrand AS brand, 
+        s.idBrand AS idBrand, 
         s.name AS name, 
         tos.id AS idTypeOfSkis, 
         tos.name AS typeOfSkis,
+        s.size AS size,
+        s.radius AS radius,
+        s.waist AS waist,
         GROUP_CONCAT(DISTINCT u.name) AS listUserNames, 
         (COUNT(DISTINCT eo.date / 86400000) - tos.waxNeed) AS nbMaintains
       FROM ${TABLES.OUTINGS} eo
@@ -277,6 +335,7 @@ export async function getSkis2Wax(db: SQLiteDatabase): Promise<Skis[]> {
         (SELECT MAX(m.date)
          FROM ${TABLES.MAINTAINS} m
          WHERE m.swr LIKE '%W%' AND m.idSkis = s.id),0)
+        AND tos.waxNeed > 0
       GROUP BY s.id
       HAVING nbMaintains >= 0
       ORDER BY nbMaintains DESC`

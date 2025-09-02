@@ -2,6 +2,7 @@ import AppButton from "@/components/AppButton";
 import AppIcon from "@/components/AppIcon";
 import Body from "@/components/Body";
 import Card from "@/components/Card";
+import CheckButton from "@/components/CheckButton";
 import ModalEditor from "@/components/ModalEditor";
 import Pastille from "@/components/Pastille";
 import Row from "@/components/Row";
@@ -14,10 +15,10 @@ import { ThemeContext } from "@/context/ThemeContext";
 import { getLastDBWrite } from "@/hooks/DatabaseManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
 import { Friends, getAllFriends } from "@/hooks/dbFriends";
-import { initMaintain, Maintains } from "@/hooks/dbMaintains";
+import { initMaintain, insertMaintain, Maintains } from "@/hooks/dbMaintains";
 import { getAllOffPistes, OffPistes } from "@/hooks/dbOffPistes";
 import { initOuting, insertOuting, Outings } from "@/hooks/dbOutings";
-import { getAllSkis, getSkis2Sharp, getSkis2Wax, getTopSkis, Skis } from "@/hooks/dbSkis";
+import { getSeasonSkis, getSkis2Sharp, getSkis2Wax, getTopSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, getTopUsers, Users } from "@/hooks/dbUsers";
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -25,6 +26,7 @@ import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { TextInput } from "react-native-gesture-handler";
 
 
 
@@ -91,6 +93,16 @@ export default function Index() {
     const bNb = b.nbOutings || 0;
     return bNb - aNb;
   });
+  const filterMaintainSkis = () => listSkis.sort((a, b) => {
+    const aMaintains = (toSharp.find(s => s.id === 'toSharp-' + a.id)?.nbMaintains || 0) + (toWax.find(s => s.id === 'toWax-' + a.id)?.nbMaintains || 0);
+    const bMaintains = (toSharp.find(s => s.id === 'toSharp-' + b.id)?.nbMaintains || 0) + (toWax.find(s => s.id === 'toWax-' + b.id)?.nbMaintains || 0);
+    if (aMaintains === bMaintains) {
+      const aNb = a.nbOutings || 0;
+      const bNb = b.nbOutings || 0;
+      return bNb - aNb;
+    }
+    return bMaintains - aMaintains;
+  });
 
   // #                            ######                     
   // #        ####    ##   #####  #     #   ##   #####   ##  
@@ -99,7 +111,7 @@ export default function Index() {
   // #       #    # ###### #    # #     # ######   #   ######
   // #       #    # #    # #    # #     # #    #   #   #    #
   // #######  ####  #    # #####  ######  #    #   #   #    #
-  const loadData = useCallback(async () => {
+  const loadData =async () => {
     console.debug("refresh index - db load data")
 
     try {
@@ -114,7 +126,7 @@ export default function Index() {
       setToWax(toWaxResult);
       const usersResult: Users[] = await getAllUsers(db, smDate(seasonDate));
       setListUsers(usersResult);
-      const skisResult: Skis[] = await getAllSkis(db, smDate(seasonDate));
+      const skisResult: Skis[] = await getSeasonSkis(db);
       setListSkis(skisResult);
       const bootsResult: Boots[] = await getAllBoots(db, smDate(seasonDate));
       setListBoots(bootsResult);
@@ -129,7 +141,7 @@ export default function Index() {
     } catch (error) {
       console.error(error);
     }
-  }, [])
+  };
 
   // #     #               #######                             #######                                  
   // #     #  ####  ###### #        ####   ####  #    #  ####  #       ###### ###### ######  ####  #####
@@ -221,6 +233,9 @@ export default function Index() {
     }
     setEffectActive(false);
   }, [outing2write])
+
+
+
   //                                            #####                               
   // #####  ###### #    # #####  ###### #####  #     # #    # # ###### #####   #### 
   // #    # #      ##   # #    # #      #    # #       #   #  # #      #    # #     
@@ -285,7 +300,7 @@ export default function Index() {
         </TouchableOpacity>
         {selectedSkis === item.id && (
           <Row>
-            <AppIcon name={'stopwatch'} color={colorsTheme.text}  />
+            <AppIcon name={'calendar'} color={colorsTheme.text} />
             <Card>
               <AppIcon name={'sortie'} color={colorsTheme.text} size={18} />
               <Text numberOfLines={1}
@@ -437,11 +452,18 @@ export default function Index() {
           <Image source={{ uri: item.icoBrandUri }}
             style={{ width: iconSize, height: iconSize }} />
           <Text numberOfLines={1}
-            style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
+            style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontWeight: 'bold' }}
           >
             {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
           </Text>
+          <Text numberOfLines={1}
+            style={appStyles.inactiveText}
+          >
+            {item.nbOutings || 0 > 0 ? (
+              `(${item.nbOutings?.toString()})`
+            ) : "-"}
 
+          </Text>
         </Row>
       </TouchableOpacity>
     )
@@ -480,6 +502,53 @@ export default function Index() {
     )
   }
 
+  //                                           #     #                                        #####                 
+  // #####  ###### #    # #####  ###### #####  ##   ##   ##   # #    # #####   ##   # #    # #     # #    # #  #### 
+  // #    # #      ##   # #    # #      #    # # # # #  #  #  # ##   #   #    #  #  # ##   # #       #   #  # #     
+  // #    # #####  # #  # #    # #####  #    # #  #  # #    # # # #  #   #   #    # # # #  #  #####  ####   #  #### 
+  // #####  #      #  # # #    # #      #####  #     # ###### # #  # #   #   ###### # #  # #       # #  #   #      #
+  // #   #  #      #   ## #    # #      #   #  #     # #    # # #   ##   #   #    # # #   ## #     # #   #  # #    #
+  // #    # ###### #    # #####  ###### #    # #     # #    # # #    #   #   #    # # #    #  #####  #    # #  #### 
+  const renderMaintainSkis: ListRenderItem<Skis> = ({ item }) => {
+    console.debug("renderMaintainSkis:", item);
+    console.debug("nbMaintains:", (toSharp.find(s => s.id === 'toSharp-' + item.id)?.nbMaintains || 0), (toWax.find(s => s.id === 'toWax-' + item.id)?.nbMaintains || 0));
+    const nbMaintains = (toSharp.find(s => s.id === 'toSharp-' + item.id)?.nbMaintains || 0) + (toWax.find(s => s.id === 'toWax-' + item.id)?.nbMaintains || 0);
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          if (maintain2write.idSkis === item.id) {
+            setMaintain2Write({ ...maintain2write, idSkis: "not-an-id" });
+          } 
+          else {
+            setMaintain2Write({ ...maintain2write, idSkis: item.id });
+          }
+        }}
+      >
+        <Row style={{ marginVertical: 2 }}>
+          {item.icoTypeOfSkisUri ?
+            <Image source={{ uri: item.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+            <Pastille size={iconSize} name={item.typeOfSkis || ""} color={"#fbe2cb"} />
+          }
+          <Image source={{ uri: item.icoBrandUri }}
+            style={{ width: iconSize, height: iconSize }} />
+          <Text numberOfLines={1}
+            style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontWeight: 'bold' }}
+          >
+            {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
+          </Text>
+          <Text numberOfLines={1}
+            style={appStyles.inactiveText}
+          >
+            {nbMaintains > 0 ? (
+              `(${nbMaintains.toString()})`
+            ) : "-"}
+
+          </Text>
+        </Row>
+      </TouchableOpacity>
+    )
+  }
+
   //                             #######                             
   //  ####    ##   #    # ###### #     # #    # ##### # #    #  #### 
   // #       #  #  #    # #      #     # #    #   #   # ##   # #    #
@@ -504,7 +573,9 @@ export default function Index() {
   const saveMaintain = async () => {
     console.debug("Saving maintain");
     setAddMaintainMode(false);
-    // Here you would save the maintain data to the database
+    await insertMaintain(db, maintain2write);
+    setMaintain2Write(initMaintain());
+    await loadData(); // Reload data after saving
   }
   //                                              #                 
   //  ####    ##   #    #  ####  ###### #        # #   #####  ##### 
@@ -910,8 +981,129 @@ export default function Index() {
         <Row>
           <Text style={appStyles.title}>{t("add_maintain")}</Text>
         </Row>
+        <Row>
+          <AppIcon name="calendar" color={colorsTheme.text} styles={{ marginRight: 8 }} />
+          {maintain2write.date === 0 ? (
+            <View style={{ flex: 1 }}>
+              <AppButton onPress={() => changeDate(new Date(), "maintain")} caption={t('today')} />
+              <AppButton onPress={() => changeDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "maintain")} caption={t('yesterday')} />
+              <AppButton onPress={() => setDateTimePickerVisible("maintain")} caption={t('anotherday')} />
+            </View>)
+            : (
+              <Tile flex={1}>
+                <Row>
+                  <TouchableOpacity onPress={() => setDateTimePickerVisible("maintain")}>
+
+                    <Text style={appStyles.text}>{new Date(maintain2write.date).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
+                  </TouchableOpacity>
+                  {partOfDay !== 'am' ?
+                    <TouchableOpacity
+                      onPress={() => {
+                        setPartOfDay(partOfDay === 'pm' ? 'noon' : 'am');
+                        changeDate(new Date(maintain2write.date), "maintain");
+                      }}
+                    >
+                      <Card>
+                        <Text style={appStyles.text}>-</Text>
+                      </Card>
+                    </TouchableOpacity> : null}
+                  <Card><Text style={appStyles.text}>{t(partOfDay)}</Text></Card>
+                  {partOfDay !== 'pm' ?
+                    <TouchableOpacity
+                      onPress={() => {
+                        setPartOfDay(partOfDay === 'am' ? 'noon' : 'pm');
+                        changeDate(new Date(maintain2write.date), "maintain");
+                      }}>
+                      <Card>
+                        <Text style={appStyles.text}>+</Text>
+                      </Card>
+                    </TouchableOpacity> : null}
+                </Row>
+              </Tile>
+
+            )
+          }
+        </Row>
+        {maintain2write.date ? <Row>
+          <AppIcon name={"skis"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+          <Tile flex={1} >
+            {maintain2write.idSkis !== "not-an-id" ? (
+              (() => {
+                const ski = listSkis.find(ski => ski.id === maintain2write.idSkis);
+                return ski ? renderMaintainSkis({ item: ski, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } }) : null;
+              })()
+            ) : (
+              <FlatList
+                data={filterMaintainSkis()}
+                renderItem={renderMaintainSkis}
+                keyExtractor={(item) => item.id}
+                style={{ maxHeight: 200, width: '100%' }}
+              />
+            )}
+          </Tile>
+        </Row> : <></>
+        }
+        {maintain2write.idSkis !== "not-an-id" && <>
+          <Row>
+            <AppIcon name={"entretien"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <View style={{ flex: 1 }}>
+              <CheckButton
+                type={"checkbox"}
+                title={t('sharpening')}
+                iconName="affuteuse"
+                isActive={/S/.test(maintain2write.swr)}
+                onPress={() => {
+                  if (/S/.test(maintain2write.swr)) {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr.replace(/S/, '') });
+                  } else {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr + 'S' });
+                  }
+                }}
+              />
+              <CheckButton
+                type={"checkbox"}
+                title={t('waxing')}
+                iconName="fartage"
+                isActive={/W/.test(maintain2write.swr)}
+                onPress={() => {
+                  if (/W/.test(maintain2write.swr)) {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr.replace(/W/, '') });
+                  } else {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr + 'W' });
+                  }
+                }}
+              />
+              <CheckButton
+                type={"checkbox"}
+                title={t('repair')}
+                iconName="aid-kit"
+                isActive={/R/.test(maintain2write.swr)}
+                onPress={() => {
+                  if (/R/.test(maintain2write.swr)) {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr.replace(/R/, '') });
+                  } else {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr + 'R' });
+                  }
+                }}
+              />
+            </View>
+          </Row>
+          <Row>
+            <AppIcon name={"write"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <TextInput
+              placeholder={t("description") + " " + t("optional")}
+              placeholderTextColor={colorsTheme.inactiveText}
+              style={appStyles.editField}
+              value={maintain2write.description}
+              onChangeText={text => setMaintain2Write({ ...maintain2write, description: text })}
+            />
+          </Row>
+        </>
+        }
         <Row style={{ marginTop: 8, gap: 16, justifyContent: 'space-between' }}>
-          <AppButton onPress={saveMaintain} color={colorsTheme.activeButton} flex={1} caption={t('add')} />
+          {maintain2write.swr.length > 0 || maintain2write.description.length > 0 ?
+            <AppButton onPress={saveMaintain} color={colorsTheme.activeButton} flex={1} caption={t('add')} />
+            : null}
           <AppButton onPress={cancelAdd} color={colorsTheme.transparentGray} flex={1} caption={t('cancel')} />
         </Row>
       </ModalEditor>

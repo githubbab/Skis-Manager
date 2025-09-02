@@ -84,24 +84,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="outings"
-        options={{
-          href: null,
-          title: t('tab_outings'),
-          tabBarIcon: ({ color }) =>
-            <AppIcon name="sortie" color={color} size={32} />,
-        }}
-      />
-      <Tabs.Screen
-        name="maintains"
-        options={{
-          href: null,
-          title: t('tab_maintains'),
-          tabBarIcon: ({ color }) =>
-            <AppIcon name="entretien" color={color} size={32} />,
-        }}
-      />
-      <Tabs.Screen
         name="offpistes"
         options={{
           href: viewOuting ? undefined : null,

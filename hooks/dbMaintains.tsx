@@ -23,14 +23,14 @@ export function initMaintain(): Maintains {
 export async function insertMaintain(db: SQLiteDatabase, m: {
     date: number,
     idSkis: string,
-    swr: string, desc: string
+    swr: string, description: string
 }) {
     const id = createId();
     const query = insertQuery(TABLES.MAINTAINS, ["id", "date", "idSkis", "swr", "description"],
-        [id, m.date, m.idSkis, m.swr, m.desc])
+        [id, m.date, m.idSkis, m.swr, m.description])
     console.debug("insertMaintain", m, query);
     await execQuery(db, query);
-    return { id: id, date: m.date, idSkis: m.idSkis, swr: m.swr, description: m.desc } as Maintains;
+    return { id: id, date: m.date, idSkis: m.idSkis, swr: m.swr, description: m.description } as Maintains;
 }
 
 export async function updateMaintain(db: SQLiteDatabase, m: Maintains) {
@@ -69,5 +69,16 @@ export async function getMaintains4Skis(db: SQLiteDatabase, idSkis: string): Pro
         GROUP BY m.id
         ORDER BY m.date DESC
   `, [idSkis]);
+    return data;
+}
+
+export async function getAllMaintains(db: SQLiteDatabase, seasonDate: number): Promise<Maintains[]> {
+    const data: Maintains[] = await db.getAllAsync(`
+        SELECT 
+            m.id, m.date, m.idSkis, m.swr, IFNULL(m.description, '') AS description
+        FROM ${TABLES.MAINTAINS} m
+        WHERE m.date >= ?
+        GROUP BY m.id
+    `, [seasonDate]);
     return data;
 }

@@ -244,7 +244,7 @@ async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQ
     const date = smDate(ssRow.date)
     await insertMaintain(db, {
       date: date, idSkis: itemsSkis[ssRow.idSkis].id,
-      swr: ssRow.swr, desc: ssRow.desc
+      swr: ssRow.swr, description: ssRow.desc
     });
   }
   // season

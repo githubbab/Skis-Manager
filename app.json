@@ -2,7 +2,7 @@
   "expo": {
     "name": "Skis-Manager",
     "slug": "Skis-Manager",
-    "version": "1.0.0",
+    "version": "0.3.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "skismanager",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.SkisManager"
+      "bundleIdentifier": "fr.babouscorp.SkisManager"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.SkisManager"
+      "package": "fr.babouscorp.SkisManager"
     },
     "web": {
       "bundler": "metro",
@@ -45,6 +45,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "421ee7ef-c587-415c-8648-54d00662b4a9"
+      }
     }
   }
 }

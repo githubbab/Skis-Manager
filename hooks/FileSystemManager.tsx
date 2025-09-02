@@ -1,17 +1,17 @@
 
 import { Asset } from "expo-asset";
 import {
+  copyAsync,
   deleteAsync,
   documentDirectory,
-  downloadAsync,
   getInfoAsync,
   makeDirectoryAsync,
   readDirectoryAsync,
   writeAsStringAsync
 } from "expo-file-system";
 
-const dataStore: string = documentDirectory+"data/";
-const imgStore: string = documentDirectory+"images/";
+const dataStore: string = documentDirectory + "data/";
+const imgStore: string = documentDirectory + "images/";
 
 export const icoTosStore = imgStore + "tos/";
 export const icoBrandsStore = imgStore + "brands/";
@@ -88,27 +88,71 @@ export async function getDistinctBrandIcoURIs(data: any[]): Promise<string[]> {
   return arrayIcoBrandURI;
 }
 
-function copyToSFiles(files?: string[]) {
+async function copyToSFiles(files?: string[]) {
+  /* 
+    if (!files?.includes("init-gs.png")) {
+      await downloadAsync(require("@/assets/images/tos/init-gs.png"), icoTosStore+"init-gs.png");
+    }
+    if (!files?.includes("init-powder.png")) {
+      await downloadAsync(require("@/assets/images/tos/init-powder.png"), icoTosStore+"init-powder.png");
+    }
+    if (!files?.includes("init-rock.png")) {
+      await downloadAsync(require("@/assets/images/tos/init-rock.png"), icoTosStore+"init-rock.png");
+    }
+    if (!files?.includes("init-skating.png")) {
+      await downloadAsync(require("@/assets/images/tos/init-skating.png"), icoTosStore+"init-skating.png");
+    }
+    if (!files?.includes("init-sl.png")) {
+      await downloadAsync(require("@/assets/images/tos/init-sl.png"), icoTosStore+"init-sl.png");
+    }
+    if (!files?.includes("init-slope.png")) {
+      await downloadAsync(require("@/assets/images/tos/init-slope.png"), icoTosStore+"init-slope.png");
+    }
+    if (!files?.includes("init-surf.png")) {
+      await downloadAsync(require("@/assets/images/tos/init-surf.png"), icoTosStore+"init-surf.png");
+    }
+    if (!files?.includes("init-touring.png")) {
+      await downloadAsync(require("@/assets/images/tos/init-touring.png"), icoTosStore+"init-touring.png");
+    }
+      */
   for (const tos of Object.keys(tosImages)) {
     if (files?.includes(tos)) {
       continue;
     }
-    downloadAsync(
-      Asset.fromModule(tosImages[tos]).uri,
-      icoTosStore + tos
-    );
+    try {
+      const tosImage = (await Asset.fromModule(tosImages[tos]).downloadAsync()).localUri;
+      if (tosImage) {
+        await copyAsync({
+          from: tosImage,
+          to: icoTosStore + tos
+        });
+        console.log("Copied TOS Asset", tos);
+      }
+    } catch (error) {
+      console.error("Error copying TOS Asset", error);
+      alert("Error copying TOS Asset" + error + tos);
+    }
   }
-} 
+}
 
-function copyBrandsFiles(files?: string[]) {
+async function copyBrandsFiles(files?: string[]) {
   for (const brand of Object.keys(brandImages)) {
     if (files?.includes(brand)) {
       continue;
     }
-    downloadAsync(
-      Asset.fromModule(brandImages[brand]).uri,
-      icoBrandsStore + brand
-    );
+    try {
+      const brandImage = (await Asset.fromModule(brandImages[brand]).downloadAsync()).localUri;
+      if (brandImage) {
+        await copyAsync({
+          from: brandImage,
+          to: icoBrandsStore + brand
+        });
+        console.log("Copied Brand Asset", brand);
+      }
+    } catch (error) {
+      console.error("Error copying Brand Asset", error);
+      alert("Error copying Brand Asset" + error + brand);
+    }
   }
 }
 
@@ -132,36 +176,34 @@ export async function initFS() {
     console.debug("Create imgStore", imgStore);
   }
   try {
-    const tosDir = imgStore + "tos/";
-    const files = await readDirectoryAsync(tosDir);
-    console.debug("Find imgStore", tosDir, files);
-    copyToSFiles(files);
+    const files = await readDirectoryAsync(icoTosStore);
+    console.debug("Find imgStore", icoTosStore, files);
+    await copyToSFiles(files);
   } catch {
-    const tosDir = imgStore + "tos/";
-    await makeDirectoryAsync(tosDir);
-    console.debug("Create imgStore", tosDir);
-    copyToSFiles();
+    await makeDirectoryAsync(icoTosStore);
+    console.debug("Create imgStore", icoTosStore);
+    await copyToSFiles();
   }
   try {
     const files = await readDirectoryAsync(icoBrandsStore)
     console.debug("Find imgStore", icoBrandsStore, files);
-    copyBrandsFiles(files);
+    await copyBrandsFiles(files);
   } catch {
     await makeDirectoryAsync(icoBrandsStore);
     console.debug("Create imgStore", icoBrandsStore);
-    copyBrandsFiles();
+    await copyBrandsFiles();
   }
 
 }
 
 export async function writeQuery(filename: string, query: string) {
-  const path = dataStore+filename;
+  const path = dataStore + filename;
   await writeAsStringAsync(path, query);
 }
 
 export async function delDataStore() {
   for (const fileName of await readDirectoryAsync(dataStore)) {
-    console.debug("Delete dataStore", dataStore+fileName);
-    await deleteAsync(dataStore+fileName)
+    console.debug("Delete dataStore", dataStore + fileName);
+    await deleteAsync(dataStore + fileName)
   }
 }

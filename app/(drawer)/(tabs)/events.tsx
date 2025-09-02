@@ -2,10 +2,10 @@ import AppButton from "@/components/AppButton";
 import AppIcon from "@/components/AppIcon";
 import Body from "@/components/Body";
 import Card from "@/components/Card";
+import CheckButton from "@/components/CheckButton";
 import ModalEditor from "@/components/ModalEditor";
 import Pastille from "@/components/Pastille";
 import Row from "@/components/Row";
-import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
@@ -14,38 +14,44 @@ import { ThemeContext } from "@/context/ThemeContext";
 import { getLastDBWrite } from "@/hooks/DatabaseManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
 import { Friends, getAllFriends } from "@/hooks/dbFriends";
+import { deleteMaintain, getAllMaintains, initMaintain, insertMaintain, Maintains } from "@/hooks/dbMaintains";
 import { getAllOffPistes, OffPistes } from "@/hooks/dbOffPistes";
-import { getAllOutings, initOuting, Outings } from "@/hooks/dbOutings";
-import { getAllSkis, Skis } from "@/hooks/dbSkis";
+import { getAllOutings, initOuting, insertOuting, Outings } from "@/hooks/dbOutings";
+import { getSeasonSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useCallback, useContext, useState } from "react";
-import { Image, ListRenderItem, Text, TouchableOpacity, View } from 'react-native';
-import { FlatList } from "react-native-gesture-handler";
+import React, { useCallback, useContext, useEffect, useState } from "react";
+import { Alert, Image, ListRenderItem, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Pressable } from "react-native-gesture-handler";
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+
 
 const iconSize = 32; // Size for icons in the filter row
 
-export default function OutingsTabs() {
+type Events = { type: "outing" | "maintain"; data: Outings | Maintains };
+
+export default function EventsTabs() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const [dbState, setDbState] = useState("none");
-  const { lang, t, seasonDate, smDate } = useEnvContext();
+  const { lang, t, seasonDate, smDate, viewFriends, viewOuting } = useEnvContext();
   const db = useSQLiteContext();
   const [lastCheck, setLastCheck] = useState<number>(0);
 
-  const [listOutings, setListOutings] = useState<Outings[]>([]);
+  const [listEvents, setListEvents] = useState<Events[]>([]);
   const [tooFilter, setTooFilter] = useState<TOO | null>(null);
   const [viewTooFilter, setViewTooFilter] = useState<boolean>(false);
   const [userFilter, setUserFilter] = useState<Users | null>(null);
   const [viewUserFilter, setViewUserFilter] = useState<boolean>(false);
   const [skisFilter, setSkisFilter] = useState<Skis | null>(null);
   const [viewSkisFilter, setViewSkisFilter] = useState<boolean>(false);
+  const [dateTimePickerVisible, setDateTimePickerVisible] = useState<"none" | "outing" | "maintain">("none");
 
   const [outing2write, setOuting2Write] = useState<Outings>(initOuting());
-  const [selectedOuting, setSelectedOuting] = useState<Outings | null>(null);
+  const [maintain2write, setMaintain2Write] = useState<Maintains>(initMaintain());
   const [listUsers, setListUsers] = useState<Users[]>([]);
   const [listSkis, setListSkis] = useState<Skis[]>([]);
   const [listBoots, setListBoots] = useState<Boots[]>([]);
@@ -54,8 +60,9 @@ export default function OutingsTabs() {
   const [listOffPistes, setListOffPistes] = useState<OffPistes[]>([]);
   const [friendsVisible, setFriendsVisible] = useState<boolean>(false);
   const [outingVisible, setOutingVisible] = useState<boolean>(false);
+  const [typeOfOutingVisible, setTypeOfOutingVisible] = useState<boolean>(false);
+  const [maintainsVisible, setMaintainsVisible] = useState<boolean>(false);
   const [offPisteVisible, setOffPisteVisible] = useState<boolean>(false);
-  const [selectedSkis, setSelectedSkis] = useState<string>("");
   const [partOfDay, setPartOfDay] = useState<"am" | "noon" | "pm">("am");
   const [outingViewUser, setOutingViewUser] = useState<boolean>(false);
   const [outingViewSkis, setOutingViewSkis] = useState<boolean>(false);
@@ -64,6 +71,9 @@ export default function OutingsTabs() {
   const [outingViewOffPiste, setOutingViewOffPiste] = useState<boolean>(false);
   const [outingViewFriends, setOutingViewFriends] = useState<boolean>(false);
   const [effectActive, setEffectActive] = useState<boolean>(false);
+  const [maintainViewSharp, setMaintainViewSharp] = useState<boolean>(true);
+  const [maintainViewWax, setMaintainViewWax] = useState<boolean>(true);
+  const [maintainViewRepair, setMaintainViewRepair] = useState<boolean>(true);
 
   const handleCancelFilters = () => {
     setViewUserFilter(false);
@@ -71,22 +81,50 @@ export default function OutingsTabs() {
     setViewTooFilter(false);
   };
 
-  const skis4filter = listSkis.filter(s => listOutings.some(o => o.idSkis === s.id));
-  const users4filter = listUsers.filter(u => listOutings.some(o => o.idUser === u.id));
-  const too4filter = listOutingTypes.filter(t => listOutings.some(o => o.idOutingType === t.id));
-  const list2View = listOutings.filter(s => {
+  const skis4filter = listSkis.filter(s => listEvents.some(o => o.data.idSkis === s.id));
+  const users4filter = listUsers.filter(u => listEvents.some(o => 'idUser' in o.data && o.data.idUser === u.id));
+  const too4filter = listOutingTypes.filter(t => listEvents.some(o => 'idOutingType' in o.data && o.data.idOutingType === t.id));
+  const list2View = listEvents.filter(s => {
     let ret = true;
-    if (tooFilter) {
-      ret = s.idOutingType === tooFilter.id;
+    if ('idOutingType' in s.data && tooFilter) {
+      ret = s.data.idOutingType === tooFilter.id;
     }
-    if (userFilter) {
-      ret = s.idUser === userFilter.id && ret;
+    if ('idUser' in s.data && userFilter) {
+      ret = s.data.idUser === userFilter.id && ret;
     }
     if (skisFilter) {
-      ret = ret && s.idSkis === skisFilter.id;
+      ret = ret && s.data.idSkis === skisFilter.id;
+    }
+    // Check if s is a Maintains object by checking for a property unique to Maintains
+    if ('swr' in s.data) {
+      if (!maintainViewSharp && /S/.test(s.data.swr)) {
+        ret = false;
+      }
+      if (!maintainViewWax && /W/.test(s.data.swr)) {
+        ret = false;
+      }
+      if (!maintainViewRepair && /R/.test(s.data.swr)) {
+        ret = false;
+      }
     }
     return ret;
   }) || [];
+
+  const filterOutingSkis = (idUser: string) => listSkis.filter(ski => ski.listUsers?.includes(idUser)).sort((a, b) => {
+    const aNb = a.nbOutings || 0;
+    const bNb = b.nbOutings || 0;
+    return bNb - aNb;
+  });
+  const filterOutingBoots = (idSkis: string) => listBoots.filter(boots => listSkis.find(ski => ski.id === idSkis)?.listBoots?.includes(boots.id || "") || false).sort((a, b) => {
+    const aNb = a.nbOutings || 0;
+    const bNb = b.nbOutings || 0;
+    return bNb - aNb;
+  });
+  const filterMaintainSkis = () => listSkis.sort((a, b) => {
+    const aNb = a.nbOutings || 0;
+    const bNb = b.nbOutings || 0;
+    return bNb - aNb;
+  });
 
   // #                            ######                     
   // #        ####    ##   #####  #     #   ##   #####   ##  
@@ -99,10 +137,17 @@ export default function OutingsTabs() {
     setDbState("loading");
     try {
       const outings = await getAllOutings(db, smDate(seasonDate));
-      setListOutings(outings);
-      console.debug("Loaded outings:", outings);
+      const maintains = await getAllMaintains(db, smDate(seasonDate));
+      const events: Events[] = [];
+      for (const outing of outings) {
+        events.push({ type: "outing", data: outing });
+      }
+      for (const maintain of maintains) {
+        events.push({ type: "maintain", data: maintain });
+      }
+      setListEvents(events.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()));
       setListUsers(await getAllUsers(db, smDate(seasonDate)));
-      setListSkis(await getAllSkis(db, smDate(seasonDate)));
+      setListSkis(await getSeasonSkis(db));
       setListBoots(await getAllBoots(db, smDate(seasonDate)));
       setListOutingTypes(await getAllTypeOfOutings(db));
       setListFriends(await getAllFriends(db));
@@ -165,138 +210,585 @@ export default function OutingsTabs() {
     }, [])
   )
 
-  //                                           #######                                    
-  // #####  ###### #    # #####  ###### #####  #     # #    # ##### # #    #  ####   #### 
-  // #    # #      ##   # #    # #      #    # #     # #    #   #   # ##   # #    # #     
-  // #    # #####  # #  # #    # #####  #    # #     # #    #   #   # # #  # #       #### 
-  // #####  #      #  # # #    # #      #####  #     # #    #   #   # #  # # #  ###      #
-  // #   #  #      #   ## #    # #      #   #  #     # #    #   #   # #   ## #    # #    #
-  // #    # ###### #    # #####  ###### #    # #######  ####    #   # #    #  ####   #### 
-  const renderOutings: ListRenderItem<Outings> = ({ item }) => {
-    const outingSkis: Skis | undefined = listSkis.find(s => s.id === item.idSkis);
-    if (!outingSkis) {
-      console.warn("No skis found for outing:", item.id, item.idSkis);
-      return null;
-    }
-    const outingBoots: Boots | undefined = listBoots.find(b => b.id === item.idBoots);
-    if (!outingBoots) {
-      console.warn("No boots found for outing:", item.id, item.idBoots);
-      return null;
-    }
-    const outingType: TOO | undefined = listOutingTypes.find(t => t.id === item.idOutingType);
-    const outingUser: Users | undefined = listUsers.find(u => u.id === item.idUser);
-    if (!outingUser) {
-      console.warn("No user found for outing:", item.id);
-      return null;
-    }
-    const outingFriends: Friends[] = listFriends.filter(f => item.idFriends?.includes(f.id));
-    console.debug("Outing Off-Pistes", item.listOfOffPistes)
-    const outingOffPistes: OffPistes[] = extractOffPistes(item.listOfOffPistes || []);
-    return (
-      <ReanimatedSwipeable
-        renderLeftActions={() => (
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedOuting(item);
-              setOutingVisible(true);
-            }}
-            style={appStyles.swipePrimary}
-          >
-            <AppIcon name={"pencil"} color={colorsTheme.text} size={iconSize} />
-          </TouchableOpacity>
-        )}
-        renderRightActions={() => (
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedOuting(item);
-              setOutingVisible(true);
-            }}
-            style={appStyles.swipeAlert}
-          >
-            <AppIcon name={"bin"} color={colorsTheme.text} size={iconSize} />
-          </TouchableOpacity>
-        )}
-
-      >
-        <TouchableOpacity
-          onPress={() => {
-            if (selectedOuting?.id !== item.id) {
-              setSelectedOuting(item)
+  useEffect(() => {
+      if (effectActive) {
+        console.debug("useEffect active, skipping outing2write update");
+        return;
+      }
+      setEffectActive(true);
+      if (outing2write.date) {
+        setOutingViewUser(true);
+      }
+      else {
+        setOutingViewUser(false);
+      }
+      let outing = outing2write
+      if (outing2write.idUser) {
+        setOutingViewSkis(true);
+        const skis = filterOutingSkis(outing2write.idUser || "");
+        if (skis.length === 1) {
+          outing = { ...outing, idSkis: skis[0].id };
+        }
+      }
+      else {
+        setOutingViewSkis(false);
+      }
+      if (outing2write.idSkis) {
+        setOutingViewBoots(true);
+        const boots = filterOutingBoots(outing2write.idSkis || "");
+        if (boots.length === 1) {
+          outing = { ...outing, idBoots: boots[0].id };
+        }
+      } else {
+        setOutingViewBoots(false);
+      }
+      if (outing2write.idBoots) {
+        if (viewOuting) {
+          setOutingViewToOuting(true);
+          const majorType = listSkis.find(ski => ski.id === outing2write.idSkis)?.majorTypeOfOuting;
+          if (majorType) {
+            outing = { ...outing, idOutingType: majorType };
+          }
+          if (outing2write.idOutingType) {
+            if (listOutingTypes.find(type => type.id === outing2write.idOutingType)?.canOffPiste) {
+              setOutingViewOffPiste(true);
             }
             else {
-              setSelectedOuting(null)
+              setOutingViewOffPiste(false);
             }
-
-          }}
-          style={{ backgroundColor: selectedOuting?.id === item.id ? colorsTheme.transparentGray : 'transparent' }}
-        >
-          <Row style={{ marginVertical: 2 }}>
-            <Text style={appStyles.title}>{new Date(item.date).toLocaleDateString(lang, { month: 'short', day: '2-digit' })}</Text>
-            {!skisFilter &&
-              <>
-                <Text style={appStyles.text}>-</Text>
-                {outingSkis.icoTypeOfSkisUri ?
-                  <Image source={{ uri: outingSkis.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
-                  <Pastille size={iconSize} name={outingSkis.typeOfSkis || ""} />
-                }
-                <Image source={{ uri: outingSkis.icoBrandUri }}
-                  style={{ width: iconSize, height: iconSize }} />
-                <Text numberOfLines={1}
-                  style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
-                >
-                  {outingSkis.size ? outingSkis.size + " " : ""}{outingSkis.radius ? outingSkis.radius + "m " : ""}{outingSkis.name}
-                </Text>
-              </>
-            }
-            <Pastille size={iconSize} name={outingUser.name} color={outingUser.pcolor} />
-          </Row>
-          <Row>
-            <Text style={[appStyles.text]}>
-              {outingType?.name || ""}
-              {outingOffPistes.length > 0 && `(${outingOffPistes.reduce((sum, off) => sum + (off.count || 0), 0)})`}
-            </Text>
-            <Row isFlex={false} >
-              <AppIcon name={"ski-boot"} color={colorsTheme.text} />
-              <Image source={{ uri: outingBoots.icoBrandUri }}
-                style={{ width: iconSize, height: iconSize }} />
-              <Text style={[appStyles.title,]}>
-                {outingBoots.flex ? outingBoots.flex + " " : ""}
-                {outingBoots.size ? "T" + outingBoots.size + " " : ""}
-                {outingBoots.name}
-              </Text>
-            </Row>
-          </Row>
-
-          {selectedOuting?.id === item.id &&
-            <View>
-              <Row>
-                <AppIcon name={"hors-piste"} color={colorsTheme.text} />
-                <View style={{ flex: 1 }}>
-                  {outingOffPistes.map(off => (
-                    <Text key={off.id} style={appStyles.text}>{off.name}({off.count})</Text>
-                  ))}
-                </View>
-                {outingFriends.length > 0 && (
-                  <Card>
-                    <AppIcon name={"accessibility"} color={colorsTheme.text} />
-                    {outingFriends.map(friend => (
-                      <Pastille key={friend.id} name={friend.name} />
-                    ))}
-                  </Card>
-                )}
-              </Row>
-              <TouchableOpacity onPress={() => { }}>
-                <AppIcon name={"pencil"} color={colorsTheme.primary} size={iconSize} styles={{ margin: "auto" }} />
-              </TouchableOpacity>
-            </View>
           }
-          <Separator />
+          else {
+            setOutingViewOffPiste(false);
+          }
+        } else {
+          setOutingViewToOuting(false);
+        }
+        if (viewFriends) {
+          if (listFriends.length > 0) {
+            setOutingViewFriends(true);
+          }
+          else {
+            setOutingViewFriends(false);
+          }
+        }
+      }
+      else {
+        setOutingViewToOuting(false);
+        setOutingViewOffPiste(false);
+        setOutingViewFriends(false);
+      }
+      if (JSON.stringify(outing) !== JSON.stringify(outing2write)) {
+        setOuting2Write(outing);
+      }
+      setEffectActive(false);
+    }, [outing2write])
+  
 
-        </TouchableOpacity>
-      </ReanimatedSwipeable>
+  //               ######                       #####                                    
+  //  ####  #    # #     #   ##   ##### ###### #     # #    #   ##   #    #  ####  ######
+  // #    # ##   # #     #  #  #    #   #      #       #    #  #  #  ##   # #    # #     
+  // #    # # #  # #     # #    #   #   #####  #       ###### #    # # #  # #      ##### 
+  // #    # #  # # #     # ######   #   #      #       #    # ###### #  # # #  ### #     
+  // #    # #   ## #     # #    #   #   #      #     # #    # #    # #   ## #    # #     
+  //  ####  #    # ######  #    #   #   ######  #####  #    # #    # #    #  ####  ######
+
+  function changeDate(date: Date, type: "outing" | "maintain") {
+    const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : 16));
+    console.debug("changeDate", date2Save);
+
+    if (type === "outing") {
+      if (listUsers.length === 1) {
+        const skis = filterOutingSkis(listUsers[0].id);
+        if (skis.length === 1) {
+          const boots = filterOutingBoots(skis[0].id);
+          if (boots.length === 1) {
+            setOuting2Write({ ...outing2write, date: date2Save, idUser: listUsers[0].id, idSkis: skis[0].id, idBoots: boots[0].id });
+          } else {
+            setOuting2Write({ ...outing2write, date: date2Save, idUser: listUsers[0].id, idSkis: skis[0].id, idBoots: undefined });
+          }
+        }
+        else {
+          setOuting2Write({ ...outing2write, date: date2Save, idUser: listUsers[0].id, idSkis: undefined, idBoots: undefined });
+        }
+      } else {
+        setOuting2Write({ ...outing2write, date: date2Save });
+      }
+    } else {
+      setMaintain2Write({ ...maintain2write, date: smDate(date2Save) });
+    }
+  }
+
+  function onDateChange(event: any, selectedDate: Date | undefined) {
+    console.debug("onDateChange", event.type, selectedDate);
+    if (event.type === "set" && selectedDate) {
+      changeDate(selectedDate, dateTimePickerVisible as "outing" | "maintain");
+    }
+    else {
+      console.debug("Date selection cancelled");
+    }
+    setDateTimePickerVisible("none");
+  }
+
+  //                                              #                                
+  //  ####    ##   #    #  ####  ###### #        # #    ####  ##### #  ####  #    #
+  // #    #  #  #  ##   # #    # #      #       #   #  #    #   #   # #    # ##   #
+  // #      #    # # #  # #      #####  #      #     # #        #   # #    # # #  #
+  // #      ###### #  # # #      #      #      ####### #        #   # #    # #  # #
+  // #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
+  //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
+  const cancelAction = async () => {
+    console.debug("Cancelling action");
+    setMaintainsVisible(false);
+    setMaintain2Write(initMaintain());
+    setOutingVisible(false);
+    setOuting2Write(initOuting());
+    setDateTimePickerVisible("none");
+    setViewSkisFilter(false);
+    setViewTooFilter(false);
+    setViewUserFilter(false);
+    setOutingViewBoots(false);
+    setOutingViewFriends(false);
+    setOutingViewOffPiste(false);
+    setOutingViewSkis(false);
+    setOutingViewToOuting(false);
+    setOutingViewUser(false);
+    setOffPisteVisible(false);
+    setFriendsVisible(false);
+    setTypeOfOutingVisible(false);
+    await loadData(); // Reload data after cancelling
+  }
+
+  //                             #######                             
+  //  ####    ##   #    # ###### #     # #    # ##### # #    #  #### 
+  // #       #  #  #    # #      #     # #    #   #   # ##   # #    #
+  //  ####  #    # #    # #####  #     # #    #   #   # # #  # #     
+  //      # ###### #    # #      #     # #    #   #   # #  # # #  ###
+  // #    # #    #  #  #  #      #     # #    #   #   # #   ## #    #
+  //  ####  #    #   ##   ###### #######  ####    #   # #    #  #### 
+  const saveOuting = async () => {
+    console.debug("Saving outing", outing2write);
+    setOutingVisible(false);
+    await insertOuting(db, outing2write);
+    setOuting2Write(initOuting());
+    await loadData(); // Reload data after saving
+  }
+
+  //                             #     #                                      
+  //  ####    ##   #    # ###### ##   ##   ##   # #    # #####   ##   # #    #
+  // #       #  #  #    # #      # # # #  #  #  # ##   #   #    #  #  # ##   #
+  //  ####  #    # #    # #####  #  #  # #    # # # #  #   #   #    # # # #  #
+  //      # ###### #    # #      #     # ###### # #  # #   #   ###### # #  # #
+  // #    # #    #  #  #  #      #     # #    # # #   ##   #   #    # # #   ##
+  //  ####  #    #   ##   ###### #     # #    # # #    #   #   #    # # #    #
+  const saveMaintain = async () => {
+    console.debug("Saving maintain");
+    setMaintainsVisible(false);
+    await insertMaintain(db, maintain2write);
+    setMaintain2Write(initMaintain());
+    await loadData(); // Reload data after saving
+  }
+  //                                          #     #                                      
+  // #####  ###### #      ###### ##### ###### ##   ##   ##   # #    # #####   ##   # #    #
+  // #    # #      #      #        #   #      # # # #  #  #  # ##   #   #    #  #  # ##   #
+  // #    # #####  #      #####    #   #####  #  #  # #    # # # #  #   #   #    # # # #  #
+  // #    # #      #      #        #   #      #     # ###### # #  # #   #   ###### # #  # #
+  // #    # #      #      #        #   #      #     # #    # # #   ##   #   #    # # #   ##
+  // #####  ###### ###### ######   #   ###### #     # #    # # #    #   #   #    # # #    #
+  const handleDeleteMaintain = (maintain: Maintains) => {
+    console.debug("Deleting maintain", maintain);
+    Alert.alert(
+      t('delete'),
+      t("del_maintain"),
+      [
+        { text: t('cancel'), style: "cancel" },
+        {
+          text: t('ok'),
+          onPress: () => {
+            if (maintain?.id) {
+              deleteMaintain(db, maintain.id).then(loadData)
+            }
+          },
+        }
+      ]
+    );
+    setMaintainsVisible(false);
+    setOutingVisible(false);
+  }
+
+  //                                           #######                               #####                 
+  // #####  ###### #    # #####  ###### #####  #     # #    # ##### # #    #  ####  #     # #    # #  #### 
+  // #    # #      ##   # #    # #      #    # #     # #    #   #   # ##   # #    # #       #   #  # #     
+  // #    # #####  # #  # #    # #####  #    # #     # #    #   #   # # #  # #       #####  ####   #  #### 
+  // #####  #      #  # # #    # #      #####  #     # #    #   #   # #  # # #  ###       # #  #   #      #
+  // #   #  #      #   ## #    # #      #   #  #     # #    #   #   # #   ## #    # #     # #   #  # #    #
+  // #    # ###### #    # #####  ###### #    # #######  ####    #   # #    #  ####   #####  #    # #  #### 
+  const renderOutingSkis: ListRenderItem<Skis> = ({ item }) => {
+    return (
+      <TouchableOpacity onPress={() => {
+        console.debug("renderOutingSkis:", item);
+        console.debug("majorOutingType:", item.majorTypeOfOuting);
+        if (outing2write.idSkis === item.id) {
+          const skis = filterOutingSkis(outing2write.idUser || "");
+          if (skis.length !== 1) {
+            setOuting2Write({ ...outing2write, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
+          }
+        } else {
+          const boots = filterOutingBoots(item.id);
+          if (boots.length === 1) {
+            setOuting2Write({ ...outing2write, idSkis: item.id, idBoots: boots[0].id, idOutingType: item.majorTypeOfOuting || undefined });
+          } else {
+            setOuting2Write({ ...outing2write, idSkis: item.id, idBoots: undefined, idOutingType: item.majorTypeOfOuting || undefined });
+          }
+        }
+      }}>
+        <Row style={{ marginVertical: 2 }}>
+          {item.icoTypeOfSkisUri ?
+            <Image source={{ uri: item.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+            <Pastille size={iconSize} name={item.typeOfSkis || ""} color={"#fbe2cb"} />
+          }
+          <Image source={{ uri: item.icoBrandUri }}
+            style={{ width: iconSize, height: iconSize }} />
+          <Text numberOfLines={1}
+            style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontWeight: 'bold' }}
+          >
+            {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
+          </Text>
+          <Text numberOfLines={1}
+            style={appStyles.inactiveText}
+          >
+            {item.nbOutings || 0 > 0 ? (
+              `(${item.nbOutings?.toString()})`
+            ) : "-"}
+
+          </Text>
+        </Row>
+      </TouchableOpacity>
     )
   }
 
+  //                                           #######                              ######                            
+  // #####  ###### #    # #####  ###### #####  #     # #    # ##### # #    #  ####  #     #  ####   ####  #####  #### 
+  // #    # #      ##   # #    # #      #    # #     # #    #   #   # ##   # #    # #     # #    # #    #   #   #     
+  // #    # #####  # #  # #    # #####  #    # #     # #    #   #   # # #  # #      ######  #    # #    #   #    #### 
+  // #####  #      #  # # #    # #      #####  #     # #    #   #   # #  # # #  ### #     # #    # #    #   #        #
+  // #   #  #      #   ## #    # #      #   #  #     # #    #   #   # #   ## #    # #     # #    # #    #   #   #    #
+  // #    # ###### #    # #####  ###### #    # #######  ####    #   # #    #  ####  ######   ####   ####    #    #### 
+  const renderOutingBoots: ListRenderItem<Boots> = ({ item }) => {
+    return (
+      <TouchableOpacity onPress={() => {
+        if (outing2write.idBoots === item.id) {
+          const boots = filterOutingBoots(outing2write.idSkis || "");
+          if (boots.length !== 1) {
+            setOuting2Write({ ...outing2write, idBoots: undefined });
+          }
+        } else {
+          setOuting2Write({ ...outing2write, idBoots: item.id })
+        }
+      }}>
+        <Row style={{ marginVertical: 2 }}>
+          <Image source={{ uri: item.icoBrandUri }}
+            style={{ width: iconSize, height: iconSize }} />
+          <Text style={[appStyles.title, { flex: 1 }]}>
+            {item.idBrand === "init-unknown" ? "" : item.brand + " "}
+            {item.flex ? item.flex + " " : ""}
+            {item.size ? "T" + item.size + " " : ""}
+            {item.name}
+          </Text>
+        </Row>
+      </TouchableOpacity>
+    )
+  }
+
+  //                                           #     #                                        #####                 
+  // #####  ###### #    # #####  ###### #####  ##   ##   ##   # #    # #####   ##   # #    # #     # #    # #  #### 
+  // #    # #      ##   # #    # #      #    # # # # #  #  #  # ##   #   #    #  #  # ##   # #       #   #  # #     
+  // #    # #####  # #  # #    # #####  #    # #  #  # #    # # # #  #   #   #    # # # #  #  #####  ####   #  #### 
+  // #####  #      #  # # #    # #      #####  #     # ###### # #  # #   #   ###### # #  # #       # #  #   #      #
+  // #   #  #      #   ## #    # #      #   #  #     # #    # # #   ##   #   #    # # #   ## #     # #   #  # #    #
+  // #    # ###### #    # #####  ###### #    # #     # #    # # #    #   #   #    # # #    #  #####  #    # #  #### 
+  const renderMaintainSkis: ListRenderItem<Skis> = ({ item }) => {
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          if (maintain2write.idSkis === item.id) {
+            setMaintain2Write({ ...maintain2write, idSkis: "not-an-id" });
+          }
+          else {
+            setMaintain2Write({ ...maintain2write, idSkis: item.id });
+          }
+        }}
+      >
+        <Row style={{ marginVertical: 2 }}>
+          {item.icoTypeOfSkisUri ?
+            <Image source={{ uri: item.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+            <Pastille size={iconSize} name={item.typeOfSkis || ""} color={"#fbe2cb"} />
+          }
+          <Image source={{ uri: item.icoBrandUri }}
+            style={{ width: iconSize, height: iconSize }} />
+          <Text numberOfLines={1}
+            style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontWeight: 'bold' }}
+          >
+            {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
+          </Text>
+        </Row>
+      </TouchableOpacity>
+    )
+  }
+
+  //                                           ###                    
+  // #####  ###### #    # #####  ###### #####   #  ##### ###### #    #
+  // #    # #      ##   # #    # #      #    #  #    #   #      ##  ##
+  // #    # #####  # #  # #    # #####  #    #  #    #   #####  # ## #
+  // #####  #      #  # # #    # #      #####   #    #   #      #    #
+  // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
+  // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
+  const renderItem: ListRenderItem<any> = ({ item }) => {
+    console.debug("renderItem", item);
+    // #######                                    
+    // #     # #    # ##### # #    #  ####   #### 
+    // #     # #    #   #   # ##   # #    # #     
+    // #     # #    #   #   # # #  # #       #### 
+    // #     # #    #   #   # #  # # #  ###      #
+    // #     # #    #   #   # #   ## #    # #    #
+    // #######  ####    #   # #    #  ####   #### 
+    if (item.type === "outing") {
+      console.debug("renderOutings", item);
+      const outingSkis: Skis | undefined = listSkis.find(s => s.id === item.data.idSkis);
+      if (!outingSkis) {
+        console.warn("No skis found for outing:", item.id, item.idSkis);
+        return null;
+      }
+      const outingBoots: Boots | undefined = listBoots.find(b => b.id === item.data.idBoots);
+      if (!outingBoots) {
+        console.warn("No boots found for outing:", item.id, item.data.idBoots);
+        return null;
+      }
+      const outingType: TOO | undefined = listOutingTypes.find(t => t.id === item.data.idOutingType);
+      const outingUser: Users | undefined = listUsers.find(u => u.id === item.data.idUser);
+      if (!outingUser) {
+        console.warn("No user found for outing:", item.id);
+        return null;
+      }
+      const outingFriends: Friends[] = listFriends.filter(f => item.data.idFriends?.includes(f.id));
+      console.debug("Outing Off-Pistes", item.listOfOffPistes)
+      const outingOffPistes: OffPistes[] = extractOffPistes(item.listOfOffPistes || []);
+      return (
+        <ReanimatedSwipeable
+          dragOffsetFromRightEdge={80}
+          dragOffsetFromLeftEdge={80}
+          renderLeftActions={() => (
+            <Pressable
+              onPress={() => {
+                setOuting2Write(item.data);
+                setOutingVisible(true);
+              }}
+              style={appStyles.swipePrimary}
+            >
+              <AppIcon name={"pencil"} color={colorsTheme.text} size={iconSize} />
+            </Pressable>
+          )}
+          renderRightActions={() => (
+            <Pressable
+              onPress={() => {
+                setOuting2Write(item.data);
+                setOutingVisible(true);
+              }}
+              style={appStyles.swipeAlert}
+            >
+              <AppIcon name={"bin"} color={colorsTheme.text} size={iconSize} />
+            </Pressable>
+          )}
+
+        >
+          <TouchableOpacity
+            onPress={() => {
+              if (outing2write.id !== item.data.id) {
+                setOuting2Write(item.data)
+                setMaintain2Write(initMaintain()); // Clear selected maintains if outing is selected
+              }
+              else {
+                setOuting2Write(initOuting())
+              }
+
+            }}
+            style={[appStyles.renderItem, {
+              backgroundColor: outing2write.id === item.data.id ? colorsTheme.transparentGray : 'transparent',
+              borderRightWidth: 1,
+              borderRightColor: colorsTheme.alert
+            }]}
+          >
+            <Row style={{ marginVertical: 2 }}>
+              <Card>
+                <Text style={appStyles.title}>{new Date(item.data.date).toLocaleDateString(lang, { month: 'short', day: '2-digit' })}</Text>
+              </Card>
+              {!skisFilter &&
+                <>
+                  {outingSkis.icoTypeOfSkisUri ?
+                    <Image source={{ uri: outingSkis.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+                    <Pastille size={iconSize} name={outingSkis.typeOfSkis || ""} />
+                  }
+                  <Image source={{ uri: outingSkis.icoBrandUri }}
+                    style={{ width: iconSize, height: iconSize }} />
+                  <Text numberOfLines={1}
+                    style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
+                  >
+                    {outingSkis.size ? outingSkis.size + " " : ""}{outingSkis.radius ? outingSkis.radius + "m " : ""}{outingSkis.name}
+                  </Text>
+                </>
+              }
+              {skisFilter ?
+                <Row>
+                  <Pastille size={iconSize} name={outingUser.name} color={outingUser.pcolor} />
+                  <Text style={[appStyles.text]}>
+                    {outingUser.name}
+                  </Text>
+                </Row> :
+                <Pastille size={iconSize} name={outingUser.name} color={outingUser.pcolor} />
+
+              }
+
+            </Row>
+            <Row>
+              <AppIcon name={"sortie"} color={colorsTheme.text} styles={{ marginLeft: 4 }} />
+              <Text style={[appStyles.text]}>
+                {outingType?.name || ""}
+                {outingOffPistes.length > 0 && `(${outingOffPistes.reduce((sum, off) => sum + (off.count || 0), 0)})`}
+              </Text>
+              <Row isFlex={false} >
+                <AppIcon name={"ski-boot"} color={colorsTheme.text} />
+                <Image source={{ uri: outingBoots.icoBrandUri }}
+                  style={{ width: iconSize, height: iconSize }} />
+                <Text style={[appStyles.title,]}>
+                  {outingBoots.flex ? outingBoots.flex + " " : ""}
+                  {outingBoots.size ? "T" + outingBoots.size + " " : ""}
+                  {outingBoots.name}
+                </Text>
+              </Row>
+            </Row>
+
+            {outing2write.id === item.data.id &&
+              <View>
+                <Row>
+                  <AppIcon name={"hors-piste"} color={colorsTheme.text} />
+                  <View style={{ flex: 1 }}>
+                    {outingOffPistes.map(off => (
+                      <Text key={off.id} style={appStyles.text}>{off.name}({off.count})</Text>
+                    ))}
+                  </View>
+                  {outingFriends.length > 0 && (
+                    <Card>
+                      <AppIcon name={"accessibility"} color={colorsTheme.text} />
+                      {outingFriends.map(friend => (
+                        <Pastille key={friend.id} name={friend.name} />
+                      ))}
+                    </Card>
+                  )}
+                </Row>
+              </View>
+            }
+          </TouchableOpacity>
+        </ReanimatedSwipeable>
+      );
+    }
+    // #     #                                             
+    // ##   ##   ##   # #    # #####   ##   # #    #  #### 
+    // # # # #  #  #  # ##   #   #    #  #  # ##   # #     
+    // #  #  # #    # # # #  #   #   #    # # # #  #  #### 
+    // #     # ###### # #  # #   #   ###### # #  # #      #
+    // #     # #    # # #   ##   #   #    # # #   ## #    #
+    // #     # #    # # #    #   #   #    # # #    #  #### 
+    if (item.type === "maintain") {
+      console.debug("renderMaintains", item);
+      const maintainSkis: Skis | undefined = listSkis.find(s => s.id === item.data.idSkis);
+      if (!maintainSkis) {
+        console.warn("No skis found for maintain", item.data.idSkis);
+        return null;
+      }
+      const description = () => {
+        if (item.data.description) return item.data.description;
+        if (item.data.swr) {
+          const swrParts = [];
+          if (/S/.test(item.data.swr)) swrParts.push(t("sharpening"));
+          if (/S/.test(item.data.swr)) swrParts.push(t("waxing"));
+          if (/R/.test(item.data.swr)) swrParts.push(t("repair"));
+          return swrParts.join(", ");
+        }
+        return "Pas de description";
+      }
+      return (
+        <ReanimatedSwipeable
+          dragOffsetFromRightEdge={80}
+          dragOffsetFromLeftEdge={80}
+          renderLeftActions={() => (
+            <Pressable
+              onPress={() => {
+                setMaintainsVisible(true);
+                setMaintain2Write(item.data);
+              }}
+              style={appStyles.swipePrimary}
+            >
+              <AppIcon name={"pencil"} color={colorsTheme.text} size={iconSize} />
+            </Pressable>
+          )}
+          renderRightActions={() => (
+            <Pressable
+              onPress={() => {
+                handleDeleteMaintain(item.data);
+              }}
+              style={appStyles.swipeAlert}
+            >
+              <AppIcon name={"bin"} color={colorsTheme.text} size={iconSize} />
+            </Pressable>
+          )}
+
+        >
+
+          <View
+            style={[appStyles.renderItem,
+            {
+              backgroundColor: maintain2write.id === item.data.id ? colorsTheme.transparentGray : 'transparent',
+              borderRightWidth: 1,
+              borderRightColor: colorsTheme.alert
+            }]}
+          >
+            <Row style={{ marginVertical: 2 }}>
+              <Card>
+                <Text style={appStyles.title}>{new Date(item.data.date).toLocaleDateString(lang, { month: 'short', day: '2-digit' })}</Text>
+              </Card>
+              {!skisFilter &&
+                <>
+                  {maintainSkis.icoTypeOfSkisUri ?
+                    <Image source={{ uri: maintainSkis.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+                    <Pastille size={iconSize} name={maintainSkis.typeOfSkis || ""} />
+                  }
+                  <Image source={{ uri: maintainSkis.icoBrandUri }}
+                    style={{ width: iconSize, height: iconSize }} />
+                  <Text numberOfLines={1}
+                    style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
+                  >
+                    {maintainSkis.size ? maintainSkis.size + " " : ""}{maintainSkis.radius ? maintainSkis.radius + "m " : ""}{maintainSkis.name}
+                  </Text>
+                </>
+              }
+            </Row>
+            <Row>
+              <AppIcon name={"entretien"} color={colorsTheme.text} styles={{ marginLeft: 4 }} />
+              <Card>
+                {/S/.test(item.data.swr) && <AppIcon name={"affuteuse"} color={colorsTheme.primary} size={iconSize} />}
+                {/S/.test(item.data.swr) && <AppIcon name={"fartage"} color={colorsTheme.primary} size={iconSize} />}
+                {/R/.test(item.data.swr) && <AppIcon name={"aid-kit"} color={colorsTheme.primary} size={iconSize} />}
+              </Card>
+              <Text numberOfLines={1} style={[appStyles.textItalic]}>
+                {description()}
+              </Text>
+            </Row>
+          </View>
+        </ReanimatedSwipeable>
+
+      );
+    }
+    return null; // Fallback if no type matches
+  }
 
   // #####  ###### ##### #    # #####  #    #
   // #    # #        #   #    # #    # ##   #
@@ -307,7 +799,7 @@ export default function OutingsTabs() {
 
   if (dbState !== "done") {
     console.debug("Data loading, wait !")
-    return <Text>Loading...</Text>;
+    return <Body><Text>Loading...</Text></Body>;
   }
 
   return (
@@ -350,7 +842,7 @@ export default function OutingsTabs() {
         <AppIcon name={"sortie"} color={colorsTheme.text} size={iconSize} styles={{ width: iconSize + 2, height: iconSize + 2 }} />
         <View style={{ flex: 1 }} >
           <Tile >
-            <Row isFlex={true}>
+            <Row>
               <AppIcon name={"users"} color={colorsTheme.text} size={iconSize} />
               <TouchableOpacity onPress={toggleUsersFilter}>
                 {(userFilter) ?
@@ -375,7 +867,7 @@ export default function OutingsTabs() {
           </Tile>
 
           <Tile >
-            <Row isFlex={true}>
+            <Row>
               <AppIcon name={"slope"} color={colorsTheme.text} size={iconSize} />
               <TouchableOpacity onPress={toggleTooFilter}>
                 {(tooFilter) ?
@@ -402,14 +894,32 @@ export default function OutingsTabs() {
       </Row>
       <Row>
         <AppIcon name={"entretien"} color={colorsTheme.text} size={iconSize} styles={{ width: iconSize + 2, height: iconSize + 2 }} />
-        <View style={{ flex: 1 }} >
-          <Tile>
-            <AppIcon name={"entretien"} color={colorsTheme.text} size={iconSize} styles={{ width: iconSize + 2, height: iconSize + 2 }} />
+        <Row isFlex={true}>
+          <Tile flex={1} >
+            <TouchableOpacity onPress={() => setMaintainViewSharp(!maintainViewSharp)}>
+              <Row>
+                <AppIcon name={"affuteuse"} color={maintainViewSharp ? colorsTheme.primary : colorsTheme.inactiveText} size={iconSize} />
+                <AppIcon name={maintainViewSharp ? "eye" : "eye-blocked"} color={maintainViewSharp ? colorsTheme.text : colorsTheme.inactiveText} size={iconSize} />
+              </Row>
+            </TouchableOpacity>
           </Tile>
-          <Tile>
-            <AppIcon name={"entretien"} color={colorsTheme.text} size={iconSize} styles={{ width: iconSize + 2, height: iconSize + 2 }} />
+          <Tile flex={1}>
+            <TouchableOpacity onPress={() => setMaintainViewWax(!maintainViewWax)}>
+              <Row style={{ marginHorizontal: 'auto', gap: 16 }}>
+                <AppIcon name={"fartage"} color={maintainViewWax ? colorsTheme.primary : colorsTheme.inactiveText} size={iconSize} />
+                <AppIcon name={maintainViewWax ? "eye" : "eye-blocked"} color={maintainViewWax ? colorsTheme.text : colorsTheme.inactiveText} size={iconSize} />
+              </Row>
+            </TouchableOpacity>
           </Tile>
-        </View>
+          <Tile flex={1}>
+            <TouchableOpacity onPress={() => setMaintainViewRepair(!maintainViewRepair)}>
+              <Row>
+                <AppIcon name={"aid-kit"} color={maintainViewRepair ? colorsTheme.primary : colorsTheme.inactiveText} size={iconSize} />
+                <AppIcon name={maintainViewRepair ? "eye" : "eye-blocked"} color={maintainViewRepair ? colorsTheme.text : colorsTheme.inactiveText} size={iconSize} />
+              </Row>
+            </TouchableOpacity>
+          </Tile>
+        </Row>
       </Row>
 
       <Tile flex={1} style={{ marginTop: 16, marginBottom: 8 }} >
@@ -423,11 +933,20 @@ export default function OutingsTabs() {
 
         <FlatList
           data={list2View}
-          renderItem={renderOutings}
-          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.data.id}
         />
 
       </Tile>
+      {
+        //                         #####                  #######                             
+        // #    # # ###### #    # #     # #    # #  ####  #       # #      ##### ###### ##### 
+        // #    # # #      #    # #       #   #  # #      #       # #        #   #      #    #
+        // #    # # #####  #    #  #####  ####   #  ####  #####   # #        #   #####  #    #
+        // #    # # #      # ## #       # #  #   #      # #       # #        #   #      ##### 
+        //  #  #  # #      ##  ## #     # #   #  # #    # #       # #        #   #      #   # 
+        //   ##   # ###### #    #  #####  #    # #  ####  #       # ######   #   ###### #    #
+      }
       <ModalEditor visible={viewSkisFilter}>
         <Text style={appStyles.title}>{t("filter_skis")}</Text>
         <Tile style={{ marginBottom: 16 }}>
@@ -458,6 +977,15 @@ export default function OutingsTabs() {
         </Tile>
         <AppButton onPress={handleCancelFilters} caption={t("cancel")} />
       </ModalEditor>
+      {
+        //                        #     #                      #######                             
+        // #    # # ###### #    # #     #  ####  ###### #####  #       # #      ##### ###### ##### 
+        // #    # # #      #    # #     # #      #      #    # #       # #        #   #      #    #
+        // #    # # #####  #    # #     #  ####  #####  #    # #####   # #        #   #####  #    #
+        // #    # # #      # ## # #     #      # #      #####  #       # #        #   #      ##### 
+        //  #  #  # #      ##  ## #     # #    # #      #   #  #       # #        #   #      #   # 
+        //   ##   # ###### #    #  #####   ####  ###### #    # #       # ######   #   ###### #    #
+      }
       <ModalEditor visible={viewUserFilter}>
         <Text style={appStyles.title}>{t("filter_users")}</Text>
         <Tile style={{ marginBottom: 16 }}>
@@ -481,6 +1009,15 @@ export default function OutingsTabs() {
         </Tile>
         <AppButton onPress={handleCancelFilters} caption={t("cancel")} />
       </ModalEditor>
+      {
+        //                        #######               #######                             
+        // #    # # ###### #    #    #     ####   ####  #       # #      ##### ###### ##### 
+        // #    # # #      #    #    #    #    # #    # #       # #        #   #      #    #
+        // #    # # #####  #    #    #    #    # #    # #####   # #        #   #####  #    #
+        // #    # # #      # ## #    #    #    # #    # #       # #        #   #      ##### 
+        //  #  #  # #      ##  ##    #    #    # #    # #       # #        #   #      #   # 
+        //   ##   # ###### #    #    #     ####   ####  #       # ######   #   ###### #    #
+      }
       <ModalEditor visible={viewTooFilter}>
         <Text style={appStyles.title}>{t("filter_too")}</Text>
         <Tile style={{ marginBottom: 16 }}>
@@ -502,6 +1039,542 @@ export default function OutingsTabs() {
           />
         </Tile>
         <AppButton onPress={handleCancelFilters} caption={t("cancel")} />
+      </ModalEditor>
+      {
+        //                       #######                             
+        // ###### #####  # ##### #     # #    # ##### # #    #  #### 
+        // #      #    # #   #   #     # #    #   #   # ##   # #    #
+        // #####  #    # #   #   #     # #    #   #   # # #  # #     
+        // #      #    # #   #   #     # #    #   #   # #  # # #  ###
+        // #      #    # #   #   #     # #    #   #   # #   ## #    #
+        // ###### #####  #   #   #######  ####    #   # #    #  #### 
+      }
+      <ModalEditor visible={outingVisible}>
+        <Row>
+          <Text style={appStyles.title}>
+            {t("modify_outing")}
+          </Text>
+        </Row>
+        <Row>
+          <AppIcon name="calendar" color={colorsTheme.text} styles={{ marginRight: 8 }} />
+          {outing2write.date === 0 ? (
+            <View style={{ flex: 1 }}>
+              <AppButton onPress={() => changeDate(new Date(), "outing")} caption={t('today')} />
+              <AppButton onPress={() => changeDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "outing")} caption={t('yesterday')} />
+              <AppButton onPress={() => setDateTimePickerVisible("outing")} caption={t('anotherday')} />
+            </View>)
+            : (
+              <Tile flex={1}>
+                <Row>
+                  <TouchableOpacity onPress={() => setDateTimePickerVisible("outing")}>
+
+                    <Text style={appStyles.text}>{new Date(outing2write.date).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
+                  </TouchableOpacity>
+                  {partOfDay !== 'am' ?
+                    <TouchableOpacity
+                      onPress={() => {
+                        setPartOfDay(partOfDay === 'pm' ? 'noon' : 'am');
+                        changeDate(new Date(outing2write.date), "outing");
+                      }}
+                    >
+                      <Card>
+                        <Text style={appStyles.text}>-</Text>
+                      </Card>
+                    </TouchableOpacity> : null}
+                  <Card><Text style={appStyles.text}>{t(partOfDay)}</Text></Card>
+                  {partOfDay !== 'pm' ?
+                    <TouchableOpacity
+                      onPress={() => {
+                        setPartOfDay(partOfDay === 'am' ? 'noon' : 'pm');
+                        changeDate(new Date(outing2write.date), "outing");
+                      }}>
+                      <Card>
+                        <Text style={appStyles.text}>+</Text>
+                      </Card>
+                    </TouchableOpacity> : null}
+                </Row>
+              </Tile>
+
+            )
+          }
+        </Row>
+
+        {outingViewUser &&
+          <Row>
+            <AppIcon name={"users"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1}>
+              {outing2write.idUser ? (
+                <TouchableOpacity onPress={() => setOuting2Write({ ...outing2write, idUser: undefined, idSkis: undefined, idBoots: undefined })}>
+                  <Row>
+                    <Pastille name={listUsers.find(user => user.id === outing2write.idUser)?.name || ""} color={listUsers.find(user => user.id === outing2write.idUser)?.pcolor} textColor={colorsTheme.text} size={iconSize} />
+                    <Text style={[appStyles.text, { flex: 1 }]}>{listUsers.find(user => user.id === outing2write.idUser)?.name || ""}</Text>
+                  </Row>
+                </TouchableOpacity>
+
+              ) : (
+                <FlatList
+                  data={listUsers}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity onPress={() => {
+                      console.debug("Selected user:", item);
+                      const skis = filterOutingSkis(item.id);
+                      if (skis.length === 1) {
+                        const boots = filterOutingBoots(skis[0].id);
+                        if (boots.length === 1) {
+                          setOuting2Write({ ...outing2write, idSkis: skis[0].id, idBoots: boots[0].id, idOutingType: skis[0].majorTypeOfOuting });
+                        } else {
+                          setOuting2Write({ ...outing2write, idSkis: skis[0].id, idBoots: undefined, idOutingType: undefined });
+                        }
+                      }
+                      else {
+                        setOuting2Write({ ...outing2write, idUser: item.id, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
+                      }
+                    }}>
+                      <Row style={{ paddingVertical: 4 }}>
+                        <Pastille name={item.name} color={item.pcolor} textColor={colorsTheme.text} size={iconSize} />
+                        <Text style={[appStyles.text, { flex: 1 }]}> {item.name}</Text>
+                      </Row>
+                    </TouchableOpacity>
+                  )}
+                  keyExtractor={(item) => item.id}
+                />
+              )}
+            </Tile>
+          </Row>
+        }
+        {outingViewSkis &&
+          <Row>
+            <AppIcon name={"skis"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1} >
+              {outing2write.idSkis ? (
+                (() => {
+                  const ski = listSkis.find(ski => ski.id === outing2write.idSkis);
+                  return ski ? renderOutingSkis({ item: ski, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } }) : null;
+                })()
+              ) : (
+                <FlatList
+                  data={filterOutingSkis(outing2write.idUser || "")}
+                  renderItem={renderOutingSkis}
+                  keyExtractor={(item) => item.id}
+                  style={{ maxHeight: 200, width: '100%' }}
+                />
+              )}
+            </Tile>
+          </Row>
+        }
+        {outingViewBoots &&
+          <Row>
+            <AppIcon name={"ski-boot"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1} >
+              {outing2write.idBoots ? (
+                (() => {
+                  const boots = listBoots.find(boots => boots.id === outing2write.idBoots);
+                  return boots ? renderOutingBoots({ item: boots, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } }) : null;
+                })()
+              ) : (
+                <FlatList
+                  data={filterOutingBoots(outing2write.idSkis || "")}
+                  renderItem={renderOutingBoots}
+                  keyExtractor={(item) => item.id}
+                  style={{ maxHeight: 200, width: '100%' }}
+                />
+              )}
+            </Tile>
+          </Row>
+        }
+
+
+        {outingViewToOuting &&
+          <Row>
+            <AppIcon name={"slope"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1}>
+              <TouchableOpacity onPress={() => setTypeOfOutingVisible(!typeOfOutingVisible)}>
+                {
+                  outing2write.idOutingType ?
+                    <Text style={[appStyles.text]}>{listOutingTypes.find(type => type.id === outing2write.idOutingType)?.name || ""}</Text>
+                    :
+                    <Text style={[appStyles.inactiveText]}>{t('add_too')}</Text>
+                }
+              </TouchableOpacity>
+            </Tile>
+          </Row>
+        }
+        {outingViewOffPiste &&
+          <Row>
+            <AppIcon name={"hors-piste"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1}>
+              <Row>
+                <TouchableOpacity onPress={() => setOffPisteVisible(true)}>
+                  <AppIcon name={"plus"} color={colorsTheme.primary} />
+                </TouchableOpacity>
+                {(outing2write.listOfOffPistes?.length || 0) > 0 ? (
+                  <FlatList
+                    data={outing2write.listOfOffPistes ? listOffPistes.filter(offpiste => outing2write.listOfOffPistes?.find(op => op.id === offpiste.id)) : []}
+                    renderItem={({ item }) => (
+                      <Row >
+                        <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
+                        <Card>
+                          <TouchableOpacity onPress={() => {
+                            let myOP = outing2write.listOfOffPistes?.find(op => op.id === item.id);
+                            if (myOP) {
+                              if (myOP.nb >= 2) {
+                                myOP.nb--;
+                              }
+                            } else {
+                              myOP = {
+                                id: item.id, nb: 1
+                              };
+                            }
+                            outing2write.listOfOffPistes = outing2write.listOfOffPistes?.filter(op => op.id !== item.id) || [];
+                            setOuting2Write({ ...outing2write, listOfOffPistes: [...outing2write.listOfOffPistes, myOP] });
+
+                          }}>
+
+                            <AppIcon name={"minus"} color={colorsTheme.text} styles={{ fontSize: 16 }} />
+                          </TouchableOpacity>
+                          <Text style={[appStyles.text, { marginLeft: 8 }]}>{outing2write.listOfOffPistes?.find(op => op.id === item.id)?.nb || 0}</Text>
+                          <TouchableOpacity onPress={() => {
+                            let myOP = outing2write.listOfOffPistes?.find(op => op.id === item.id);
+                            if (myOP) {
+                              myOP.nb++;
+                            }
+                            else {
+                              myOP = {
+                                id: item.id, nb: 1
+                              }
+                            }
+                            outing2write.listOfOffPistes = outing2write.listOfOffPistes?.filter(op => op.id !== item.id) || [];
+                            setOuting2Write({ ...outing2write, listOfOffPistes: [...outing2write.listOfOffPistes, myOP] });
+
+                          }
+                          }>
+                            <AppIcon name={"plus"} color={colorsTheme.text} styles={{ fontSize: 16 }} />
+                          </TouchableOpacity>
+                        </Card>
+                      </Row>
+                    )}
+                    keyExtractor={(item) => item.id}
+                    style={{ flex: 1, maxHeight: 200 }}
+                  />
+                ) :
+                  <Text style={[appStyles.inactiveText]}>{t('add_offpistes')}</Text>
+                }
+              </Row>
+            </Tile>
+          </Row>
+        }
+        {outingViewFriends &&
+          <Row>
+            <AppIcon name={"accessibility"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <Tile flex={1}>
+              <TouchableOpacity onPress={() => { setFriendsVisible(!friendsVisible); }}>
+                {
+                  outing2write.idFriends && outing2write.idFriends.length > 0 ? (
+                    <FlatList
+                      data={outing2write.idFriends ? listFriends.filter(friend => outing2write.idFriends?.includes(friend.id)) : []}
+                      renderItem={({ item }) => (
+                        <Row style={{ padding: 4 }}>
+                          <Pastille name={item.name} textColor={colorsTheme.black} size={iconSize} />
+                          <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
+                        </Row>
+                      )}
+                      horizontal={true}
+                      keyExtractor={(item) => item.id}
+                    />) : (
+                    <Text style={[appStyles.inactiveText]}>{t('add_friends')}</Text>
+                  )
+                }
+              </TouchableOpacity>
+            </Tile>
+          </Row>
+        }
+
+        <Row style={{ marginTop: 8, gap: 16, justifyContent: 'space-between' }}>
+          {outing2write.idBoots ? (
+            <AppButton onPress={saveOuting} color={colorsTheme.activeButton} flex={1} caption={t('modify')} />
+          ) : null}
+          <AppButton onPress={cancelAction} color={colorsTheme.transparentGray} flex={1} caption={t('cancel')} />
+        </Row>
+
+      </ModalEditor>
+      {
+        //                       #     #                                      
+        // ###### #####  # ##### ##   ##   ##   # #    # #####   ##   # #    #
+        // #      #    # #   #   # # # #  #  #  # ##   #   #    #  #  # ##   #
+        // #####  #    # #   #   #  #  # #    # # # #  #   #   #    # # # #  #
+        // #      #    # #   #   #     # ###### # #  # #   #   ###### # #  # #
+        // #      #    # #   #   #     # #    # # #   ##   #   #    # # #   ##
+        // ###### #####  #   #   #     # #    # # #    #   #   #    # # #    #
+      }
+      <ModalEditor visible={maintainsVisible}>
+        <Row>
+          <Text style={appStyles.title}>
+            {t("modify_maintain")}
+          </Text>
+        </Row>
+        <Row>
+          <AppIcon name="calendar" color={colorsTheme.text} styles={{ marginRight: 8 }} />
+          {maintain2write.date === 0 ? (
+            <View style={{ flex: 1 }}>
+              <AppButton onPress={() => changeDate(new Date(), "maintain")} caption={t('today')} />
+              <AppButton onPress={() => changeDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "maintain")} caption={t('yesterday')} />
+              <AppButton onPress={() => setDateTimePickerVisible("maintain")} caption={t('anotherday')} />
+            </View>)
+            : (
+              <Tile flex={1}>
+                <Row>
+                  <TouchableOpacity onPress={() => setDateTimePickerVisible("maintain")}>
+
+                    <Text style={appStyles.text}>{new Date(maintain2write.date).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
+                  </TouchableOpacity>
+                  {partOfDay !== 'am' ?
+                    <TouchableOpacity
+                      onPress={() => {
+                        setPartOfDay(partOfDay === 'pm' ? 'noon' : 'am');
+                        changeDate(new Date(maintain2write.date), "maintain");
+                      }}
+                    >
+                      <Card>
+                        <Text style={appStyles.text}>-</Text>
+                      </Card>
+                    </TouchableOpacity> : null}
+                  <Card><Text style={appStyles.text}>{t(partOfDay)}</Text></Card>
+                  {partOfDay !== 'pm' ?
+                    <TouchableOpacity
+                      onPress={() => {
+                        setPartOfDay(partOfDay === 'am' ? 'noon' : 'pm');
+                        changeDate(new Date(maintain2write.date), "maintain");
+                      }}>
+                      <Card>
+                        <Text style={appStyles.text}>+</Text>
+                      </Card>
+                    </TouchableOpacity> : null}
+                </Row>
+              </Tile>
+
+            )
+          }
+        </Row>
+        {maintain2write.date ? <Row>
+          <AppIcon name={"skis"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+          <Tile flex={1} >
+            {maintain2write.idSkis !== "not-an-id" ? (
+              (() => {
+                const ski = listSkis.find(ski => ski.id === maintain2write.idSkis);
+                return ski ? renderMaintainSkis({ item: ski, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } }) : null;
+              })()
+            ) : (
+              <FlatList
+                data={filterMaintainSkis()}
+                renderItem={renderMaintainSkis}
+                keyExtractor={(item) => item.id}
+                style={{ maxHeight: 200, width: '100%' }}
+              />
+            )}
+          </Tile>
+        </Row> : <></>
+        }
+        {maintain2write.idSkis !== "not-an-id" && <>
+          <Row>
+            <AppIcon name={"entretien"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <View style={{ flex: 1 }}>
+              <CheckButton
+                type={"checkbox"}
+                title={t('sharpening')}
+                iconName="affuteuse"
+                isActive={/S/.test(maintain2write.swr)}
+                onPress={() => {
+                  if (/S/.test(maintain2write.swr)) {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr.replace(/S/, '') });
+                  } else {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr + 'S' });
+                  }
+                }}
+              />
+              <CheckButton
+                type={"checkbox"}
+                title={t('waxing')}
+                iconName="fartage"
+                isActive={/W/.test(maintain2write.swr)}
+                onPress={() => {
+                  if (/W/.test(maintain2write.swr)) {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr.replace(/W/, '') });
+                  } else {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr + 'W' });
+                  }
+                }}
+              />
+              <CheckButton
+                type={"checkbox"}
+                title={t('repair')}
+                iconName="aid-kit"
+                isActive={/R/.test(maintain2write.swr)}
+                onPress={() => {
+                  if (/R/.test(maintain2write.swr)) {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr.replace(/R/, '') });
+                  } else {
+                    setMaintain2Write({ ...maintain2write, swr: maintain2write.swr + 'R' });
+                  }
+                }}
+              />
+            </View>
+          </Row>
+          <Row>
+            <AppIcon name={"write"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <TextInput
+              placeholder={t("description") + " " + t("optional")}
+              placeholderTextColor={colorsTheme.inactiveText}
+              style={appStyles.editField}
+              value={maintain2write.description}
+              onChangeText={text => setMaintain2Write({ ...maintain2write, description: text })}
+            />
+          </Row>
+        </>
+        }
+        <Row style={{ marginTop: 8, gap: 16, justifyContent: 'space-between' }}>
+          {maintain2write.swr.length > 0 || maintain2write.description.length > 0 ?
+            <AppButton onPress={saveMaintain} color={colorsTheme.activeButton} flex={1} caption={t('modify')} />
+            : null}
+          <AppButton onPress={cancelAction} color={colorsTheme.transparentGray} flex={1} caption={t('cancel')} />
+        </Row>
+      </ModalEditor>
+      {
+        // ######                      #######                 ######
+        // #     #   ##   ##### ######    #    # #    # ###### #     # #  ####  #    # ###### ##### 
+        // #     #  #  #    #   #         #    # ##  ## #      #     # # #    # #   #  #      #    #
+        // #     # #    #   #   #####     #    # # ## # #####  ######  # #      ####   #####  #    #
+        // #     # ######   #   #         #    # #    # #      #       # #      #  #   #      ##### 
+        // #     # #    #   #   #         #    # #    # #      #       # #    # #   #  #      #   # 
+        // ######  #    #   #   ######    #    # #    # ###### #       #  ####  #    # ###### #    #
+      }
+      {dateTimePickerVisible !== "none" &&
+        <DateTimePicker
+          value={new Date()}
+          maximumDate={new Date()}
+          minimumDate={seasonDate}
+          mode="date"
+          display="default"
+          onChange={onDateChange}
+        />
+      }
+      {
+        // #     #                             #######                                     
+        // ##   ##  ####  #####    ##   #      #       #####  # ###### #    # #####   #### 
+        // # # # # #    # #    #  #  #  #      #       #    # # #      ##   # #    # #     
+        // #  #  # #    # #    # #    # #      #####   #    # # #####  # #  # #    #  #### 
+        // #     # #    # #    # ###### #      #       #####  # #      #  # # #    #      #
+        // #     # #    # #    # #    # #      #       #   #  # #      #   ## #    # #    #
+        // #     #  ####  #####  #    # ###### #       #    # # ###### #    # #####   #### 
+      }
+      <ModalEditor visible={friendsVisible} center={true} onRequestClose={() => setFriendsVisible(false)}>
+        <Tile>
+          <FlatList
+            data={listFriends}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => {
+                if (outing2write.idFriends?.includes(item.id)) {
+                  setOuting2Write({ ...outing2write, idFriends: outing2write.idFriends.filter(id => id !== item.id) });
+                } else {
+                  setOuting2Write({ ...outing2write, idFriends: [...(outing2write.idFriends || []), item.id] });
+                }
+              }}>
+                <Row style={{ paddingVertical: 4 }}>
+                  <Pastille name={item.name} textColor={colorsTheme.black} size={iconSize} />
+                  <Text style={[appStyles.text, { flex: 1, borderRadius: 8, padding: 4, backgroundColor: outing2write.idFriends?.includes(item.id) ? colorsTheme.transparentGray : undefined }]}> {item.name}</Text>
+                </Row>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            style={{ maxHeight: 300, width: '100%' }}
+          />
+        </Tile>
+        <AppButton onPress={() => setFriendsVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
+      </ModalEditor>
+      {
+        // #     #                             ####### ####### #######
+        // ##   ##  ####  #####    ##   #         #    #     # #     #
+        // # # # # #    # #    #  #  #  #         #    #     # #     #
+        // #  #  # #    # #    # #    # #         #    #     # #     #
+        // #     # #    # #    # ###### #         #    #     # #     #
+        // #     # #    # #    # #    # #         #    #     # #     #
+        // #     #  ####  #####  #    # ######    #    ####### #######
+      }
+      <ModalEditor visible={typeOfOutingVisible} center={true} onRequestClose={() => setOutingVisible(false)}>
+        <Row>
+          <Text style={appStyles.title}>{t("add_outing")}</Text>
+        </Row>
+        <Tile>
+          <FlatList
+            data={listOutingTypes}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => {
+                if (outing2write.idOutingType === item.id) {
+                  setOuting2Write({ ...outing2write, idOutingType: undefined });
+                }
+                else {
+                  setOuting2Write({ ...outing2write, idOutingType: item.id });
+                }
+                setOutingVisible(false);
+              }}>
+                <Row style={{ backgroundColor: outing2write.idOutingType === item.id ? colorsTheme.transparentGray : undefined }}>
+                  <Text style={[appStyles.title, { flex: 1, marginLeft: 8 }]}>
+                    {item.name}
+                    {(item.itemCount || 0) > 0 && (
+                      <Text style={[appStyles.text]}> ({item.itemCount})</Text>
+                    )}
+                  </Text>
+                  {item.canOffPiste ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+                      <AppIcon name="hors-piste" size={28} color={colorsTheme.primary} />
+                    </View>
+                  ) : null}
+                </Row>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            style={{ maxHeight: 300, width: '100%' }}
+          />
+        </Tile>
+        <AppButton onPress={() => setOutingVisible(false)} caption={t('cancel')} color={colorsTheme.transparentGray} style={{ marginTop: 16 }} />
+      </ModalEditor>
+      {
+        // #     #                             #######               ######                       
+        // ##   ##  ####  #####    ##   #      #     # ###### ###### #     # #  ####  ##### ######
+        // # # # # #    # #    #  #  #  #      #     # #      #      #     # # #        #   #     
+        // #  #  # #    # #    # #    # #      #     # #####  #####  ######  #  ####    #   ##### 
+        // #     # #    # #    # ###### #      #     # #      #      #       #      #   #   #     
+        // #     # #    # #    # #    # #      #     # #      #      #       # #    #   #   #     
+        // #     #  ####  #####  #    # ###### ####### #      #      #       #  ####    #   ######
+      }
+      <ModalEditor visible={offPisteVisible} center={true} onRequestClose={() => setOffPisteVisible(false)}>
+        <Row>
+          <Text style={appStyles.title}>{t("offpiste")}</Text>
+        </Row>
+        <Tile>
+          <FlatList
+            data={listOffPistes}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => {
+                if (outing2write.listOfOffPistes?.find(offPiste => offPiste.id === item.id)) {
+                  setOuting2Write({ ...outing2write, listOfOffPistes: outing2write.listOfOffPistes.filter(offPiste => offPiste.id !== item.id) });
+                } else {
+                  setOuting2Write({ ...outing2write, listOfOffPistes: [...outing2write.listOfOffPistes || [], { id: item.id, nb: 1 }] });
+                }
+                setOffPisteVisible(false);
+              }}>
+                <Row>
+                  <Text style={[appStyles.text]}>{item.name}</Text>
+                  {(item.count || 0) > 0 && (
+                    <Text style={[appStyles.text]}>{item.count}</Text>
+                  )}
+                </Row>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            style={{ maxHeight: 300, width: '100%' }}
+          />
+        </Tile>
+        <AppButton onPress={() => setOffPisteVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
       </ModalEditor>
     </Body>
   );
