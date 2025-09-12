@@ -11,7 +11,7 @@ import AppStyles from "@/constants/AppStyles";
 import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { deleteTypeOfSkis, getAllTypeOfSkis, initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
-import { icoTosStore } from "@/hooks/FileSystemManager";
+import { getToSIcoURI } from "@/hooks/FileSystemManager";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -125,7 +125,7 @@ export default function TypeOfSkisManagementScreen() {
           onPress: async () => {
             await deleteTypeOfSkis(db, tos.id);
             // Supprime l'image associée si elle existe
-            const tosImgPath = `${icoTosStore}${tos.id}.png`;
+            const tosImgPath = await getToSIcoURI(tos.id);
             const file = await require('expo-file-system').getInfoAsync(tosImgPath);
             if (file.exists) {
               await require('expo-file-system').deleteAsync(tosImgPath, { idempotent: true });
@@ -162,9 +162,27 @@ export default function TypeOfSkisManagementScreen() {
     const nbActions = item.itemCount || 0;
     return (
       <ReanimatedSwipeable
+        ref={ref => {
+          // Store ref for later use if needed
+          if (ref) {
+            // Optionally store in a map if you want to unswipe specific items
+            (item as any).swipeRef = ref;
+          }
+        }}
+        onSwipeableOpen={() => {
+          // Auto-close after 3 seconds
+          setTimeout(() => {
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
+            }
+          }, 2000);
+        }}
         renderLeftActions={() => (
           <Pressable
-            onPress={() => openEditModal(item)}
+            onPress={() => {
+              (item as any).swipeRef.close();
+              openEditModal(item);
+            }}
             style={appStyles.swipePrimary}
           >
             <AppIcon name="pencil" color={colorsTheme.text} />
@@ -175,7 +193,10 @@ export default function TypeOfSkisManagementScreen() {
           if (nbActions > 0 || item.id.startsWith('init-')) return null;
           return (
             <Pressable
-              onPress={() => handleDelete(item)}
+              onPress={() => {
+                (item as any).swipeRef.close();
+                handleDelete(item);
+              }}
               style={appStyles.swipeAlert}
             >
               <AppIcon name={"bin"} color={colorsTheme.text} />

@@ -15,7 +15,7 @@ type CheckButtonProps = {
   children?: React.ReactNode
 }
 
-const CheckButton = ({ title, type, iconName, size=20, iconColor, onPress, isActive, style, children }: CheckButtonProps ) => {
+const CheckButton = ({ title, type, iconName, size=18, iconColor, onPress, isActive, style, children }: CheckButtonProps ) => {
   const { colorsTheme } = useContext(ThemeContext);
 
   const styles = StyleSheet.create({

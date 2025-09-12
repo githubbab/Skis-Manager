@@ -248,7 +248,7 @@ export default function Index() {
       <Pastille size={iconSize + 8} name={item.name} color={item.pcolor} />
       <Pastille size={iconSize} name={item.nbOutings?.toString() || "0"} color={colorsTheme.pastille} textColor={colorsTheme.text}
         style={{ marginTop: -16, marginRight: -40 }} />
-      <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 16, marginTop: -16, marginRight: -64 }} />
+      <AppIcon name={'sortie'} color={colorsTheme.transparentBlack} styles={{ fontSize: 16, marginTop: -16, marginRight: -64 }} />
       <Text numberOfLines={1} style={{
         color: colorsTheme.text,
         fontSize: 18,

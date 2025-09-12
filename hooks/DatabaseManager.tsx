@@ -7,11 +7,15 @@ import { showMessage } from "react-native-flash-message";
 
 
 const DATABASE_VERSION = 1;
-let currentDbVersion = 0
+let currentDbVersion = 0;
 let lastDBWrite = Date.now();
 let deviceID: string = "not-an-id";
 
+const concatQueries: string[] = [];
+let concatQueriesActive = false;
 
+
+// INTERNAL FUNCTIONS AND CONSTANTS
 
 export const TABLES = {
   FRIENDS: "itemsFriends",
@@ -47,10 +51,28 @@ export function createId() {
   return new Date().getTime().toString() + "-" + deviceID;
 }
 
+export function getDeviceID() {
+  return deviceID;
+}
+
+export async function clearDatabase(db: SQLiteDatabase) {
+  console.debug("Reinitializing database");
+  for (const table of [TABLES.MAINTAINS, TABLES.OUTINGS, TABLES.JOIN_SKIS_BOOTS, TABLES.JOIN_SKIS_USERS, TABLES.JOIN_OUTINGS_OFFPISTES, TABLES.SKIS, TABLES.BOOTS, TABLES.USERS, TABLES.SEASONS]) {
+    console.debug("DELETE " + table);
+    await db.execAsync("DELETE FROM " + table);
+  }
+  await db.execAsync("DELETE FROM typeOfSkis WHERE  id NOT like 'init-%';");
+  console.debug("Database reinitialized");
+}
+
 export async function execQuery(db: SQLiteDatabase, query: string) {
   try {
     await db.execAsync(query);
     lastDBWrite = Date.now();
+    if (concatQueriesActive) {
+      concatQueries.push(query);
+      return;
+    }
     await writeQuery("query-" + new Date().getTime().toString() + "-" + deviceID + ".sql", query);
   } catch (err) {
     const message = err ? err.toString() : "Unknown error";
@@ -62,6 +84,26 @@ export async function execQuery(db: SQLiteDatabase, query: string) {
       duration: 5000,
     });
   }
+}
+
+export function startConcatQueries() {
+  concatQueriesActive = true;
+  concatQueries.length = 0;
+}
+
+export async function endConcatQueries() {
+  concatQueriesActive = false;
+  if (concatQueries.length > 0) {
+    const fullQuery = concatQueries.join("\n");
+    concatQueries.length = 0;
+    await writeQuery("query-" + new Date().getTime().toString() + "-" + deviceID + ".sql", fullQuery);
+  }
+  concatQueries.length = 0;
+}
+
+export function cancelConcatQueries() {
+  concatQueriesActive = false;
+  concatQueries.length = 0;
 }
 
 // Génère une requête INSERT
@@ -163,7 +205,6 @@ export async function initDB(db: SQLiteDatabase): Promise<void> {
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
   console.info("initDB: initializing database DONE");
 }
-
 
 
 

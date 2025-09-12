@@ -199,11 +199,27 @@ export default function SkisManagement() {
   // #    # ###### #    # #####  ###### #    #  #####  #    # #  #### 
   const renderSkis: ListRenderItem<Skis> = ({ item }) => (
     <ReanimatedSwipeable
+      ref={ref => {
+        // Store ref for later use if needed
+        if (ref) {
+          // Optionally store in a map if you want to unswipe specific items
+          (item as any).swipeRef = ref;
+        }
+      }}
+      onSwipeableOpen={() => {
+        // Auto-close after 3 seconds
+        setTimeout(() => {
+          if ((item as any).swipeRef) {
+            (item as any).swipeRef.close();
+          }
+        }, 2000);
+      }}
       renderLeftActions={() => (
-        <Pressable 
-          onPress={() => { 
-            setSkis2Write(item); 
-            openModal(true); 
+        <Pressable
+          onPress={() => {
+            (item as any).swipeRef.close();
+            setSkis2Write(item);
+            openModal(true);
           }}
           style={appStyles.swipePrimary}
         >
@@ -212,7 +228,13 @@ export default function SkisManagement() {
         </Pressable>
       )}
       renderRightActions={() => (
-        <Pressable onPress={() => handleDeleteSki(item)} style={(item.nbOutings || 0) > 0 ? appStyles.swipeWarning : appStyles.swipeAlert}>
+        <Pressable
+          onPress={() => {
+            (item as any).swipeRef.close();
+            handleDeleteSki(item);
+          }}
+          style={(item.nbOutings || 0) > 0 ? appStyles.swipeWarning : appStyles.swipeAlert}
+        >
           <AppIcon name={item.end ? "box-remove" : (item.nbOutings || 0) > 0 ? "box-add" : "bin"} color={colorsTheme.text} />
           <Text style={{ color: colorsTheme.text }}>{item.end ? t('restore') : (item.nbOutings || 0) > 0 ? t('archive') : t('delete')}</Text>
         </Pressable>

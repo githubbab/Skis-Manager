@@ -1,10 +1,13 @@
 import AppButton from "@/components/AppButton";
+import AppIcon from "@/components/AppIcon";
 import Body from "@/components/Body";
+import CheckButton from "@/components/CheckButton";
+import Row from "@/components/Row";
 import Separator from "@/components/Separator";
 import AppStyles from "@/constants/AppStyles";
 import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { TABLES } from "@/hooks/DatabaseManager";
+import { clearDatabase, endConcatQueries, getDeviceID, startConcatQueries, TABLES } from "@/hooks/DatabaseManager";
 import { Boots, insertBoots } from "@/hooks/dbBoots";
 import { insertMaintain } from "@/hooks/dbMaintains";
 import { insertOuting } from "@/hooks/dbOutings";
@@ -12,15 +15,16 @@ import { insertSeason } from "@/hooks/dbSeasons";
 import { insertSki, Skis } from "@/hooks/dbSkis";
 import { initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
 import { insertUser, Users } from "@/hooks/dbUsers";
-import { delDataStore } from "@/hooks/FileSystemManager";
+import { clearStore } from "@/hooks/FileSystemManager";
+import { checkWebDavSync, exportData, importData } from "@/hooks/SyncWebDav";
 import { reloadAppAsync } from "expo";
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from "expo-file-system";
 import * as Sharing from 'expo-sharing';
 import * as SQLite from 'expo-sqlite';
 import { useSQLiteContext } from "expo-sqlite";
-import { useContext, useState } from "react";
-import { StyleSheet, Text, View } from 'react-native';
+import { useContext, useEffect, useState } from "react";
+import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 import { hideMessage, showMessage } from "react-native-flash-message";
 
 
@@ -35,25 +39,16 @@ async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQ
   let itemsSkis: Skis[] = [];
   let itemsUsers: Users[] = [];
   let typeOfSkis: TOS[] = [];
-  let message = `Restoring SuivisSkisDB...\nErase database...`;
+  let message = `Restoring SuivisSkisDB...\nReinit database...`;
 
   showMessage({
     message: message,
     type: "default",
     autoHide: false,
   })
-  for (const table of ["eventsMaintains", "eventsOutings", "joinSkisBoots", "joinSkisUsers", "joinOutingsOffPistes", "itemsSkis", "itemsBoots", "itemsUsers", "itemsSeasons"]) {
-    console.debug("DELETE " + table);
-    await db.execAsync("DELETE FROM " + table);
-  }
-  message += ` done\nErase datastore...`;
-  showMessage({
-    message: message,
-    type: "default",
-    autoHide: false,
-  })
-  await db.execAsync("DELETE FROM typeOfSkis WHERE  id NOT like 'init-%';");
-  await delDataStore()
+  await clearDatabase(db);
+  await clearStore();
+  startConcatQueries();
   message += ` done\nRestore database(typeOfSkis)...`;
   showMessage({
     message: message,
@@ -268,6 +263,7 @@ async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQ
     type: "default",
     autoHide: false,
   })
+  await endConcatQueries();
   await sqLiteDatabase.closeAsync()
   await reloadAppAsync()
 }
@@ -276,14 +272,19 @@ export default function BackupSyncSettings() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext()
-  const { lang, t, smDate } = useEnvContext();
-
+  const { lang, t, smDate, webDavUrl, webDavUser, webDavPassword, syncWebDav, toggleSyncWebDav } = useEnvContext();
+  const [webDavUrlState, setWebDavUrl] = useState(webDavUrl);
+  const [webDavUserState, setWebDavUser] = useState(webDavUser);
+  const [webDavPasswordState, setWebDavPassword] = useState(webDavPassword);
   const [inactivated, setInactivated] = useState(false);
 
+  useEffect(() => {
+    if (syncWebDav && (webDavUrlState !== webDavUrl || webDavUserState !== webDavUser || webDavPasswordState !== webDavPassword))
+      toggleSyncWebDav(false, webDavUrlState, webDavUserState, webDavPasswordState);
+  }, [webDavUrlState, webDavUserState, webDavPasswordState])
+
+
   const restoreOldDB = async () => {
-
-
-
     try {
       const result = await DocumentPicker.getDocumentAsync({
         multiple: false,
@@ -372,7 +373,7 @@ export default function BackupSyncSettings() {
           // @ts-ignore
           let { user_version: dbVersion } = await db.getFirstAsync('PRAGMA user_version');
           console.log("Database version " + dbVersion);
-          await delDataStore()
+          await clearStore()
           await db.closeAsync()
           await FileSystem.moveAsync({ from: sqLiteDatabase.databasePath, to: "file://" + db.databasePath });
           await reloadAppAsync()
@@ -411,19 +412,137 @@ export default function BackupSyncSettings() {
     await Sharing.shareAsync("file://" + db.databasePath)
   }
 
+  const handleSyncWebDav = async () => {
+    if (!syncWebDav) {
+      setInactivated(true);
+      if (webDavUrlState?.length > 0 && webDavUserState?.length > 0 && webDavPasswordState?.length > 0 && /^https?:\/\/.+\..+/.test(webDavUrlState)) {
+        const contents = await checkWebDavSync(webDavUrlState, webDavUserState, webDavPasswordState);
+        console.debug("contents", contents);
+        if (!contents) {
+          alert(t('sync_webdav_error'));
+          setInactivated(false);
+          return;
+        }
+        const deviceID = getDeviceID();
+        if (!contents.find((item) => item.type === "file" && item.basename === "skis-manager-" + deviceID + ".db")) {
+          if (contents.find((item) => item.type === "file" && item.basename.startsWith("skis-manager-") && item.basename.endsWith(".db"))) {
+            Alert.alert(
+              t('sync_webdav'),
+              t('webdav_init_db'),
+              [
+                {
+                  text: t('cancel'),
+                  onPress: () => {
+                    setInactivated(false);
+                    return;
+                  },
+                  style: 'cancel'
+                },
+                {
+                  text: t('ok'),
+                  onPress: async () => {
+                    await clearDatabase(db);
+                    await clearStore();
+                    await importData({ db: db, url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+                    await exportData({ url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+                    toggleSyncWebDav(true, webDavUrlState, webDavUserState, webDavPasswordState);
+                    setInactivated(false);
+                  }
+                }
+              ],
+              { cancelable: false }
+            );
+          }
+          else {
+            await exportData({ url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+            toggleSyncWebDav(true, webDavUrlState, webDavUserState, webDavPasswordState);
+            setInactivated(false);
+          }
+        }
+        else {
+          await exportData({ url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+          toggleSyncWebDav(true, webDavUrlState, webDavUserState, webDavPasswordState);
+          setInactivated(false);
+        }
+      } else {
+        alert(t('url_error'));
+      }
+      setInactivated(false);
+    } else {
+      toggleSyncWebDav(false, webDavUrl, webDavUser, webDavPassword);
+    }
+  }
 
   return (
     <Body >
       {inactivated && <View style={styles.inactivate} />}
       <Text style={appStyles.title}>{t('backup_sync')}</Text>
-      <AppButton onPress={restoreOldDB} icon={"download"} disabled={inactivated} caption={t('restore_db')} />
+      <AppButton onPress={() => {
+        if (syncWebDav) {
+          alert(t('sync_webdav_deactivate'));
+          return;
+        }
+        restoreOldDB();
+      }} icon={"download"} disabled={inactivated} caption={t('restore_db')} />
       <AppButton onPress={shareDatabase} icon={"upload"} disabled={inactivated} caption={t('share_db')} />
       <Separator />
+      <Text style={appStyles.title}>{t('sync_webdav')}</Text>
+      <Row>
+        <AppIcon name="sphere" color={colorsTheme.text} />
+        <TextInput
+          placeholder={t('sync_webdav_url')}
+          selectionHandleColor={colorsTheme.inactiveText}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          textContentType="URL"
+          multiline={true}
+          numberOfLines={3}
+          value={webDavUrlState}
+          onChangeText={setWebDavUrl}
+          style={[appStyles.editField, { backgroundColor: colorsTheme.tileBG }]}
+        />
+      </Row>
+      <Row>
+        <AppIcon name="user" color={colorsTheme.text} />
+        <TextInput
+          placeholder={t('sync_webdav_user')}
+          selectionHandleColor={colorsTheme.inactiveText}
+          value={webDavUserState}
+          onChangeText={setWebDavUser}
+          style={[appStyles.editField, { backgroundColor: colorsTheme.tileBG }]}
+        />
+      </Row>
+      <Row>
+        <AppIcon name="lock" color={colorsTheme.text} />
+        <TextInput
+          placeholder={t('sync_webdav_password')}
+          selectionHandleColor={colorsTheme.inactiveText}
+          value={webDavPasswordState}
+          onChangeText={setWebDavPassword}
+          secureTextEntry={true}
+          style={[appStyles.editField, { backgroundColor: colorsTheme.tileBG }]}
+        />
+      </Row>
+      <CheckButton title={t('sync_webdav_activation')} iconName={"loop2"}
+        type={'switch'}
+        onPress={handleSyncWebDav} isActive={syncWebDav} />
+      {
+        syncWebDav &&
+        <AppButton onPress={async () => {
+          setInactivated(true);
+          await exportData({ url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+          await importData({ db: db, url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+          setInactivated(false);
+        }} icon={"shuffle"} disabled={inactivated} caption={t('sync_webdav_force')} />
+      }
+
     </Body>
   );
 }
 
 const styles = StyleSheet.create({
+
   inactivate: {
     position: 'absolute',
     bottom: 0,

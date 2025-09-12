@@ -11,7 +11,7 @@ import AppStyles from "@/constants/AppStyles";
 import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { Brands, deleteBrand, getAllBrands, insertBrand, updateBrand } from "@/hooks/dbBrands";
-import { icoBrandsStore, icoUnknownBrand } from "@/hooks/FileSystemManager";
+import { copyBrandIco, icoUnknownBrand, imgStore } from "@/hooks/FileSystemManager";
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -107,10 +107,7 @@ export default function BrandsManagementScreen() {
     // Si une image a été sélectionnée, la sauvegarder dans le dossier local
     if (brandImage && brandId) {
       // Si l'image n'est pas déjà dans le bon dossier, la copier
-      if (!brandImage.includes(`/brands/${brandId}.png`)) {
-        const dest = `${icoBrandsStore}${brandId}.png`;
-        await FileSystem.copyAsync({ from: brandImage, to: dest });
-      }
+      copyBrandIco(brandImage, brandId);
     }
     setModalVisible(false);
     setEditingBrand(null);
@@ -155,7 +152,7 @@ export default function BrandsManagementScreen() {
           onPress: async () => {
             await deleteBrand(db, brand.id);
             // Supprime l'image associée si elle existe
-            const brandImgPath = `${icoBrandsStore}${brand.id}.png`;
+            const brandImgPath = `${imgStore}/brand-${brand.id}.png`;
             const file = await FileSystem.getInfoAsync(brandImgPath);
             if (file.exists) {
               await FileSystem.deleteAsync(brandImgPath, { idempotent: true });
@@ -192,9 +189,27 @@ export default function BrandsManagementScreen() {
     const nbActions = item.nbSkis + item.nbBoots;
     return (
       <ReanimatedSwipeable
+        ref={ref => {
+          // Store ref for later use if needed
+          if (ref) {
+            // Optionally store in a map if you want to unswipe specific items
+            (item as any).swipeRef = ref;
+          }
+        }}
+        onSwipeableOpen={() => {
+          // Auto-close after 3 seconds
+          setTimeout(() => {
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
+            }
+          }, 2000);
+        }}
         renderLeftActions={() => (
           <Pressable
-            onPress={() => openEditModal(item)}
+            onPress={() => {
+              (item as any).swipeRef.close();
+              openEditModal(item);
+            }}
             style={appStyles.swipePrimary}
           >
             <AppIcon name="pencil" color={colorsTheme.text} />

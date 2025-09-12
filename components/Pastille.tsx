@@ -1,4 +1,4 @@
-import {Text, StyleSheet, View, ViewStyle} from "react-native";
+import { StyleSheet, Text, View, ViewStyle } from "react-native";
 
 type PastilleProps = {
   name: string,
@@ -33,7 +33,7 @@ function getInitials(name: string): string {
 }
 
 const Pastille = ({name, size=24, color, textColor, style}: PastilleProps) => {
-  const initial = name.length<3 ? name : getInitials(name);
+  const initial = name.length<=3 ? name : getInitials(name);
   const bgColor = color ??
     (name.length < 4 ?
       stringToColor(initial+initial+initial+initial):
@@ -53,10 +53,14 @@ const Pastille = ({name, size=24, color, textColor, style}: PastilleProps) => {
       userSelect: 'none',
     },
     text: {
-      fontSize: size/2,
+      fontSize: initial.length <= 2 ? size / 2 : size / 2.2,
       fontWeight: 'bold',
       color: textColor ?? 'white',
-    }
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+    },
   })
   
   return (

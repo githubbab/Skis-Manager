@@ -16,7 +16,7 @@ import { Boots, getAllBoots } from "@/hooks/dbBoots";
 import { Friends, getAllFriends } from "@/hooks/dbFriends";
 import { deleteMaintain, getAllMaintains, initMaintain, insertMaintain, Maintains } from "@/hooks/dbMaintains";
 import { getAllOffPistes, OffPistes } from "@/hooks/dbOffPistes";
-import { getAllOutings, initOuting, insertOuting, Outings } from "@/hooks/dbOutings";
+import { deleteOuting, getAllOutings, initOuting, insertOuting, Outings } from "@/hooks/dbOutings";
 import { getSeasonSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
@@ -211,78 +211,78 @@ export default function EventsTabs() {
   )
 
   useEffect(() => {
-      if (effectActive) {
-        console.debug("useEffect active, skipping outing2write update");
-        return;
+    if (effectActive) {
+      console.debug("useEffect active, skipping outing2write update");
+      return;
+    }
+    setEffectActive(true);
+    if (outing2write.date) {
+      setOutingViewUser(true);
+    }
+    else {
+      setOutingViewUser(false);
+    }
+    let outing = outing2write
+    if (outing2write.idUser) {
+      setOutingViewSkis(true);
+      const skis = filterOutingSkis(outing2write.idUser || "");
+      if (skis.length === 1) {
+        outing = { ...outing, idSkis: skis[0].id };
       }
-      setEffectActive(true);
-      if (outing2write.date) {
-        setOutingViewUser(true);
+    }
+    else {
+      setOutingViewSkis(false);
+    }
+    if (outing2write.idSkis) {
+      setOutingViewBoots(true);
+      const boots = filterOutingBoots(outing2write.idSkis || "");
+      if (boots.length === 1) {
+        outing = { ...outing, idBoots: boots[0].id };
       }
-      else {
-        setOutingViewUser(false);
-      }
-      let outing = outing2write
-      if (outing2write.idUser) {
-        setOutingViewSkis(true);
-        const skis = filterOutingSkis(outing2write.idUser || "");
-        if (skis.length === 1) {
-          outing = { ...outing, idSkis: skis[0].id };
+    } else {
+      setOutingViewBoots(false);
+    }
+    if (outing2write.idBoots) {
+      if (viewOuting) {
+        setOutingViewToOuting(true);
+        const majorType = listSkis.find(ski => ski.id === outing2write.idSkis)?.majorTypeOfOuting;
+        if (majorType) {
+          outing = { ...outing, idOutingType: majorType };
         }
-      }
-      else {
-        setOutingViewSkis(false);
-      }
-      if (outing2write.idSkis) {
-        setOutingViewBoots(true);
-        const boots = filterOutingBoots(outing2write.idSkis || "");
-        if (boots.length === 1) {
-          outing = { ...outing, idBoots: boots[0].id };
-        }
-      } else {
-        setOutingViewBoots(false);
-      }
-      if (outing2write.idBoots) {
-        if (viewOuting) {
-          setOutingViewToOuting(true);
-          const majorType = listSkis.find(ski => ski.id === outing2write.idSkis)?.majorTypeOfOuting;
-          if (majorType) {
-            outing = { ...outing, idOutingType: majorType };
-          }
-          if (outing2write.idOutingType) {
-            if (listOutingTypes.find(type => type.id === outing2write.idOutingType)?.canOffPiste) {
-              setOutingViewOffPiste(true);
-            }
-            else {
-              setOutingViewOffPiste(false);
-            }
+        if (outing2write.idOutingType) {
+          if (listOutingTypes.find(type => type.id === outing2write.idOutingType)?.canOffPiste) {
+            setOutingViewOffPiste(true);
           }
           else {
             setOutingViewOffPiste(false);
           }
-        } else {
-          setOutingViewToOuting(false);
         }
-        if (viewFriends) {
-          if (listFriends.length > 0) {
-            setOutingViewFriends(true);
-          }
-          else {
-            setOutingViewFriends(false);
-          }
+        else {
+          setOutingViewOffPiste(false);
         }
-      }
-      else {
+      } else {
         setOutingViewToOuting(false);
-        setOutingViewOffPiste(false);
-        setOutingViewFriends(false);
       }
-      if (JSON.stringify(outing) !== JSON.stringify(outing2write)) {
-        setOuting2Write(outing);
+      if (viewFriends) {
+        if (listFriends.length > 0) {
+          setOutingViewFriends(true);
+        }
+        else {
+          setOutingViewFriends(false);
+        }
       }
-      setEffectActive(false);
-    }, [outing2write])
-  
+    }
+    else {
+      setOutingViewToOuting(false);
+      setOutingViewOffPiste(false);
+      setOutingViewFriends(false);
+    }
+    if (JSON.stringify(outing) !== JSON.stringify(outing2write)) {
+      setOuting2Write(outing);
+    }
+    setEffectActive(false);
+  }, [outing2write])
+
 
   //               ######                       #####                                    
   //  ####  #    # #     #   ##   ##### ###### #     # #    #   ##   #    #  ####  ######
@@ -372,7 +372,27 @@ export default function EventsTabs() {
     setOuting2Write(initOuting());
     await loadData(); // Reload data after saving
   }
-
+const handleDeleteOuting = (outing: Outings) => {
+    console.debug("Deleting outing", outing);
+    Alert.alert(
+      t('delete'),
+      t("del_outing"),
+      [
+        { text: t('cancel'), style: "cancel" },
+        {
+          text: t('ok'),
+          onPress: () => {
+            if (outing?.id) {
+              deleteOuting(db, outing.id).then(loadData)
+            }
+          },
+        }
+      ]
+    );
+    setMaintainsVisible(false);
+    setOutingVisible(false);
+  }
+  
   //                             #     #                                      
   //  ####    ##   #    # ###### ##   ##   ##   # #    # #####   ##   # #    #
   // #       #  #  #    # #      # # # #  #  #  # ##   #   #    #  #  # ##   #
@@ -574,11 +594,27 @@ export default function EventsTabs() {
       const outingOffPistes: OffPistes[] = extractOffPistes(item.listOfOffPistes || []);
       return (
         <ReanimatedSwipeable
+          ref={ref => {
+            // Store ref for later use if needed
+            if (ref) {
+              // Optionally store in a map if you want to unswipe specific items
+              (item as any).swipeRef = ref;
+            }
+          }}
+          onSwipeableOpen={() => {
+            // Auto-close after 3 seconds
+            setTimeout(() => {
+              if ((item as any).swipeRef) {
+                (item as any).swipeRef.close();
+              }
+            }, 2000);
+          }}
           dragOffsetFromRightEdge={80}
           dragOffsetFromLeftEdge={80}
           renderLeftActions={() => (
             <Pressable
               onPress={() => {
+                (item as any).swipeRef.close();
                 setOuting2Write(item.data);
                 setOutingVisible(true);
               }}
@@ -590,8 +626,8 @@ export default function EventsTabs() {
           renderRightActions={() => (
             <Pressable
               onPress={() => {
-                setOuting2Write(item.data);
-                setOutingVisible(true);
+                (item as any).swipeRef.close();
+                handleDeleteOuting(item.data);
               }}
               style={appStyles.swipeAlert}
             >
@@ -709,7 +745,7 @@ export default function EventsTabs() {
         if (item.data.swr) {
           const swrParts = [];
           if (/S/.test(item.data.swr)) swrParts.push(t("sharpening"));
-          if (/S/.test(item.data.swr)) swrParts.push(t("waxing"));
+          if (/W/.test(item.data.swr)) swrParts.push(t("waxing"));
           if (/R/.test(item.data.swr)) swrParts.push(t("repair"));
           return swrParts.join(", ");
         }
@@ -717,11 +753,27 @@ export default function EventsTabs() {
       }
       return (
         <ReanimatedSwipeable
+          ref={ref => {
+            // Store ref for later use if needed
+            if (ref) {
+              // Optionally store in a map if you want to unswipe specific items
+              (item as any).swipeRef = ref;
+            }
+          }}
+          onSwipeableOpen={() => {
+            // Auto-close after 3 seconds
+            setTimeout(() => {
+              if ((item as any).swipeRef) {
+                (item as any).swipeRef.close();
+              }
+            }, 2000);
+          }}
           dragOffsetFromRightEdge={80}
           dragOffsetFromLeftEdge={80}
           renderLeftActions={() => (
             <Pressable
               onPress={() => {
+                (item as any).swipeRef.close();
                 setMaintainsVisible(true);
                 setMaintain2Write(item.data);
               }}
@@ -733,6 +785,7 @@ export default function EventsTabs() {
           renderRightActions={() => (
             <Pressable
               onPress={() => {
+                (item as any).swipeRef.close();
                 handleDeleteMaintain(item.data);
               }}
               style={appStyles.swipeAlert}
@@ -775,7 +828,7 @@ export default function EventsTabs() {
               <AppIcon name={"entretien"} color={colorsTheme.text} styles={{ marginLeft: 4 }} />
               <Card>
                 {/S/.test(item.data.swr) && <AppIcon name={"affuteuse"} color={colorsTheme.primary} size={iconSize} />}
-                {/S/.test(item.data.swr) && <AppIcon name={"fartage"} color={colorsTheme.primary} size={iconSize} />}
+                {/W/.test(item.data.swr) && <AppIcon name={"fartage"} color={colorsTheme.primary} size={iconSize} />}
                 {/R/.test(item.data.swr) && <AppIcon name={"aid-kit"} color={colorsTheme.primary} size={iconSize} />}
               </Card>
               <Text numberOfLines={1} style={[appStyles.textItalic]}>

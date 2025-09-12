@@ -15,6 +15,7 @@ export default {
     activeBackground: "rgba(0,122,255,0.20)",
     inactiveBackground: "rgba(0,0,0,0.05)",
     pastille: "rgba(0,122,255,0.6)",
+    pastilleFiligrane: "rgba(0,122,255,1)",
     inactiveText: "#888",
     separator: "#aaa",
     bar: "#fff",
@@ -35,9 +36,8 @@ export default {
     green: "rgb(0, 128, 0)",
     red: "rgb(255, 0, 0)",
     blue: "rgb(0, 0, 255)",
-    modalBackground: "white",
+    modalBackground: "rgb(242, 242, 242)",
     modalTransparent: "rgba(0, 0, 0, 0.2)",
-
   },
   dark: {
     add: "rgb(20,125,182)",
@@ -54,6 +54,7 @@ export default {
     activeBackground: "rgba(54,154,255,0.3)",
     inactiveBackground: "rgba(255,255,255,0.05)",
     pastille: "rgba(54,154,255,0.6)",
+    pastilleFiligrane: "rgba(54,154,255,1)",
     inactiveText: "#aaa",
     separator: "#aaa",
     bar: "#000",

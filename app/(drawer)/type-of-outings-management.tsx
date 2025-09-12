@@ -156,9 +156,27 @@ export default function TypeOfOutingsManagementScreen() {
     const nbActions = item.itemCount || 0;
     return (
       <ReanimatedSwipeable
+        ref={ref => {
+          // Store ref for later use if needed
+          if (ref) {
+            // Optionally store in a map if you want to unswipe specific items
+            (item as any).swipeRef = ref;
+          }
+        }}
+        onSwipeableOpen={() => {
+          // Auto-close after 3 seconds
+          setTimeout(() => {
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
+            }
+          }, 2000);
+        }}
         renderLeftActions={() => (
           <Pressable
-            onPress={() => openEditModal(item)}
+            onPress={() => {
+              (item as any).swipeRef.close();
+              openEditModal(item);
+            }}
             style={appStyles.swipePrimary}
           >
             <AppIcon name="pencil" color={colorsTheme.text} />
@@ -169,7 +187,10 @@ export default function TypeOfOutingsManagementScreen() {
           if (nbActions > 0 || item.id.startsWith('init-')) return null;
           return (
             <Pressable
-              onPress={() => handleDelete(item)}
+              onPress={() => {
+                (item as any).swipeRef.close();
+                handleDelete(item);
+              }}
               style={appStyles.swipeAlert}
             >
               <AppIcon name={"bin"} color={colorsTheme.text} />

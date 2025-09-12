@@ -129,9 +129,27 @@ const SeasonsManagement = () => {
   function renderItem(item: Seasons) {
     return (
       <ReanimatedSwipeable
+        ref={ref => {
+          // Store ref for later use if needed
+          if (ref) {
+            // Optionally store in a map if you want to unswipe specific items
+            (item as any).swipeRef = ref;
+          }
+        }}
+        onSwipeableOpen={() => {
+          // Auto-close after 3 seconds
+          setTimeout(() => {
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
+            }
+          }, 2000);
+        }}
         renderLeftActions={() => (
           <Pressable
-            onPress={() => handleEdit(item)}
+            onPress={() => {
+              (item as any).swipeRef.close();
+              handleEdit(item);
+            }}
             style={appStyles.swipePrimary}
           >
             <AppIcon name="pencil" color={colorsTheme.text} />
@@ -141,7 +159,8 @@ const SeasonsManagement = () => {
         renderRightActions={() => {
           return (
             <Pressable
-              onPress={() =>
+              onPress={() => {
+                (item as any).swipeRef.close();
                 Alert.alert(
                   t('confirm'),
                   t('del_season'),
@@ -149,7 +168,8 @@ const SeasonsManagement = () => {
                     { text: t('cancel'), style: "cancel" },
                     { text: t('delete'), style: "destructive", onPress: () => handleDelete(item.id) }
                   ]
-                )}
+                );
+              }}
               style={appStyles.swipeAlert}
             >
               <AppIcon name={"bin"} color={colorsTheme.text} />

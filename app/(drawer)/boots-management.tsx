@@ -192,11 +192,29 @@ export default function BootsManagement() {
   //     #    # ###### #    # #####  ###### #    # ######   ####   ####    #  
   const renderBoot = ({ item }: { item: Boots }) => (
     <ReanimatedSwipeable
+      ref={ref => {
+        // Store ref for later use if needed
+        if (ref) {
+          // Optionally store in a map if you want to unswipe specific items
+          (item as any).swipeRef = ref;
+        }
+      }}
+      onSwipeableOpen={() => {
+        // Auto-close after 3 seconds
+        setTimeout(() => {
+          if ((item as any).swipeRef) {
+            (item as any).swipeRef.close();
+          }
+        }, 2000);
+      }}
       leftThreshold={80}
       rightThreshold={80}
       renderLeftActions={() => (
         <Pressable
-          onPress={() => handleEditBoot(item)}
+          onPress={() => {
+            (item as any).swipeRef.close();
+            handleEditBoot(item);
+          }}
           style={appStyles.swipePrimary}
         >
           <AppIcon name="pencil" color={colorsTheme.text} />
@@ -206,7 +224,10 @@ export default function BootsManagement() {
       }
       renderRightActions={() => (
         <Pressable
-          onPress={() => handleDeleteBoot(item)}
+          onPress={() => {
+            (item as any).swipeRef.close();
+            handleDeleteBoot(item);
+          }}
           style={item.nbOutings > 0 ? appStyles.swipeWarning : appStyles.swipeAlert}
         >
           <AppIcon name={item.end ? "box-remove" : (item.nbOutings > 0 ? "box-add" : "bin")} color={colorsTheme.text} />

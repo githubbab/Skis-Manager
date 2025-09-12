@@ -10,49 +10,52 @@ import {
   writeAsStringAsync
 } from "expo-file-system";
 
-const dataStore: string = documentDirectory + "data/";
-const imgStore: string = documentDirectory + "images/";
+const queriesStore: string = documentDirectory + "queries/";
+export const imgStore: string = documentDirectory + "images/";
+export const icoUnknownBrand = imgStore + "brand-init-unknown.png";
+let storeUpdated = false;
 
-export const icoTosStore = imgStore + "tos/";
-export const icoBrandsStore = imgStore + "brands/";
-export const icoUnknownBrand = icoBrandsStore + "init-unknown.png";
-
-const tosImages: { [key: string]: any } = {
-  "init-gs.png": require("@/assets/images/tos/init-gs.png"),
-  "init-powder.png": require("@/assets/images/tos/init-powder.png"),
-  "init-rock.png": require("@/assets/images/tos/init-rock.png"),
-  "init-skating.png": require("@/assets/images/tos/init-skating.png"),
-  "init-sl.png": require("@/assets/images/tos/init-sl.png"),
-  "init-slope.png": require("@/assets/images/tos/init-slope.png"),
-  "init-surf.png": require("@/assets/images/tos/init-surf.png"),
-  "init-touring.png": require("@/assets/images/tos/init-touring.png"),
+const baseImages: { [key: string]: any } = {
+  "tos-init-gs.png": require("@/assets/images/tos/init-gs.png"),
+  "tos-init-powder.png": require("@/assets/images/tos/init-powder.png"),
+  "tos-init-rock.png": require("@/assets/images/tos/init-rock.png"),
+  "tos-init-skating.png": require("@/assets/images/tos/init-skating.png"),
+  "tos-init-sl.png": require("@/assets/images/tos/init-sl.png"),
+  "tos-init-slope.png": require("@/assets/images/tos/init-slope.png"),
+  "tos-init-surf.png": require("@/assets/images/tos/init-surf.png"),
+  "tos-init-touring.png": require("@/assets/images/tos/init-touring.png"),
+  "brand-init-armada.png": require("@/assets/images/brands/init-armada.png"),
+  "brand-init-atomic.png": require("@/assets/images/brands/init-atomic.png"),
+  "brand-init-black_crows.png": require("@/assets/images/brands/init-black_crows.png"),
+  "brand-init-blizzard.png": require("@/assets/images/brands/init-blizzard.png"),
+  "brand-init-dynastar.png": require("@/assets/images/brands/init-dynastar.png"),
+  "brand-init-elan.png": require("@/assets/images/brands/init-elan.png"),
+  "brand-init-faction.png": require("@/assets/images/brands/init-faction.png"),
+  "brand-init-fischer.png": require("@/assets/images/brands/init-fischer.png"),
+  "brand-init-head.png": require("@/assets/images/brands/init-head.png"),
+  "brand-init-k2.png": require("@/assets/images/brands/init-k2.png"),
+  "brand-init-lange.png": require("@/assets/images/brands/init-lange.png"),
+  "brand-init-movement.png": require("@/assets/images/brands/init-movement.png"),
+  "brand-init-nordica.png": require("@/assets/images/brands/init-nordica.png"),
+  "brand-init-rossignol.png": require("@/assets/images/brands/init-rossignol.png"),
+  "brand-init-salomon.png": require("@/assets/images/brands/init-salomon.png"),
+  "brand-init-scott.png": require("@/assets/images/brands/init-scott.png"),
+  "brand-init-stockli.png": require("@/assets/images/brands/init-stockli.png"),
+  "brand-init-volkl.png": require("@/assets/images/brands/init-volkl.png"),
+  "brand-init-zag.png": require("@/assets/images/brands/init-zag.png"),
+  "brand-init-unknown.png": require("@/assets/images/brands/init-unknown.png")
 };
 
-const brandImages: { [key: string]: any } = {
-  "init-armada.png": require("@/assets/images/brands/init-armada.png"),
-  "init-atomic.png": require("@/assets/images/brands/init-atomic.png"),
-  "init-black_crows.png": require("@/assets/images/brands/init-black_crows.png"),
-  "init-blizzard.png": require("@/assets/images/brands/init-blizzard.png"),
-  "init-dynastar.png": require("@/assets/images/brands/init-dynastar.png"),
-  "init-elan.png": require("@/assets/images/brands/init-elan.png"),
-  "init-faction.png": require("@/assets/images/brands/init-faction.png"),
-  "init-fischer.png": require("@/assets/images/brands/init-fischer.png"),
-  "init-head.png": require("@/assets/images/brands/init-head.png"),
-  "init-k2.png": require("@/assets/images/brands/init-k2.png"),
-  "init-lange.png": require("@/assets/images/brands/init-lange.png"),
-  "init-movement.png": require("@/assets/images/brands/init-movement.png"),
-  "init-nordica.png": require("@/assets/images/brands/init-nordica.png"),
-  "init-rossignol.png": require("@/assets/images/brands/init-rossignol.png"),
-  "init-salomon.png": require("@/assets/images/brands/init-salomon.png"),
-  "init-scott.png": require("@/assets/images/brands/init-scott.png"),
-  "init-stockli.png": require("@/assets/images/brands/init-stockli.png"),
-  "init-volkl.png": require("@/assets/images/brands/init-volkl.png"),
-  "init-zag.png": require("@/assets/images/brands/init-zag.png"),
-  "init-unknown.png": require("@/assets/images/brands/init-unknown.png")
-};
+export function hasStoreUpdated() {
+  return storeUpdated;
+}
+
+export function resetStoreUpdated() {
+  storeUpdated = false;
+}
 
 export async function getToSIcoURI(id: string): Promise<string | undefined> {
-  const tosIco = await getInfoAsync(icoTosStore + id + ".png");
+  const tosIco = await getInfoAsync(imgStore + "tos-" + id + ".png");
   if (tosIco.exists) {
     return tosIco.uri;
   }
@@ -60,7 +63,7 @@ export async function getToSIcoURI(id: string): Promise<string | undefined> {
 }
 
 export async function getBrandIcoURI(id: string): Promise<string> {
-  const brandIco = await getInfoAsync(icoBrandsStore + id + ".png");
+  const brandIco = await getInfoAsync(imgStore + "brand-" + id + ".png");
   if (brandIco.exists) {
     return brandIco.uri;
   }
@@ -88,70 +91,23 @@ export async function getDistinctBrandIcoURIs(data: any[]): Promise<string[]> {
   return arrayIcoBrandURI;
 }
 
-async function copyToSFiles(files?: string[]) {
-  /* 
-    if (!files?.includes("init-gs.png")) {
-      await downloadAsync(require("@/assets/images/tos/init-gs.png"), icoTosStore+"init-gs.png");
-    }
-    if (!files?.includes("init-powder.png")) {
-      await downloadAsync(require("@/assets/images/tos/init-powder.png"), icoTosStore+"init-powder.png");
-    }
-    if (!files?.includes("init-rock.png")) {
-      await downloadAsync(require("@/assets/images/tos/init-rock.png"), icoTosStore+"init-rock.png");
-    }
-    if (!files?.includes("init-skating.png")) {
-      await downloadAsync(require("@/assets/images/tos/init-skating.png"), icoTosStore+"init-skating.png");
-    }
-    if (!files?.includes("init-sl.png")) {
-      await downloadAsync(require("@/assets/images/tos/init-sl.png"), icoTosStore+"init-sl.png");
-    }
-    if (!files?.includes("init-slope.png")) {
-      await downloadAsync(require("@/assets/images/tos/init-slope.png"), icoTosStore+"init-slope.png");
-    }
-    if (!files?.includes("init-surf.png")) {
-      await downloadAsync(require("@/assets/images/tos/init-surf.png"), icoTosStore+"init-surf.png");
-    }
-    if (!files?.includes("init-touring.png")) {
-      await downloadAsync(require("@/assets/images/tos/init-touring.png"), icoTosStore+"init-touring.png");
-    }
-      */
-  for (const tos of Object.keys(tosImages)) {
-    if (files?.includes(tos)) {
+async function copyBaseFiles(files?: string[]) {
+  for (const base of Object.keys(baseImages)) {
+    if (files?.includes(base)) {
       continue;
     }
     try {
-      const tosImage = (await Asset.fromModule(tosImages[tos]).downloadAsync()).localUri;
-      if (tosImage) {
+      const baseImage = (await Asset.fromModule(baseImages[base]).downloadAsync()).localUri;
+      if (baseImage) {
         await copyAsync({
-          from: tosImage,
-          to: icoTosStore + tos
+          from: baseImage,
+          to: imgStore + base
         });
-        console.log("Copied TOS Asset", tos);
+        console.log("Copied Base Asset", base);
       }
     } catch (error) {
-      console.error("Error copying TOS Asset", error);
-      alert("Error copying TOS Asset" + error + tos);
-    }
-  }
-}
-
-async function copyBrandsFiles(files?: string[]) {
-  for (const brand of Object.keys(brandImages)) {
-    if (files?.includes(brand)) {
-      continue;
-    }
-    try {
-      const brandImage = (await Asset.fromModule(brandImages[brand]).downloadAsync()).localUri;
-      if (brandImage) {
-        await copyAsync({
-          from: brandImage,
-          to: icoBrandsStore + brand
-        });
-        console.log("Copied Brand Asset", brand);
-      }
-    } catch (error) {
-      console.error("Error copying Brand Asset", error);
-      alert("Error copying Brand Asset" + error + brand);
+      console.error("Error copying Base Asset", error);
+      alert("Error copying Base Asset" + error + base);
     }
   }
 }
@@ -159,51 +115,91 @@ async function copyBrandsFiles(files?: string[]) {
 export async function initFS() {
   console.debug("Initializing FileSystemManager");
 
+  let files: string[] = [];
   try {
-    await readDirectoryAsync(dataStore)
-    console.debug("Find dataStore", dataStore);
+    await readDirectoryAsync(queriesStore)
+    console.debug("Find dataStore", queriesStore);
   }
   catch {
-    await makeDirectoryAsync(dataStore)
-    console.debug("Create dataStore", dataStore);
+    await makeDirectoryAsync(queriesStore)
+    console.debug("Create dataStore", queriesStore);
   }
   try {
-    await readDirectoryAsync(imgStore)
-    console.debug("Find imgStore", imgStore);
-  }
-  catch {
-    await makeDirectoryAsync(imgStore)
+    files = await readDirectoryAsync(imgStore);
+    console.debug("Find imgStore", imgStore, files);
+  } catch {
+    await makeDirectoryAsync(imgStore);
     console.debug("Create imgStore", imgStore);
+    files = await readDirectoryAsync(imgStore);
   }
   try {
-    const files = await readDirectoryAsync(icoTosStore);
-    console.debug("Find imgStore", icoTosStore, files);
-    await copyToSFiles(files);
-  } catch {
-    await makeDirectoryAsync(icoTosStore);
-    console.debug("Create imgStore", icoTosStore);
-    await copyToSFiles();
+    await copyBaseFiles(files);
+  } catch (error) {
+    const message = "Error copying base files: " + error;
+    console.error(message);
+    alert(message);
   }
-  try {
-    const files = await readDirectoryAsync(icoBrandsStore)
-    console.debug("Find imgStore", icoBrandsStore, files);
-    await copyBrandsFiles(files);
-  } catch {
-    await makeDirectoryAsync(icoBrandsStore);
-    console.debug("Create imgStore", icoBrandsStore);
-    await copyBrandsFiles();
-  }
-
 }
 
 export async function writeQuery(filename: string, query: string) {
-  const path = dataStore + filename;
+  const path = queriesStore + filename;
   await writeAsStringAsync(path, query);
+  storeUpdated = true;
 }
 
-export async function delDataStore() {
-  for (const fileName of await readDirectoryAsync(dataStore)) {
-    console.debug("Delete dataStore", dataStore + fileName);
-    await deleteAsync(dataStore + fileName)
+
+
+export async function copyBrandIco(idBrand: string, fromUri: string) {
+  const toUri = imgStore + "brand-" + idBrand + ".png";
+  try {
+    const fileInfo = await getInfoAsync(toUri);
+    if (fileInfo.exists) {
+      console.debug("Brand ico already exists", toUri);
+      return;
+    }
+    await copyAsync({
+      from: fromUri,
+      to: toUri
+    });
+    storeUpdated = true;
+    console.debug("Copied brand ico", fromUri, "to", toUri);
+  } catch (error) {
+    console.error("Error copying brand ico", error);
+    alert("Error copying brand ico: " + error);
   }
+}
+
+export async function copyToSIco(idTypeOfSkis: string, fromUri: string) {
+  const toUri = imgStore + "tos-" + idTypeOfSkis + ".png";
+  try {
+    const fileInfo = await getInfoAsync(toUri);
+    if (fileInfo.exists) {
+      console.debug("ToS ico already exists", toUri);
+      return;
+    }
+    await copyAsync({
+      from: fromUri,
+      to: toUri
+    });
+    storeUpdated = true;
+    console.debug("Copied ToS ico", fromUri, "to", toUri);
+  } catch (error) {
+    console.error("Error copying ToS ico", error);
+    alert("Error copying ToS ico: " + error);
+  }
+}
+
+export async function clearStore() {
+  for (const fileName of await readDirectoryAsync(queriesStore)) {
+    console.debug("Delete dataStore", queriesStore + fileName);
+    await deleteAsync(queriesStore + fileName)
+  }
+  for (const fileName of await readDirectoryAsync(imgStore)) {
+    if (fileName.startsWith("brand-init") || fileName.startsWith("tos-init")) {
+      continue;
+    }
+    console.debug("Delete imgStore", imgStore + fileName);
+    await deleteAsync(imgStore + fileName)
+  }
+  await copyBaseFiles();
 }

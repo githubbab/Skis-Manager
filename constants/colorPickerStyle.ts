@@ -1,4 +1,4 @@
-import {StyleSheet} from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export const colorPickerStyle = StyleSheet.create({
   picker: {
@@ -18,5 +18,7 @@ export const colorPickerStyle = StyleSheet.create({
     marginBottom: 0,
     marginHorizontal: 0,
     marginVertical: 0,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
 });

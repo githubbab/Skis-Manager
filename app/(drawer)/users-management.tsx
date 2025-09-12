@@ -239,9 +239,27 @@ export default function UsersManagementScreen() {
     const nbActions = item.nbOutings + item.nbBoots + item.nbSkis;
     return (
       <ReanimatedSwipeable
+        ref={ref => {
+          // Store ref for later use if needed
+          if (ref) {
+            // Optionally store in a map if you want to unswipe specific items
+            (item as any).swipeRef = ref;
+          }
+        }}
+        onSwipeableOpen={() => {
+          // Auto-close after 3 seconds
+          setTimeout(() => {
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
+            }
+          }, 2000);
+        }}
         renderLeftActions={() => (
           <Pressable
-            onPress={() => openEditModal(item)}
+            onPress={() => {
+              (item as any).swipeRef.close();
+              openEditModal(item);
+            }}
             style={appStyles.swipePrimary}
           >
             <AppIcon name="pencil" color={colorsTheme.text} />
@@ -250,7 +268,10 @@ export default function UsersManagementScreen() {
         )}
         renderRightActions={() => (
           <Pressable
-            onPress={() => handleDelete(item)}
+            onPress={() => {
+              (item as any).swipeRef.close();
+              handleDelete(item);
+            }}
             style={nbActions > 0 ? appStyles.swipeWarning : appStyles.swipeAlert}
           >
             <AppIcon name={item.end ? "box-remove" : (nbActions > 0 ? "box-add" : "bin")} color={colorsTheme.text} />
@@ -261,7 +282,7 @@ export default function UsersManagementScreen() {
         <View style={[appStyles.renderItem,
         {
           opacity: item.end ? 0.5 : 1,
-          borderRightColor: item.nbOutings+item.nbBoots+item.nbSkis > 0 ? colorsTheme.warning : colorsTheme.alert,
+          borderRightColor: item.nbOutings + item.nbBoots + item.nbSkis > 0 ? colorsTheme.warning : colorsTheme.alert,
           borderRightWidth: 1,
         }]}
         >
@@ -291,7 +312,6 @@ export default function UsersManagementScreen() {
             </View>
           </Row>
         </View>
-
       </ReanimatedSwipeable>
     );
   }
@@ -366,7 +386,10 @@ export default function UsersManagementScreen() {
               inputRef.current?.blur();
             }}
           >
-            <Pastille name={""} size={32} color={selectedUser.pcolor || "white"} style={{ margin: 8 }} />
+            <View style={{ margin: 8, height: 36, width: 36 }}>
+              <Pastille name={""} size={36} color={colorsTheme.border} style={{ position: 'absolute', top: 0, left: 0 }} />
+              <Pastille name={""} size={32} color={selectedUser.pcolor || "white"} style={{ position: 'absolute', top: 2, left: 2 }} />
+            </View>
           </TouchableOpacity>
         </Row>
 

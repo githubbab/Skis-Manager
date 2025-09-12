@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
 import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DatabaseManager';
+import { getCurrentSeason, Seasons } from './dbSeasons';
 
 export type Users = {
     id: string;
@@ -64,7 +65,9 @@ export async function getAllUsers(db: SQLiteDatabase, activeTo?: number): Promis
     return data;
 }
 
-export async function getTopUsers(db: SQLiteDatabase): Promise<Users[]> {
+export async function getTopUsers(db: SQLiteDatabase, season?: Seasons): Promise<Users[]> {
+    const currentSeason = season ? season : await getCurrentSeason(db);
+    console.debug("getTopUsers - currentSeason", currentSeason);
     const data: Users[] = await db.getAllAsync(`
         SELECT 
             CONCAT('topUsers-',u.id) as id, 
@@ -75,7 +78,7 @@ export async function getTopUsers(db: SQLiteDatabase): Promise<Users[]> {
             ${TABLES.USERS} u 
             INNER JOIN ${TABLES.OUTINGS} o ON u.id = o.idUser
         WHERE 
-            o.date >= (SELECT begin FROM ${TABLES.SEASONS} ORDER BY begin DESC LIMIT 1)
+            o.date >= ${currentSeason.begin} AND (o.date < ${currentSeason.end ?? 4102444800000})
         GROUP BY u.id, u.name
         ORDER BY nbOutings DESC
     `);

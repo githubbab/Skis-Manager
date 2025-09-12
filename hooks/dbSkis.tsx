@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
 import { createId, deleteQuery, diffAndGenerateQueries, execQuery, formatSQL, insertQuery, TABLES, updateQuery } from './DatabaseManager';
 import { getDistinctBrandIcoURIs, getDistinctToSIcoURIs } from './FileSystemManager';
+import { getCurrentSeason, Seasons } from './dbSeasons';
 
 export type Skis = {
   id: string;
@@ -168,7 +169,9 @@ export async function getAllSkis(db: SQLiteDatabase): Promise<Skis[]> {
   } as Skis));
 }
 
-export async function getSeasonSkis(db: SQLiteDatabase): Promise<Skis[]> {
+export async function getSeasonSkis(db: SQLiteDatabase, season?: Seasons): Promise<Skis[]> {
+  const currentSeason = season ? season : await getCurrentSeason(db);
+  console.debug("getSeasonSkis - currentSeason", currentSeason);
   const data: Skis[] = await db.getAllAsync(
     `SELECT 
       s.id, 
@@ -182,7 +185,7 @@ export async function getSeasonSkis(db: SQLiteDatabase): Promise<Skis[]> {
       s.size, 
       s.radius, 
       s.waist,
-      COUNT(DISTINCT em.date / 86400000) AS nbMaintains,
+      COUNT(DISTINCT em.id) AS nbMaintains,
       COUNT(DISTINCT o.date / 86400000) AS nbOutings,
       GROUP_CONCAT(DISTINCT jsu.idUser) AS listUsers,
       GROUP_CONCAT(DISTINCT jsb.idBoots) AS listBoots,
@@ -200,12 +203,12 @@ export async function getSeasonSkis(db: SQLiteDatabase): Promise<Skis[]> {
       LEFT JOIN ${TABLES.JOIN_SKIS_USERS} jsu ON s.id = jsu.idSkis
       LEFT JOIN ${TABLES.JOIN_SKIS_BOOTS} jsb ON s.id = jsb.idSkis
       LEFT JOIN ${TABLES.USERS} u ON u.id = jsu.idUser
-      LEFT JOIN ${TABLES.OUTINGS} o ON ((s.id = o.idSkis) AND (o.date >= (SELECT begin FROM itemsSeasons ORDER BY begin DESC LIMIT 1)))
-      LEFT JOIN ${TABLES.MAINTAINS} em ON ((s.id = em.idSkis) AND (em.date >= (SELECT begin FROM itemsSeasons ORDER BY begin DESC LIMIT 1)))
+      LEFT JOIN ${TABLES.OUTINGS} o ON ((s.id = o.idSkis) AND (o.date >= ${currentSeason.begin} AND (o.date < ${currentSeason.end ?? 4102444800000})))
+      LEFT JOIN ${TABLES.MAINTAINS} em ON ((s.id = em.idSkis) AND (em.date >= ${currentSeason.begin} AND (em.date < ${currentSeason.end ?? 4102444800000})))
       JOIN ${TABLES.BRANDS} b ON s.idBrand = b.id
-      JOIN ${TABLES.TYPE_OF_SKIS} tos ON s.idTypeOfSkis = tos.id      
-    WHERE (s.end > (SELECT begin FROM itemsSeasons ORDER BY begin DESC LIMIT 1) OR s.end IS NULL)
-    GROUP BY s.id, s.name, s.idBrand, s.idTypeOfSkis, 
+      JOIN ${TABLES.TYPE_OF_SKIS} tos ON s.idTypeOfSkis = tos.id
+    WHERE (s.end >= ${currentSeason.begin} OR s.end IS NULL)
+    GROUP BY s.id, s.name, s.idBrand, s.idTypeOfSkis,
       s.begin, s.end, s.size, s.radius, s.waist
     ORDER BY nbOutings DESC, nbMaintains DESC, s.begin DESC
       `);
@@ -221,7 +224,9 @@ export async function getSeasonSkis(db: SQLiteDatabase): Promise<Skis[]> {
   } as Skis));
 }
 
-export async function getTopSkis(db: SQLiteDatabase): Promise<Skis[]> {
+export async function getTopSkis(db: SQLiteDatabase, season?: Seasons): Promise<Skis[]> {
+  const currentSeason = season ? season : await getCurrentSeason(db);
+  console.debug("getTopSkis - currentSeason", currentSeason);
   const data: Skis[] = await db.getAllAsync(
     `SELECT 
       CONCAT('topSkis-',s.id) as id, 
@@ -235,6 +240,7 @@ export async function getTopSkis(db: SQLiteDatabase): Promise<Skis[]> {
       s.size as size,
       s.radius as radius,
       s.waist as waist,
+      COUNT(DISTINCT em.id) AS nbMaintains,
       COUNT(DISTINCT o.date / 86400000) AS nbOutings,
       GROUP_CONCAT(DISTINCT jsu.idUser) AS listUsers,
       GROUP_CONCAT(DISTINCT jsb.idBoots) AS listBoots,
@@ -251,11 +257,12 @@ export async function getTopSkis(db: SQLiteDatabase): Promise<Skis[]> {
       LEFT JOIN ${TABLES.JOIN_SKIS_USERS} jsu ON s.id = jsu.idSkis
       LEFT JOIN ${TABLES.JOIN_SKIS_BOOTS} jsb ON s.id = jsb.idSkis
       LEFT JOIN ${TABLES.OUTINGS} o ON s.id = o.idSkis
+      LEFT JOIN ${TABLES.MAINTAINS} em ON ((s.id = em.idSkis) AND (em.date >= ${currentSeason.begin} AND (em.date < ${currentSeason.end ?? 4102444800000})))
       LEFT JOIN ${TABLES.BRANDS} b ON s.idBrand = b.id
       LEFT JOIN ${TABLES.TYPE_OF_SKIS} tos ON s.idTypeOfSkis = tos.id
       JOIN ${TABLES.USERS} u ON u.id = jsu.idUser
     WHERE 
-      o.date >= (SELECT begin FROM itemsSeasons ORDER BY begin DESC LIMIT 1)
+      o.date >= ${currentSeason.begin} AND (o.date < ${currentSeason.end ?? 4102444800000}) 
     GROUP BY s.id
     ORDER BY nbOutings DESC`
   );

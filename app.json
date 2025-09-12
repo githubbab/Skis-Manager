@@ -2,7 +2,7 @@
   "expo": {
     "name": "Skis-Manager",
     "slug": "Skis-Manager",
-    "version": "0.3.1",
+    "version": "0.4.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "skismanager",
@@ -15,7 +15,10 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff",
+        "dark": {
+            "backgroundColor": "#000000"
+          }
       },
       "edgeToEdgeEnabled": true,
       "package": "fr.babouscorp.SkisManager"
@@ -30,7 +33,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/adaptive-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

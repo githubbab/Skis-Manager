@@ -33,6 +33,7 @@ export default function RootLayout() {
     if (loaded) SplashScreen.hideAsync();
   }, [error, loaded]);
 
+
   if (!loaded || error) return null;
 
   return <RootLayoutNav />;
