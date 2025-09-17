@@ -1,6 +1,7 @@
 import AppButton from "@/components/AppButton";
 import AppIcon from "@/components/AppIcon";
 import Body from "@/components/Body";
+import Card from "@/components/Card";
 import CheckButton from "@/components/CheckButton";
 import Row from "@/components/Row";
 import Separator from "@/components/Separator";
@@ -16,7 +17,7 @@ import { insertSki, Skis } from "@/hooks/dbSkis";
 import { initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
 import { insertUser, Users } from "@/hooks/dbUsers";
 import { clearStore } from "@/hooks/FileSystemManager";
-import { checkWebDavSync, exportData, importData } from "@/hooks/SyncWebDav";
+import { checkWebDavSync, syncData } from "@/hooks/SyncWebDav";
 import { reloadAppAsync } from "expo";
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from "expo-file-system";
@@ -272,15 +273,15 @@ export default function BackupSyncSettings() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext()
-  const { lang, t, smDate, webDavUrl, webDavUser, webDavPassword, syncWebDav, toggleSyncWebDav } = useEnvContext();
+  const { lang, t, smDate, webDavSyncEnabled, webDavUrl, webDavUser, webDavPassword, toggleSyncWebDav } = useEnvContext();
   const [webDavUrlState, setWebDavUrl] = useState(webDavUrl);
   const [webDavUserState, setWebDavUser] = useState(webDavUser);
   const [webDavPasswordState, setWebDavPassword] = useState(webDavPassword);
   const [inactivated, setInactivated] = useState(false);
 
   useEffect(() => {
-    if (syncWebDav && (webDavUrlState !== webDavUrl || webDavUserState !== webDavUser || webDavPasswordState !== webDavPassword))
-      toggleSyncWebDav(false, webDavUrlState, webDavUserState, webDavPasswordState);
+    if (webDavSyncEnabled && (webDavUrlState !== webDavUrl || webDavUserState !== webDavUser || webDavPasswordState !== webDavPassword))
+      toggleSyncWebDav( false, webDavUrlState, webDavUserState, webDavPasswordState);
   }, [webDavUrlState, webDavUserState, webDavPasswordState])
 
 
@@ -413,7 +414,7 @@ export default function BackupSyncSettings() {
   }
 
   const handleSyncWebDav = async () => {
-    if (!syncWebDav) {
+    if (!webDavSyncEnabled) {
       setInactivated(true);
       if (webDavUrlState?.length > 0 && webDavUserState?.length > 0 && webDavPasswordState?.length > 0 && /^https?:\/\/.+\..+/.test(webDavUrlState)) {
         const contents = await checkWebDavSync(webDavUrlState, webDavUserState, webDavPasswordState);
@@ -443,8 +444,7 @@ export default function BackupSyncSettings() {
                   onPress: async () => {
                     await clearDatabase(db);
                     await clearStore();
-                    await importData({ db: db, url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
-                    await exportData({ url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+                    await syncData({ db: db });
                     toggleSyncWebDav(true, webDavUrlState, webDavUserState, webDavPasswordState);
                     setInactivated(false);
                   }
@@ -454,13 +454,13 @@ export default function BackupSyncSettings() {
             );
           }
           else {
-            await exportData({ url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+            await syncData({ db: db });
             toggleSyncWebDav(true, webDavUrlState, webDavUserState, webDavPasswordState);
             setInactivated(false);
           }
         }
         else {
-          await exportData({ url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+          await syncData({ db: db });
           toggleSyncWebDav(true, webDavUrlState, webDavUserState, webDavPasswordState);
           setInactivated(false);
         }
@@ -469,7 +469,7 @@ export default function BackupSyncSettings() {
       }
       setInactivated(false);
     } else {
-      toggleSyncWebDav(false, webDavUrl, webDavUser, webDavPassword);
+      toggleSyncWebDav( false, webDavUrlState, webDavUserState, webDavPasswordState);
     }
   }
 
@@ -478,7 +478,7 @@ export default function BackupSyncSettings() {
       {inactivated && <View style={styles.inactivate} />}
       <Text style={appStyles.title}>{t('backup_sync')}</Text>
       <AppButton onPress={() => {
-        if (syncWebDav) {
+        if (webDavSyncEnabled) {
           alert(t('sync_webdav_deactivate'));
           return;
         }
@@ -486,7 +486,12 @@ export default function BackupSyncSettings() {
       }} icon={"download"} disabled={inactivated} caption={t('restore_db')} />
       <AppButton onPress={shareDatabase} icon={"upload"} disabled={inactivated} caption={t('share_db')} />
       <Separator />
-      <Text style={appStyles.title}>{t('sync_webdav')}</Text>
+      <Row>
+        <Text style={appStyles.title}>{t('sync_webdav')}</Text>
+        <Card>
+          <Text style={appStyles.text}>Id: {getDeviceID()}</Text>
+        </Card>
+      </Row>
       <Row>
         <AppIcon name="sphere" color={colorsTheme.text} />
         <TextInput
@@ -507,6 +512,8 @@ export default function BackupSyncSettings() {
         <AppIcon name="user" color={colorsTheme.text} />
         <TextInput
           placeholder={t('sync_webdav_user')}
+          autoCapitalize="none"
+          autoCorrect={false}
           selectionHandleColor={colorsTheme.inactiveText}
           value={webDavUserState}
           onChangeText={setWebDavUser}
@@ -518,6 +525,8 @@ export default function BackupSyncSettings() {
         <TextInput
           placeholder={t('sync_webdav_password')}
           selectionHandleColor={colorsTheme.inactiveText}
+          autoCapitalize="none"
+          autoCorrect={false}
           value={webDavPasswordState}
           onChangeText={setWebDavPassword}
           secureTextEntry={true}
@@ -526,13 +535,12 @@ export default function BackupSyncSettings() {
       </Row>
       <CheckButton title={t('sync_webdav_activation')} iconName={"loop2"}
         type={'switch'}
-        onPress={handleSyncWebDav} isActive={syncWebDav} />
+        onPress={handleSyncWebDav} isActive={webDavSyncEnabled} />
       {
-        syncWebDav &&
+        webDavSyncEnabled &&
         <AppButton onPress={async () => {
           setInactivated(true);
-          await exportData({ url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
-          await importData({ db: db, url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+          await syncData({ db: db });
           setInactivated(false);
         }} icon={"shuffle"} disabled={inactivated} caption={t('sync_webdav_force')} />
       }

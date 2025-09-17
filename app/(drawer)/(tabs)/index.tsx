@@ -112,8 +112,7 @@ export default function Index() {
   // #       #    # #    # #    # #     # #    #   #   #    #
   // #######  ####  #    # #####  ######  #    #   #   #    #
   const loadData =async () => {
-    console.debug("refresh index - db load data")
-
+    console.debug("index - loadData");
     try {
       setDbState("loading");
       const topUsersResult: Users[] = await getTopUsers(db);
@@ -136,7 +135,7 @@ export default function Index() {
       setListFriends(friendsResult);
       const offPistesResult: OffPistes[] = await getAllOffPistes(db);
       setListOffPistes(offPistesResult);
-      console.debug("index - db load data done", { friendsResult });
+      console.debug("index - db load data done");
       setDbState("done");
     } catch (error) {
       console.error(error);
@@ -155,7 +154,6 @@ export default function Index() {
       if (dbState === "loading") return;
       const lastWrite = getLastDBWrite();
       if (lastWrite > lastCheck) {
-        console.log('La base a été modifiée, je recharge mes données');
         loadData().then(() => setLastCheck(lastWrite))
       }
     }, [])
@@ -650,7 +648,6 @@ export default function Index() {
   // #    # ######   #    ####  #    # #    #
 
   if (dbState !== "done") {
-    console.debug("Data loading, wait !")
     return <Text>Loading...</Text>;
   }
 

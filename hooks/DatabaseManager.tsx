@@ -4,9 +4,10 @@ import { writeQuery } from "@/hooks/FileSystemManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { SQLiteDatabase } from "expo-sqlite";
 import { showMessage } from "react-native-flash-message";
+import { syncData } from "./SyncWebDav";
 
 
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 let currentDbVersion = 0;
 let lastDBWrite = Date.now();
 let deviceID: string = "not-an-id";
@@ -34,6 +35,7 @@ export const TABLES = {
   JOIN_SKIS_USERS: "joinSkisUsers",
   JOIN_SKIS_BOOTS: "joinSkisBoots",
   SEASONS: "itemsSeasons",
+  SETTINGS: "settings",
 }
 
 
@@ -74,6 +76,7 @@ export async function execQuery(db: SQLiteDatabase, query: string) {
       return;
     }
     await writeQuery("query-" + new Date().getTime().toString() + "-" + deviceID + ".sql", query);
+    syncData({db: db, })
   } catch (err) {
     const message = err ? err.toString() : "Unknown error";
     console.error(message);
@@ -199,9 +202,14 @@ export async function initDB(db: SQLiteDatabase): Promise<void> {
     return;
   }
 
-  // if (currentDbVersion === 1) {
-  //   Add more migrations
-  // }
+  if (currentDbVersion === 1) {
+    console.debug("initDB: database is up to date (version 1)");
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_settings_key ON settings (key);
+    `);
+    currentDbVersion = 2;
+  }
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
   console.info("initDB: initializing database DONE");
 }

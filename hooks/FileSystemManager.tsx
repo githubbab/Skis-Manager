@@ -13,7 +13,8 @@ import {
 const queriesStore: string = documentDirectory + "queries/";
 export const imgStore: string = documentDirectory + "images/";
 export const icoUnknownBrand = imgStore + "brand-init-unknown.png";
-let storeUpdated = false;
+let imageStoreUpdated = false;
+let queryStoreUpdated = false;
 
 const baseImages: { [key: string]: any } = {
   "tos-init-gs.png": require("@/assets/images/tos/init-gs.png"),
@@ -47,11 +48,20 @@ const baseImages: { [key: string]: any } = {
 };
 
 export function hasStoreUpdated() {
-  return storeUpdated;
+  return imageStoreUpdated || queryStoreUpdated;
 }
 
 export function resetStoreUpdated() {
-  storeUpdated = false;
+  imageStoreUpdated = false;
+  queryStoreUpdated = false;
+}
+
+export function hasImageStoreUpdated() {
+  return imageStoreUpdated;
+}
+
+export function hasQueryStoreUpdated() {
+  return queryStoreUpdated;
 }
 
 export async function getToSIcoURI(id: string): Promise<string | undefined> {
@@ -117,8 +127,8 @@ export async function initFS() {
 
   let files: string[] = [];
   try {
-    await readDirectoryAsync(queriesStore)
-    console.debug("Find dataStore", queriesStore);
+    files = await readDirectoryAsync(queriesStore)
+    console.debug(`Find dataStore ${queriesStore} (${files.length})`);
   }
   catch {
     await makeDirectoryAsync(queriesStore)
@@ -126,7 +136,7 @@ export async function initFS() {
   }
   try {
     files = await readDirectoryAsync(imgStore);
-    console.debug("Find imgStore", imgStore, files);
+    console.debug(`Find imgStore ${imgStore} (${files.length})`);
   } catch {
     await makeDirectoryAsync(imgStore);
     console.debug("Create imgStore", imgStore);
@@ -144,7 +154,7 @@ export async function initFS() {
 export async function writeQuery(filename: string, query: string) {
   const path = queriesStore + filename;
   await writeAsStringAsync(path, query);
-  storeUpdated = true;
+  queryStoreUpdated = true;
 }
 
 
@@ -161,7 +171,7 @@ export async function copyBrandIco(idBrand: string, fromUri: string) {
       from: fromUri,
       to: toUri
     });
-    storeUpdated = true;
+    imageStoreUpdated = true;
     console.debug("Copied brand ico", fromUri, "to", toUri);
   } catch (error) {
     console.error("Error copying brand ico", error);
@@ -181,7 +191,7 @@ export async function copyToSIco(idTypeOfSkis: string, fromUri: string) {
       from: fromUri,
       to: toUri
     });
-    storeUpdated = true;
+    imageStoreUpdated = true;
     console.debug("Copied ToS ico", fromUri, "to", toUri);
   } catch (error) {
     console.error("Error copying ToS ico", error);

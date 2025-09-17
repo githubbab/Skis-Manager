@@ -527,7 +527,6 @@ export default function SkisManagement() {
   // #   #  #        #   #    # #   #  #   ##
   // #    # ######   #    ####  #    # #    #
   if (dbState !== "done") {
-    console.debug("Data loading, wait !")
     return <Body><Text style={appStyles.text}>Loading...</Text></Body>;
   }
 

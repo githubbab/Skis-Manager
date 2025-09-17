@@ -4,37 +4,16 @@ import Row from "@/components/Row";
 import Separator from "@/components/Separator";
 import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { hasStoreUpdated, resetStoreUpdated } from "@/hooks/FileSystemManager";
-import { exportData } from "@/hooks/SyncWebDav";
 import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import { useSQLiteContext } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
-import React, { useContext, useEffect } from "react";
-import { AppState, Image, StyleSheet, Text, View } from "react-native";
+import React, { useContext } from "react";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 const DrawerLayout = () => {
   const { currentTheme, colorsTheme } = useContext(ThemeContext);
-  const { t, lang, seasonDate, webDavUrl, webDavUser, webDavPassword, syncWebDav } = useEnvContext();
-
-  const db = useSQLiteContext();
-
-  // Ajout : gestion de l'état de l'app (background/quit)
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", async (nextState) => {
-      if (nextState === "background" || nextState === "inactive") {
-        // Place ici l'action à exécuter (ex: sauvegarde, nettoyage, etc.)
-        console.log("App mise en tâche de fond ou quittée", syncWebDav, hasStoreUpdated());
-        if (syncWebDav && hasStoreUpdated()) {
-          await exportData({url: webDavUrl, user: webDavUser, password: webDavPassword});
-          resetStoreUpdated();
-        }
-      }
-    });
-    return () => subscription.remove();
-  }, []);
-
+  const { t } = useEnvContext();
 
   console.log("DrawerLayout: ", currentTheme);
   const styles = StyleSheet.create({

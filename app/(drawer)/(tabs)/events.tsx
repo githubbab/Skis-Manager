@@ -204,7 +204,6 @@ export default function EventsTabs() {
       if (dbState === "loading") return;
       const lastWrite = getLastDBWrite();
       if (lastWrite > lastCheck) {
-        console.log('La base a été modifiée, je recharge mes données');
         loadData().then(() => setLastCheck(lastWrite))
       }
     }, [])
@@ -851,7 +850,6 @@ const handleDeleteOuting = (outing: Outings) => {
   // #    # ######   #    ####  #    # #    #
 
   if (dbState !== "done") {
-    console.debug("Data loading, wait !")
     return <Body><Text>Loading...</Text></Body>;
   }
 

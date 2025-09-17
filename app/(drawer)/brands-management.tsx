@@ -107,7 +107,11 @@ export default function BrandsManagementScreen() {
     // Si une image a été sélectionnée, la sauvegarder dans le dossier local
     if (brandImage && brandId) {
       // Si l'image n'est pas déjà dans le bon dossier, la copier
-      copyBrandIco(brandImage, brandId);
+      copyBrandIco(brandId, brandImage).catch((error) => {
+        const message = "Error copying brand icon: " + error;
+        console.error(message);
+        alert(message);
+      });
     }
     setModalVisible(false);
     setEditingBrand(null);

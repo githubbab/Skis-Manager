@@ -171,7 +171,6 @@ export async function getAllSkis(db: SQLiteDatabase): Promise<Skis[]> {
 
 export async function getSeasonSkis(db: SQLiteDatabase, season?: Seasons): Promise<Skis[]> {
   const currentSeason = season ? season : await getCurrentSeason(db);
-  console.debug("getSeasonSkis - currentSeason", currentSeason);
   const data: Skis[] = await db.getAllAsync(
     `SELECT 
       s.id, 
@@ -226,7 +225,6 @@ export async function getSeasonSkis(db: SQLiteDatabase, season?: Seasons): Promi
 
 export async function getTopSkis(db: SQLiteDatabase, season?: Seasons): Promise<Skis[]> {
   const currentSeason = season ? season : await getCurrentSeason(db);
-  console.debug("getTopSkis - currentSeason", currentSeason);
   const data: Skis[] = await db.getAllAsync(
     `SELECT 
       CONCAT('topSkis-',s.id) as id, 
@@ -266,11 +264,8 @@ export async function getTopSkis(db: SQLiteDatabase, season?: Seasons): Promise<
     GROUP BY s.id
     ORDER BY nbOutings DESC`
   );
-  console.debug("getTopSkis", data);
   const arrayIcoToSURI = await getDistinctToSIcoURIs(data);
-  console.debug("getTopSkis - arrayIcoToSURI", arrayIcoToSURI);
   const arrayIcoBrandURI = await getDistinctBrandIcoURIs(data);
-  console.debug("getTopSkis - arrayIcoBrandURI", arrayIcoBrandURI);
   return data.map((ski: any) => ({
     ...ski,
     icoTypeOfSkisUri: arrayIcoToSURI[ski.idTypeOfSkis] || undefined,

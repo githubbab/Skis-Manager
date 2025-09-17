@@ -1,6 +1,7 @@
 import translations, { Lang, TranslationKey } from "@/constants/Translations";
 import { execQuery } from "@/hooks/DatabaseManager";
 import { getCurrentSeason, Seasons } from "@/hooks/dbSeasons";
+import { setWebDavParams } from "@/hooks/SyncWebDav";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getLocales } from "expo-localization";
 import { useSQLiteContext } from "expo-sqlite";
@@ -15,11 +16,11 @@ interface EnvContextType {
   toggleViewOuting: (view: boolean) => void;
   viewFriends: boolean;
   toggleViewFriends: (view: boolean) => void;
-  syncWebDav: boolean;
+  webDavSyncEnabled: boolean;
+  toggleSyncWebDav: (sync: boolean, url: string, user: string, password: string) => void;
   webDavUrl: string;
   webDavUser: string;
   webDavPassword: string;
-  toggleSyncWebDav: (sync: boolean, url: string, user: string, password: string) => void;
   lang: Lang;
   changeLang: (lang: Lang) => void;
   t: (key: TranslationKey) => string;
@@ -53,7 +54,7 @@ export const EnvProvider = ({ children }: { children: React.ReactNode }) => {
   const [lang, setLang] = useState<Lang>(getLocales()[0].languageCode === 'fr' ? 'fr' : 'en');
   const t = (key: TranslationKey) => translations[lang][key];
   const [seasonName, setSeasonName] = useState<string>(t('define_season'));
-  const [syncWebDav, setSyncWebDav] = useState<boolean>(false);
+  const [webDavSyncEnabled, setWebDavSyncEnabled] = useState<boolean>(false);
   const [webDavUrl, setWebDavUrl] = useState<string>("");
   const [webDavUser, setWebDavUser] = useState<string>("");
   const [webDavPassword, setWebDavPassword] = useState<string>("");
@@ -63,7 +64,7 @@ export const EnvProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const init = async () => {
-      console.debug("Initializing EnvContext");
+      console.debug("EnvContext - init");
       // Initialize viewOuting and viewFriends from settings or default to true
       const vOuting = await AsyncStorage.getItem("viewOuting");
       if (vOuting !== null) {
@@ -82,33 +83,32 @@ export const EnvProvider = ({ children }: { children: React.ReactNode }) => {
       // Initialize language from settings or default to system language
       const searchLang = await AsyncStorage.getItem("language");
       if (searchLang) {
-        console.debug("Initial language: ", searchLang);
         setLang(searchLang === 'fr' ? 'fr' : 'en');
       } else {
         changeLang(lang);
       }
       // Initialize WebDav settings from settings or default to empty
-      const sync = await AsyncStorage.getItem("syncWebDav");
-      if (sync !== null) {
-        setSyncWebDav(sync === 'true');
-      } else {
-        toggleSyncWebDav(false, "", "", "");
-      }
       const url = await AsyncStorage.getItem("webDavUrl");
       if (url) setWebDavUrl(url);
       const user = await AsyncStorage.getItem("webDavUser");
       if (user) setWebDavUser(user);
       const password = await AsyncStorage.getItem("webDavPassword");
       if (password) setWebDavPassword(password);
-      console.debug("EnvContext initialized");
+      const sync = await AsyncStorage.getItem("syncWebDav");
+      if (sync !== null) {
+        setWebDavSyncEnabled(sync === 'true');
+      } else {
+        setWebDavSyncEnabled(false);
+      }
+      setWebDavParams({ enabled: sync === 'true', url: url ?? "", user: user ?? "", password: password ?? "" });
     };
     init().catch(console.error);
+
   }, []);
 
   // Function to change the season date
   const changeSeasonDate = async () => {
     const searchSeasonDate: Seasons = await getCurrentSeason(db);
-    console.debug("Found seasonDate in settings: ", searchSeasonDate);
     if (searchSeasonDate.id !== 'not-an-id') {
       setSeasonDate(new Date(searchSeasonDate.begin));
       setSeasonName(searchSeasonDate.name);
@@ -116,7 +116,7 @@ export const EnvProvider = ({ children }: { children: React.ReactNode }) => {
       setSeasonDate(new Date());
       setSeasonName(t('define_season'));
     }
-    console.debug("Change seasonDate: ", seasonDate);
+    console.debug("EnvContext - changeSeasonDate:", searchSeasonDate);
   };
   // Function to toggle the view of outings
   const toggleViewOuting = async (view: boolean) => {
@@ -137,7 +137,8 @@ export const EnvProvider = ({ children }: { children: React.ReactNode }) => {
   };
   // Function to toggle WebDav sync
   const toggleSyncWebDav = async (sync: boolean, url: string, user: string, password: string) => {
-    setSyncWebDav(sync);
+    console.debug("Toggle WebDav sync to: ", sync, url, user);
+    setWebDavSyncEnabled(sync);
     await AsyncStorage.setItem("syncWebDav", sync.toString());
     if (sync) {
       setWebDavUrl(url);
@@ -147,6 +148,7 @@ export const EnvProvider = ({ children }: { children: React.ReactNode }) => {
       await AsyncStorage.setItem("webDavUser", user);
       await AsyncStorage.setItem("webDavPassword", password);
     }
+    setWebDavParams({ enabled: sync, url: url, user: user, password: password });
   };
   // Function to list available languages
   const listLanguages = () => {
@@ -193,7 +195,7 @@ export const EnvProvider = ({ children }: { children: React.ReactNode }) => {
       toggleViewOuting,
       viewFriends,
       toggleViewFriends,
-      syncWebDav,
+      webDavSyncEnabled,
       toggleSyncWebDav,
       webDavUrl,
       webDavUser,

@@ -1,4 +1,3 @@
-import { EnvProvider } from "@/context/EnvContext";
 import ThemeProvider from "@/context/ThemeContext";
 import { initDB } from "@/hooks/DatabaseManager";
 import { initFS } from "@/hooks/FileSystemManager";
@@ -44,12 +43,10 @@ function RootLayoutNav() {
     <SafeAreaView style={{ flex: 1 }}>
       <SQLiteProvider databaseName="skis-manager.db" onInit={migrateDbIfNeeded}
         assetSource={{ assetId: require('@/assets/skis-manager.db') }}>
-          <EnvProvider>
-            <ThemeProvider>
-              <Slot />
-              <FlashMessage position="top" />
-            </ThemeProvider>
-          </EnvProvider>
+        <ThemeProvider>
+          <Slot />
+          <FlashMessage position="top" />
+        </ThemeProvider>
       </SQLiteProvider>
     </SafeAreaView>
   );
