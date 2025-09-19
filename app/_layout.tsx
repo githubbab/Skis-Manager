@@ -7,8 +7,8 @@ import { Slot } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { type SQLiteDatabase, SQLiteProvider } from "expo-sqlite";
 import { useEffect } from "react";
-import { SafeAreaView } from "react-native";
 import FlashMessage from "react-native-flash-message";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -23,21 +23,7 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SkisManager: require('@/assets/fonts/SkisManager.ttf'),
-  });
 
-  useEffect(() => {
-    if (error) throw error;
-    if (loaded) SplashScreen.hideAsync();
-  }, [error, loaded]);
-
-
-  if (!loaded || error) return null;
-
-  return <RootLayoutNav />;
-}
 
 function RootLayoutNav() {
   return (
@@ -58,4 +44,20 @@ async function migrateDbIfNeeded(db: SQLiteDatabase) {
   await initFS();
   await initDB(db);
   await initSettings(db);
+}
+
+export default function RootLayout() {
+  const [loaded, error] = useFonts({
+    SkisManager: require('@/assets/fonts/SkisManager.ttf'),
+  });
+
+  useEffect(() => {
+    if (error) throw error;
+    if (loaded) SplashScreen.hideAsync();
+  }, [error, loaded]);
+
+
+  if (!loaded || error) return null;
+
+  return <RootLayoutNav />;
 }

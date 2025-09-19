@@ -21,7 +21,6 @@ import { getLang, getWebDavPassword, getWebDavUrl, getWebDavUser, isWebDavSyncEn
 import { checkWebDavSync, getSyncDevices, getSyncMode, syncData, testWebDavConnection } from "@/hooks/SyncWebDav";
 import { localeDate, smDate, t } from "@/hooks/ToolsBox";
 import { reloadAppAsync } from "expo";
-import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from "expo-file-system";
 import { useFocusEffect } from "expo-router";
 import * as Sharing from 'expo-sharing';
@@ -29,7 +28,7 @@ import * as SQLite from 'expo-sqlite';
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
-import { hideMessage, showMessage } from "react-native-flash-message";
+import { showMessage } from "react-native-flash-message";
 import { FlatList } from "react-native-gesture-handler";
 import { FileStat } from "webdav";
 
@@ -306,34 +305,33 @@ export default function BackupSyncSettings() {
     const dbRestoreDir = new Directory(Paths.document, "dbRestore");
     const file2restore = new File(Paths.document + "dbRestore/restore.db")
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        multiple: false,
-        copyToCacheDirectory: true,
-      });
-      if (!result.canceled) {
-        setInactivated(true);
-        const dbURI = result.assets[0].uri;
-        console.log(`Database URI: ${dbURI}`);
-        if (!dbRestoreDir.exists) {
-          dbRestoreDir.create();
-        }
-        const file2copy = new File(dbURI)
-        if (!file2copy.exists) {
-          console.log("File does not exist:", dbURI);
-          setInactivated(false);
-          return;
-        }
+      const file2copy = await File.pickFileAsync();
+      if (file2copy instanceof File) {
         file2copy.copy(file2restore);
         file2copy.delete();
-      } else {
-        hideMessage()
+      }
+      else {
+        console.log("No valide file selected");
+        showMessage({
+          message: "No valid file selected !",
+          type: "danger",
+          autoHide: true,
+          duration: 3000
+        })
         return;
       }
     } catch (error) {
+      showMessage({
+        message: "Error picking document: " + error,
+        type: "danger",
+        autoHide: true,
+        duration: 5000
+      })
       console.log("Error picking documents:", error);
       return;
     }
     try {
+      setInactivated(true);
       showMessage({
         message: "Opening...",
         type: "default",
