@@ -8,24 +8,24 @@ import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { Brands, deleteBrand, getAllBrands, insertBrand, updateBrand } from "@/hooks/dbBrands";
-import { copyBrandIco, icoUnknownBrand, imgStore } from "@/hooks/FileSystemManager";
+import { copyBrandIco, icoUnknownBrand, imgStoreDir } from "@/hooks/FileSystemManager";
+import { t } from "@/hooks/ToolsBox";
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
-import * as ImageManipulator from 'expo-image-manipulator';
+import { File } from 'expo-file-system';
+import { ImageManipulator } from 'expo-image-manipulator';
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Pressable } from 'react-native-gesture-handler';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+
 
 export default function BrandsManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { t } = useEnvContext();
 
   const [brands, setBrands] = useState<Brands[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -107,11 +107,7 @@ export default function BrandsManagementScreen() {
     // Si une image a été sélectionnée, la sauvegarder dans le dossier local
     if (brandImage && brandId) {
       // Si l'image n'est pas déjà dans le bon dossier, la copier
-      copyBrandIco(brandId, brandImage).catch((error) => {
-        const message = "Error copying brand icon: " + error;
-        console.error(message);
-        alert(message);
-      });
+      copyBrandIco(brandId, brandImage);
     }
     setModalVisible(false);
     setEditingBrand(null);
@@ -127,11 +123,8 @@ export default function BrandsManagementScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const img = result.assets[0];
       // Redimensionne à 256x256
-      const manipResult = await ImageManipulator.manipulateAsync(
-        img.uri,
-        [{ resize: { width: 256, height: 256 } }],
-        { compress: 1, format: ImageManipulator.SaveFormat.PNG }
-      );
+      const manipulator = ImageManipulator.manipulate(img.uri).resize({ width: 256, height: 256 });
+      const manipResult = await (await manipulator.renderAsync()).saveAsync();
       setBrandImage(manipResult.uri);
     }
   }
@@ -156,10 +149,10 @@ export default function BrandsManagementScreen() {
           onPress: async () => {
             await deleteBrand(db, brand.id);
             // Supprime l'image associée si elle existe
-            const brandImgPath = `${imgStore}/brand-${brand.id}.png`;
-            const file = await FileSystem.getInfoAsync(brandImgPath);
-            if (file.exists) {
-              await FileSystem.deleteAsync(brandImgPath, { idempotent: true });
+            const brandImgPath = `${imgStoreDir.uri}/brand-${brand.id}.png`;
+            const img2del = new File(brandImgPath);
+            if (img2del.exists) {
+              img2del.delete();
             }
             loadData();
           },
@@ -189,23 +182,18 @@ export default function BrandsManagementScreen() {
   // #####  #      #  # # #    # #      #####   #    #   #      #    #
   // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
+
   function renderItem(item: Brands) {
     const nbActions = item.nbSkis + item.nbBoots;
+    const swipeRef = useRef<SwipeableMethods | null>(null);
+
     return (
       <ReanimatedSwipeable
-        ref={ref => {
-          // Store ref for later use if needed
-          if (ref) {
-            // Optionally store in a map if you want to unswipe specific items
-            (item as any).swipeRef = ref;
-          }
-        }}
+        ref={swipeRef}
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
-            }
+            swipeRef.current?.close();
           }, 2000);
         }}
         renderLeftActions={() => (

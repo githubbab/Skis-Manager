@@ -1,15 +1,15 @@
 import AppIcon from "@/components/AppIcon";
 import Row from "@/components/Row";
 import { appFontSize } from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
+import { getSeasonDate, getSeasonName, isViewOuting } from "@/hooks/SettingsManager";
+import { localeDate, t } from "@/hooks/ToolsBox";
 import { router, Tabs } from 'expo-router';
 import React, { useContext } from 'react';
 import { Pressable, StyleSheet, Text } from "react-native";
 
 export default function TabLayout() {
   const { colorsTheme } = useContext(ThemeContext);
-  const { t, viewOuting, seasonDate, seasonName, lang } = useEnvContext();
 
 
   const styles = StyleSheet.create({
@@ -49,11 +49,11 @@ export default function TabLayout() {
         return (
         <Pressable onPress={() => router.navigate({ pathname: '/(drawer)/seasons-management' })}>
           <Row style={styles.header}>
-          <Text style={[styles.headerTitle, { marginHorizontal: 'auto' }]}>{seasonName}</Text>
+          <Text style={[styles.headerTitle, { marginHorizontal: 'auto' }]}>{getSeasonName()}</Text>
           <Row style={{ marginHorizontal: 'auto' }}>
             <AppIcon name="calendar1" color={colorsTheme.inactiveText} size={18} />
             <Text style={[styles.headerSubtitle, { marginHorizontal: 'auto' }]}>
-            {seasonDate.toLocaleDateString(lang, { day: '2-digit', month: 'short', year: 'numeric' })}
+            {localeDate(getSeasonDate().getTime(), { day: '2-digit', month: 'short', year: 'numeric' })}
             </Text>
           </Row>
           </Row>
@@ -86,7 +86,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="offpistes"
         options={{
-          href: viewOuting ? undefined : null,
+          href: isViewOuting() ? undefined : null,
           title: t('tab_offpistes'),
           tabBarIcon: ({ color }) =>
             <AppIcon name="hors-piste" color={color} size={32} />,

@@ -9,7 +9,6 @@ import Row from "@/components/Row";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getLastDBWrite } from "@/hooks/DatabaseManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
@@ -20,13 +19,15 @@ import { deleteOuting, getAllOutings, initOuting, insertOuting, Outings } from "
 import { getSeasonSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
+import { getSeasonDate, isViewFriends, isViewOuting } from "@/hooks/SettingsManager";
+import { localeDate, smDate, t } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, Image, ListRenderItem, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { FlatList, Pressable } from "react-native-gesture-handler";
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 
 const iconSize = 32; // Size for icons in the filter row
@@ -37,7 +38,6 @@ export default function EventsTabs() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const [dbState, setDbState] = useState("none");
-  const { lang, t, seasonDate, smDate, viewFriends, viewOuting } = useEnvContext();
   const db = useSQLiteContext();
   const [lastCheck, setLastCheck] = useState<number>(0);
 
@@ -136,8 +136,8 @@ export default function EventsTabs() {
   const loadData = async () => {
     setDbState("loading");
     try {
-      const outings = await getAllOutings(db, smDate(seasonDate));
-      const maintains = await getAllMaintains(db, smDate(seasonDate));
+      const outings = await getAllOutings(db, smDate(getSeasonDate()));
+      const maintains = await getAllMaintains(db, smDate(getSeasonDate()));
       const events: Events[] = [];
       for (const outing of outings) {
         events.push({ type: "outing", data: outing });
@@ -146,9 +146,9 @@ export default function EventsTabs() {
         events.push({ type: "maintain", data: maintain });
       }
       setListEvents(events.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()));
-      setListUsers(await getAllUsers(db, smDate(seasonDate)));
+      setListUsers(await getAllUsers(db, smDate(getSeasonDate())));
       setListSkis(await getSeasonSkis(db));
-      setListBoots(await getAllBoots(db, smDate(seasonDate)));
+      setListBoots(await getAllBoots(db, smDate(getSeasonDate())));
       setListOutingTypes(await getAllTypeOfOutings(db));
       setListFriends(await getAllFriends(db));
       setListOffPistes(await getAllOffPistes(db));
@@ -242,7 +242,7 @@ export default function EventsTabs() {
       setOutingViewBoots(false);
     }
     if (outing2write.idBoots) {
-      if (viewOuting) {
+      if (isViewOuting()) {
         setOutingViewToOuting(true);
         const majorType = listSkis.find(ski => ski.id === outing2write.idSkis)?.majorTypeOfOuting;
         if (majorType) {
@@ -262,7 +262,7 @@ export default function EventsTabs() {
       } else {
         setOutingViewToOuting(false);
       }
-      if (viewFriends) {
+      if (isViewFriends()) {
         if (listFriends.length > 0) {
           setOutingViewFriends(true);
         }
@@ -591,20 +591,15 @@ const handleDeleteOuting = (outing: Outings) => {
       const outingFriends: Friends[] = listFriends.filter(f => item.data.idFriends?.includes(f.id));
       console.debug("Outing Off-Pistes", item.listOfOffPistes)
       const outingOffPistes: OffPistes[] = extractOffPistes(item.listOfOffPistes || []);
+          const swipeRef = useRef<SwipeableMethods | null>(null);
       return (
         <ReanimatedSwipeable
-          ref={ref => {
-            // Store ref for later use if needed
-            if (ref) {
-              // Optionally store in a map if you want to unswipe specific items
-              (item as any).swipeRef = ref;
-            }
-          }}
+          ref={swipeRef}
           onSwipeableOpen={() => {
             // Auto-close after 3 seconds
             setTimeout(() => {
-              if ((item as any).swipeRef) {
-                (item as any).swipeRef.close();
+              if (swipeRef.current) {
+                swipeRef.current.close();
               }
             }, 2000);
           }}
@@ -654,7 +649,7 @@ const handleDeleteOuting = (outing: Outings) => {
           >
             <Row style={{ marginVertical: 2 }}>
               <Card>
-                <Text style={appStyles.title}>{new Date(item.data.date).toLocaleDateString(lang, { month: 'short', day: '2-digit' })}</Text>
+                <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
               </Card>
               {!skisFilter &&
                 <>
@@ -750,20 +745,15 @@ const handleDeleteOuting = (outing: Outings) => {
         }
         return "Pas de description";
       }
+          const swipeRef = useRef<SwipeableMethods | null>(null);
       return (
         <ReanimatedSwipeable
-          ref={ref => {
-            // Store ref for later use if needed
-            if (ref) {
-              // Optionally store in a map if you want to unswipe specific items
-              (item as any).swipeRef = ref;
-            }
-          }}
+          ref={swipeRef}
           onSwipeableOpen={() => {
             // Auto-close after 3 seconds
             setTimeout(() => {
-              if ((item as any).swipeRef) {
-                (item as any).swipeRef.close();
+              if (swipeRef.current) {
+                swipeRef.current.close();
               }
             }, 2000);
           }}
@@ -805,7 +795,7 @@ const handleDeleteOuting = (outing: Outings) => {
           >
             <Row style={{ marginVertical: 2 }}>
               <Card>
-                <Text style={appStyles.title}>{new Date(item.data.date).toLocaleDateString(lang, { month: 'short', day: '2-digit' })}</Text>
+                <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
               </Card>
               {!skisFilter &&
                 <>
@@ -1119,7 +1109,7 @@ const handleDeleteOuting = (outing: Outings) => {
                 <Row>
                   <TouchableOpacity onPress={() => setDateTimePickerVisible("outing")}>
 
-                    <Text style={appStyles.text}>{new Date(outing2write.date).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
+                    <Text style={appStyles.text}>{localeDate(outing2write.date, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
                   </TouchableOpacity>
                   {partOfDay !== 'am' ?
                     <TouchableOpacity
@@ -1376,7 +1366,7 @@ const handleDeleteOuting = (outing: Outings) => {
                 <Row>
                   <TouchableOpacity onPress={() => setDateTimePickerVisible("maintain")}>
 
-                    <Text style={appStyles.text}>{new Date(maintain2write.date).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
+                    <Text style={appStyles.text}>{localeDate(maintain2write.date, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
                   </TouchableOpacity>
                   {partOfDay !== 'am' ?
                     <TouchableOpacity
@@ -1502,7 +1492,7 @@ const handleDeleteOuting = (outing: Outings) => {
         <DateTimePicker
           value={new Date()}
           maximumDate={new Date()}
-          minimumDate={seasonDate}
+          minimumDate={getSeasonDate()}
           mode="date"
           display="default"
           onChange={onDateChange}

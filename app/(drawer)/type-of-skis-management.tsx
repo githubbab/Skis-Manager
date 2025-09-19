@@ -8,21 +8,21 @@ import Pastille from "@/components/Pastille";
 import Row from "@/components/Row";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { deleteTypeOfSkis, getAllTypeOfSkis, initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
 import { getToSIcoURI } from "@/hooks/FileSystemManager";
+import { t } from "@/hooks/ToolsBox";
+import { File } from "expo-file-system";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Pressable } from 'react-native-gesture-handler';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 export default function TypeOfSkisManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { t } = useEnvContext();
 
   const [types, setTypes] = useState<TOS[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -126,9 +126,10 @@ export default function TypeOfSkisManagementScreen() {
             await deleteTypeOfSkis(db, tos.id);
             // Supprime l'image associée si elle existe
             const tosImgPath = await getToSIcoURI(tos.id);
-            const file = await require('expo-file-system').getInfoAsync(tosImgPath);
-            if (file.exists) {
-              await require('expo-file-system').deleteAsync(tosImgPath, { idempotent: true });
+            if (!tosImgPath) return;
+            const img2del = new File(tosImgPath);
+            if (img2del.exists) {
+              img2del.delete();
             }
             loadData();
           },
@@ -160,20 +161,16 @@ export default function TypeOfSkisManagementScreen() {
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem({ item }: { item: TOS }) {
     const nbActions = item.itemCount || 0;
+        const swipeRef = useRef<SwipeableMethods | null>(null);
+    
     return (
       <ReanimatedSwipeable
-        ref={ref => {
-          // Store ref for later use if needed
-          if (ref) {
-            // Optionally store in a map if you want to unswipe specific items
-            (item as any).swipeRef = ref;
-          }
-        }}
+        ref={swipeRef}
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
+            if (swipeRef.current) {
+              swipeRef.current.close();
             }
           }, 2000);
         }}

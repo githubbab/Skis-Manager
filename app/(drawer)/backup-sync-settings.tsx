@@ -5,8 +5,8 @@ import Card from "@/components/Card";
 import CheckButton from "@/components/CheckButton";
 import Row from "@/components/Row";
 import Separator from "@/components/Separator";
+import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { clearDatabase, endConcatQueries, getDeviceID, startConcatQueries, TABLES } from "@/hooks/DatabaseManager";
 import { Boots, insertBoots } from "@/hooks/dbBoots";
@@ -17,16 +17,21 @@ import { insertSki, Skis } from "@/hooks/dbSkis";
 import { initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
 import { insertUser, Users } from "@/hooks/dbUsers";
 import { clearStore } from "@/hooks/FileSystemManager";
-import { checkWebDavSync, syncData } from "@/hooks/SyncWebDav";
+import { getLang, getWebDavPassword, getWebDavUrl, getWebDavUser, isWebDavSyncEnabled, toggleSyncWebDav } from "@/hooks/SettingsManager";
+import { checkWebDavSync, getSyncDevices, getSyncMode, syncData, testWebDavConnection } from "@/hooks/SyncWebDav";
+import { localeDate, smDate, t } from "@/hooks/ToolsBox";
 import { reloadAppAsync } from "expo";
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from "expo-file-system";
+import { Directory, File, Paths } from "expo-file-system";
+import { useFocusEffect } from "expo-router";
 import * as Sharing from 'expo-sharing';
 import * as SQLite from 'expo-sqlite';
 import { useSQLiteContext } from "expo-sqlite";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 import { hideMessage, showMessage } from "react-native-flash-message";
+import { FlatList } from "react-native-gesture-handler";
+import { FileStat } from "webdav";
 
 
 function extractRegexMatch(name: string, regex: RegExp): string | undefined {
@@ -35,7 +40,7 @@ function extractRegexMatch(name: string, regex: RegExp): string | undefined {
 }
 
 
-async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQLite.SQLiteDatabase, smDate: (value?: any) => number) {
+async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQLite.SQLiteDatabase) {
   let itemsBoots: Boots[] = [];
   let itemsSkis: Skis[] = [];
   let itemsUsers: Users[] = [];
@@ -273,19 +278,33 @@ export default function BackupSyncSettings() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext()
-  const { lang, t, smDate, webDavSyncEnabled, webDavUrl, webDavUser, webDavPassword, toggleSyncWebDav } = useEnvContext();
-  const [webDavUrlState, setWebDavUrl] = useState(webDavUrl);
-  const [webDavUserState, setWebDavUser] = useState(webDavUser);
-  const [webDavPasswordState, setWebDavPassword] = useState(webDavPassword);
+  const [webDavUrlState, setWebDavUrl] = useState(getWebDavUrl());
+  const [webDavUserState, setWebDavUser] = useState(getWebDavUser());
+  const [webDavPasswordState, setWebDavPassword] = useState(getWebDavPassword());
   const [inactivated, setInactivated] = useState(false);
+  const [syncMode, setSyncMode] = useState<"none" | "error" | "mono" | "multi">("none");
+  const [syncDevices, setSyncDevices] = useState<{ id: string, fileState: FileStat }[]>([]);
+
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isWebDavSyncEnabled()) {
+        testWebDavConnection().then(() => {
+          setSyncMode(getSyncMode());
+          setSyncDevices(getSyncDevices());
+        });
+      }
+    }, [])
+  );
 
   useEffect(() => {
-    if (webDavSyncEnabled && (webDavUrlState !== webDavUrl || webDavUserState !== webDavUser || webDavPasswordState !== webDavPassword))
-      toggleSyncWebDav( false, webDavUrlState, webDavUserState, webDavPasswordState);
+    if (isWebDavSyncEnabled() && (webDavUrlState !== getWebDavUrl() || webDavUserState !== getWebDavUser() || webDavPasswordState !== getWebDavPassword()))
+      toggleSyncWebDav(db, false, webDavUrlState, webDavUserState, webDavPasswordState);
   }, [webDavUrlState, webDavUserState, webDavPasswordState])
 
-
   const restoreOldDB = async () => {
+    const dbRestoreDir = new Directory(Paths.document, "dbRestore");
+    const file2restore = new File(Paths.document + "dbRestore/restore.db")
     try {
       const result = await DocumentPicker.getDocumentAsync({
         multiple: false,
@@ -295,20 +314,17 @@ export default function BackupSyncSettings() {
         setInactivated(true);
         const dbURI = result.assets[0].uri;
         console.log(`Database URI: ${dbURI}`);
-        if (!(await FileSystem.getInfoAsync(FileSystem.documentDirectory + "dbRestore")).exists) {
-          await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory + "dbRestore");
+        if (!dbRestoreDir.exists) {
+          dbRestoreDir.create();
         }
-        const base64 = await FileSystem.readAsStringAsync(
-          dbURI,
-          {
-            encoding: FileSystem.EncodingType.Base64,
-          }
-        )
-        await FileSystem.writeAsStringAsync(FileSystem.documentDirectory + "dbRestore/restore.db", base64,
-          {
-            encoding: FileSystem.EncodingType.Base64,
-          })
-        await FileSystem.deleteAsync(dbURI, { idempotent: true });
+        const file2copy = new File(dbURI)
+        if (!file2copy.exists) {
+          console.log("File does not exist:", dbURI);
+          setInactivated(false);
+          return;
+        }
+        file2copy.copy(file2restore);
+        file2copy.delete();
       } else {
         hideMessage()
         return;
@@ -324,7 +340,7 @@ export default function BackupSyncSettings() {
         autoHide: false,
       })
       const sqLiteDatabase = await SQLite.openDatabaseAsync("restore.db",
-        { useNewConnection: true }, FileSystem.documentDirectory + "dbRestore");
+        { useNewConnection: true }, dbRestoreDir.uri);
       console.log("Database opened !");
       showMessage({
         message: "Check version...",
@@ -348,19 +364,19 @@ export default function BackupSyncSettings() {
       }
       if (dbVersion === 0) {
         console.debug("Find suivisSkisDB")
-        if (lang !== 'fr') {
-          console.debug("Language is not French, cannot restore SuivisSkisDB", lang);
+        if (getLang() !== 'fr') {
+          console.debug("Language is not French, cannot restore SuivisSkisDB", getLang());
           showMessage({
             message: "La langue de l'application doit être en français pour restaurer une base de données SuivisSkis.",
             type: "danger",
             autoHide: true,
             duration: 5000
           });
-          await FileSystem.deleteAsync(FileSystem.documentDirectory + "dbRestore/restore.db", { idempotent: true });
+          file2restore.delete();
           setInactivated(false);
           return;
         }
-        await restoreSuivisSkisDB(db, sqLiteDatabase, smDate);
+        await restoreSuivisSkisDB(db, sqLiteDatabase);
       } else {
         dbVersion = 1
         for (const tableName of skisManagerTables) {
@@ -375,8 +391,13 @@ export default function BackupSyncSettings() {
           let { user_version: dbVersion } = await db.getFirstAsync('PRAGMA user_version');
           console.log("Database version " + dbVersion);
           await clearStore()
+          const dbFile = new File(db.databasePath);
           await db.closeAsync()
-          await FileSystem.moveAsync({ from: sqLiteDatabase.databasePath, to: "file://" + db.databasePath });
+          if (dbFile.exists) {
+            dbFile.delete();
+          }
+          file2restore.move(dbFile);
+          console.log("Database restored to " + dbFile.uri);
           await reloadAppAsync()
         } else {
           console.debug("Skipping database...");
@@ -399,7 +420,7 @@ export default function BackupSyncSettings() {
     } finally {
       setInactivated(false);
     }
-    await FileSystem.deleteAsync(FileSystem.documentDirectory + "dbRestore/restore.db", { idempotent: true });
+    file2restore.delete();
     showMessage({
       message: "Database restored !",
       type: "success",
@@ -414,7 +435,7 @@ export default function BackupSyncSettings() {
   }
 
   const handleSyncWebDav = async () => {
-    if (!webDavSyncEnabled) {
+    if (!isWebDavSyncEnabled()) {
       setInactivated(true);
       if (webDavUrlState?.length > 0 && webDavUserState?.length > 0 && webDavPasswordState?.length > 0 && /^https?:\/\/.+\..+/.test(webDavUrlState)) {
         const contents = await checkWebDavSync(webDavUrlState, webDavUserState, webDavPasswordState);
@@ -445,7 +466,7 @@ export default function BackupSyncSettings() {
                     await clearDatabase(db);
                     await clearStore();
                     await syncData({ db: db });
-                    toggleSyncWebDav(true, webDavUrlState, webDavUserState, webDavPasswordState);
+                    toggleSyncWebDav(db, true, webDavUrlState, webDavUserState, webDavPasswordState);
                     setInactivated(false);
                   }
                 }
@@ -455,13 +476,13 @@ export default function BackupSyncSettings() {
           }
           else {
             await syncData({ db: db });
-            toggleSyncWebDav(true, webDavUrlState, webDavUserState, webDavPasswordState);
+            toggleSyncWebDav(db, true, webDavUrlState, webDavUserState, webDavPasswordState);
             setInactivated(false);
           }
         }
         else {
           await syncData({ db: db });
-          toggleSyncWebDav(true, webDavUrlState, webDavUserState, webDavPasswordState);
+          toggleSyncWebDav(db, true, webDavUrlState, webDavUserState, webDavPasswordState);
           setInactivated(false);
         }
       } else {
@@ -469,7 +490,7 @@ export default function BackupSyncSettings() {
       }
       setInactivated(false);
     } else {
-      toggleSyncWebDav( false, webDavUrlState, webDavUserState, webDavPasswordState);
+      toggleSyncWebDav(db, false, webDavUrlState, webDavUserState, webDavPasswordState);
     }
   }
 
@@ -478,7 +499,7 @@ export default function BackupSyncSettings() {
       {inactivated && <View style={styles.inactivate} />}
       <Text style={appStyles.title}>{t('backup_sync')}</Text>
       <AppButton onPress={() => {
-        if (webDavSyncEnabled) {
+        if (isWebDavSyncEnabled()) {
           alert(t('sync_webdav_deactivate'));
           return;
         }
@@ -535,15 +556,39 @@ export default function BackupSyncSettings() {
       </Row>
       <CheckButton title={t('sync_webdav_activation')} iconName={"loop2"}
         type={'switch'}
-        onPress={handleSyncWebDav} isActive={webDavSyncEnabled} />
+        onPress={handleSyncWebDav} isActive={isWebDavSyncEnabled()} />
       {
-        webDavSyncEnabled &&
-        <AppButton onPress={async () => {
-          setInactivated(true);
-          await syncData({ db: db });
-          setInactivated(false);
-        }} icon={"shuffle"} disabled={inactivated} caption={t('sync_webdav_force')} />
+        isWebDavSyncEnabled() && <>
+          <AppButton onPress={async () => {
+            setInactivated(true);
+            await syncData({ db: db });
+            setInactivated(false);
+          }} icon={"shuffle"} disabled={inactivated} caption={t('sync_webdav_force')} />
+          <Tile>
+            <Row>
+              <AppIcon name={"info"} color={colorsTheme.text} />
+              <Text style={appStyles.text}>{t('sync_webdav_status')}: </Text>
+              <AppIcon name={syncMode === "mono" ? "move-down" : syncMode === "multi" ? "tree" : "cancel-circle"} color={syncMode === "error" ? "red" : "green"} />
+            </Row>
+            <FlatList
+              data={syncDevices}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <Row>
+                  <AppIcon name="mobile" color={item.id === getDeviceID() ? colorsTheme.primary : colorsTheme.text} />
+                  <Card >
+                    <Text style={appStyles.textBold}>{item.id}</Text>
+                  </Card>
+                  <Text style={[appStyles.textItalic, { marginLeft: 8 }]}> {localeDate(new Date(item.fileState.lastmod).getTime(), { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</Text>
+                </Row>
+              )}
+              ListEmptyComponent={<Text style={[appStyles.text, { textAlign: 'center' }]}>...</Text>}
+            />
+          </Tile>
+        </>
+
       }
+
 
     </Body>
   );

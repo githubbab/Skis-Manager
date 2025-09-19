@@ -2,8 +2,9 @@ import AppIcon from "@/components/AppIcon";
 import OpenMenu from "@/components/OpenMenu";
 import Row from "@/components/Row";
 import Separator from "@/components/Separator";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
+import { isViewFriends, isViewOuting } from "@/hooks/SettingsManager";
+import { t } from "@/hooks/ToolsBox";
 import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
@@ -13,7 +14,6 @@ import { Image, StyleSheet, Text, View } from "react-native";
 
 const DrawerLayout = () => {
   const { currentTheme, colorsTheme } = useContext(ThemeContext);
-  const { t } = useEnvContext();
 
   console.log("DrawerLayout: ", currentTheme);
   const styles = StyleSheet.create({
@@ -64,7 +64,6 @@ const DrawerLayout = () => {
   })
 
   const CustomDrawerContent = (props: any) => {
-    const { viewOuting, viewFriends } = useEnvContext();
     return (
       <DrawerContentScrollView style={styles.drawerContent} {...props} >
         <StatusBar style={currentTheme === 'dark' ? 'light' : 'dark'} />
@@ -129,7 +128,7 @@ const DrawerLayout = () => {
             router.push("/(drawer)/users-management");
           }}
         />
-        {viewOuting &&
+        {isViewOuting() &&
           <DrawerItem
             label={t('menu_offpistes')}
             labelStyle={styles.drawerTitle}
@@ -144,7 +143,7 @@ const DrawerLayout = () => {
               router.push("/(drawer)/offpistes-management");
             }}
           />}
-        {viewFriends &&
+        {isViewFriends() &&
           <DrawerItem
             label={t('menu_friends')}
             labelStyle={styles.drawerTitle}
@@ -215,7 +214,7 @@ const DrawerLayout = () => {
             router.push("/(drawer)/type-of-skis-management");
           }}
         />
-        {viewOuting &&
+        {isViewOuting() &&
           <DrawerItem
             label={t('menu_too')}
             labelStyle={styles.drawerTitle}

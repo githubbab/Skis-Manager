@@ -7,9 +7,10 @@ import { showMessage } from "react-native-flash-message";
 import { syncData } from "./SyncWebDav";
 
 
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 1;
 let currentDbVersion = 0;
 let lastDBWrite = Date.now();
+let dbUpdated = false;
 let deviceID: string = "not-an-id";
 
 const concatQueries: string[] = [];
@@ -57,6 +58,14 @@ export function getDeviceID() {
   return deviceID;
 }
 
+export function hasDatabaseUpdated() {
+  return dbUpdated;
+}
+
+export function resetDatabaseUpdated() {
+  dbUpdated = false;
+}
+
 export async function clearDatabase(db: SQLiteDatabase) {
   console.debug("Reinitializing database");
   for (const table of [TABLES.MAINTAINS, TABLES.OUTINGS, TABLES.JOIN_SKIS_BOOTS, TABLES.JOIN_SKIS_USERS, TABLES.JOIN_OUTINGS_OFFPISTES, TABLES.SKIS, TABLES.BOOTS, TABLES.USERS, TABLES.SEASONS]) {
@@ -68,15 +77,17 @@ export async function clearDatabase(db: SQLiteDatabase) {
 }
 
 export async function execQuery(db: SQLiteDatabase, query: string) {
+  console.debug("execQuery", query);
   try {
     await db.execAsync(query);
     lastDBWrite = Date.now();
+    dbUpdated = true;
     if (concatQueriesActive) {
       concatQueries.push(query);
       return;
     }
     await writeQuery("query-" + new Date().getTime().toString() + "-" + deviceID + ".sql", query);
-    syncData({db: db, })
+    syncData({db: db})
   } catch (err) {
     const message = err ? err.toString() : "Unknown error";
     console.error(message);
@@ -202,14 +213,13 @@ export async function initDB(db: SQLiteDatabase): Promise<void> {
     return;
   }
 
-  if (currentDbVersion === 1) {
+/*   if (currentDbVersion === 1) {
     console.debug("initDB: database is up to date (version 1)");
     await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT);
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_settings_key ON settings (key);
+      CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
     `);
     currentDbVersion = 2;
-  }
+  } */
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
   console.info("initDB: initializing database DONE");
 }

@@ -4,9 +4,9 @@ import Separator from "@/components/Separator";
 import Tile from '@/components/Tile';
 import TileIconTitle from '@/components/TileIconTitle';
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getSeasonOffPistes, OffPistes } from "@/hooks/dbOffPistes";
+import { t } from "@/hooks/ToolsBox";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useState } from "react";
@@ -17,7 +17,6 @@ import { FlatList } from "react-native-gesture-handler";
 export default function Offpistes() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
-  const { t } = useEnvContext();
   const db = useSQLiteContext();
 
   const [listOffPistes, setListOffPistes] = useState<OffPistes[]>([]);

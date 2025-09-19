@@ -7,21 +7,21 @@ import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import type { Seasons } from "@/hooks/dbSeasons";
 import { deleteSeason, getAllSeasons, insertSeason, updateSeason } from "@/hooks/dbSeasons";
+import { initSeasonDate } from "@/hooks/SettingsManager";
+import { localeDate, t } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Text, TextInput, View } from "react-native";
 import { Pressable } from 'react-native-gesture-handler';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 const SeasonsManagement = () => {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
-  const { lang, t, changeSeasonDate } = useEnvContext();
   const [seasons, setSeasons] = useState<Seasons[]>([]);
   const [name, setName] = useState<string>("");
   const [begin, setBegin] = useState<string>("");
@@ -38,6 +38,7 @@ const SeasonsManagement = () => {
   // #      #    # #    # #    # #     # #    #   #   #    #
   // ######  ####  #    # #####  ######  #    #   #   #    #
   const loadData = async () => {
+    await initSeasonDate(db);
     const data: Seasons[] = await getAllSeasons(db);
     setSeasons(data);
     console.debug("Seasons loaded:", seasons);
@@ -82,7 +83,6 @@ const SeasonsManagement = () => {
     setName("");
     setBegin("");
     setModalVisible(false);
-    changeSeasonDate();
     setDateTimePickerVisible(false);
     loadData();
   };
@@ -110,7 +110,6 @@ const SeasonsManagement = () => {
   // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   const handleDelete = async (id: string) => {
     await deleteSeason(db, id);
-    changeSeasonDate();
     setModalVisible(false);
     setEditing(null);
     setName("");
@@ -127,20 +126,15 @@ const SeasonsManagement = () => {
   // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem(item: Seasons) {
+    const swipeRef = useRef<SwipeableMethods | null>(null);
     return (
       <ReanimatedSwipeable
-        ref={ref => {
-          // Store ref for later use if needed
-          if (ref) {
-            // Optionally store in a map if you want to unswipe specific items
-            (item as any).swipeRef = ref;
-          }
-        }}
+        ref={swipeRef}
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
+            if (swipeRef.current) {
+              swipeRef.current.close();
             }
           }, 2000);
         }}
@@ -189,7 +183,7 @@ const SeasonsManagement = () => {
             <Card>
               <AppIcon name="play3" color={colorsTheme.text} size={20} />
               <Text style={appStyles.textItalic}>
-                {new Date(item.begin).toLocaleDateString(lang, { year: 'numeric', month: 'short', day: 'numeric' })}
+                {localeDate(item.begin, { year: 'numeric', month: 'short', day: 'numeric' })}
               </Text>
             </Card>
           </Row>
@@ -265,7 +259,7 @@ const SeasonsManagement = () => {
             <Text
               style={appStyles.text}
             >
-              {t('begin_at')} {new Date(begin ? parseInt(begin, 10) : Date.now()).toLocaleDateString(lang, { year: 'numeric', month: 'short', day: 'numeric' })}
+              {t('begin_at')} {localeDate(begin ? parseInt(begin, 10) : Date.now(), { year: 'numeric', month: 'short', day: 'numeric' })}
             </Text>
           </Pressable>
         </Row>

@@ -10,12 +10,12 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getLastDBWrite } from "@/hooks/DatabaseManager";
 import { Boots, deleteBoots, getAllBoots, initBoots, insertBoots, updateBoots } from "@/hooks/dbBoots";
 import { Brands, getAllBrands } from "@/hooks/dbBrands";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
+import { localeDate, t } from "@/hooks/ToolsBox";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -23,7 +23,7 @@ import React, { useCallback, useContext, useRef, useState } from "react";
 import { Alert, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
 import { Pressable } from 'react-native-gesture-handler';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 
 let dbState: string = "none";
@@ -36,7 +36,6 @@ export default function BootsManagement() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { lang, t, smDate } = useEnvContext();
   const inputNameRef = useRef<TextInput>(null);
   const inputSizeRef = useRef<TextInput>(null);
   const inputFlexRef = useRef<TextInput>(null);
@@ -190,151 +189,148 @@ export default function BootsManagement() {
   //     #####  #      #  # # #    # #      #####  #     # #    # #    #   #  
   //     #   #  #      #   ## #    # #      #   #  #     # #    # #    #   #  
   //     #    # ###### #    # #####  ###### #    # ######   ####   ####    #  
-  const renderBoot = ({ item }: { item: Boots }) => (
-    <ReanimatedSwipeable
-      ref={ref => {
-        // Store ref for later use if needed
-        if (ref) {
-          // Optionally store in a map if you want to unswipe specific items
-          (item as any).swipeRef = ref;
-        }
-      }}
-      onSwipeableOpen={() => {
-        // Auto-close after 3 seconds
-        setTimeout(() => {
-          if ((item as any).swipeRef) {
-            (item as any).swipeRef.close();
-          }
-        }, 2000);
-      }}
-      leftThreshold={80}
-      rightThreshold={80}
-      renderLeftActions={() => (
-        <Pressable
-          onPress={() => {
-            (item as any).swipeRef.close();
-            handleEditBoot(item);
-          }}
-          style={appStyles.swipePrimary}
-        >
-          <AppIcon name="pencil" color={colorsTheme.text} />
-          <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
-        </Pressable>
-      )
-      }
-      renderRightActions={() => (
-        <Pressable
-          onPress={() => {
-            (item as any).swipeRef.close();
-            handleDeleteBoot(item);
-          }}
-          style={item.nbOutings > 0 ? appStyles.swipeWarning : appStyles.swipeAlert}
-        >
-          <AppIcon name={item.end ? "box-remove" : (item.nbOutings > 0 ? "box-add" : "bin")} color={colorsTheme.text} />
-          <Text style={{ color: colorsTheme.text }}>{item.end ? t('restore') : (item.nbOutings > 0 ? t('archive') : t('delete'))}</Text>
-        </Pressable>
-      )}
-    >
-      <View style={[appStyles.renderItem, {
-        zIndex: 1,
-        opacity: item.end ? 0.5 : 1,
-        borderRightColor: item.nbOutings > 0 ? colorsTheme.warning : colorsTheme.alert,
-        borderRightWidth: 1,
-      }]}
-      >
-        <Row>
-          <Image source={{ uri: item.icoBrandUri }}
-            style={{ width: iconSize, height: iconSize }} />
-          <Text style={[appStyles.title, { flex: 1 }]}>
-            {item.idBrand === "init-unknown" ? "" : item.brand + " "}
-            {item.flex ? item.flex + " " : ""}
-            {item.size ? "T" + item.size + " " : ""}
-            {item.name}
-          </Text>
-          {item.listUsers && (() => {
-            const users = item.listUsers || [];
-            const [firstUser, secondUser] = users.slice(0, 2).map(id => listUsers.find(u => u.id === id));
-
-            return (
-              <>
-                <Pastille
-                  key={firstUser?.id}
-                  name={firstUser?.name || "?"}
-                  color={firstUser?.pcolor}
-                  size={32}
-                  style={{ marginLeft: -16, zIndex: 10, opacity: firstUser?.end ? 0.5 : 1 }}
-                />
-                {users.length === 2 && secondUser && (
-                  <Pastille
-                    key={secondUser.id}
-                    name={secondUser.name || "?"}
-                    color={secondUser.pcolor}
-                    size={32}
-                    style={{ marginLeft: -16, zIndex: 9, opacity: secondUser.end ? 0.5 : 1 }}
-                  />
-                )}
-                {users.length > 2 && (
-                  <Pastille
-                    key="more-users"
-                    name={`+${users.length - 1}`}
-                    color={colorsTheme.pastille}
-                    textColor={colorsTheme.text}
-                    size={32}
-                    style={{ marginLeft: -16, zIndex: 9, opacity: 1 }}
-                  />
-                )}
-              </>
-            );
-          })()}
-
-        </Row>
-        <Row style={{ marginTop: 4 }}>
-          <Card>
-            <Text numberOfLines={1}
-              style={{
-                color: colorsTheme.text,
-                fontSize: 20,
-              }}
-            >
-              {(item.length || "- - -")}
-            </Text>
-            <Text numberOfLines={1}
-              style={{
-                color: colorsTheme.text,
-                fontSize: 14,
-                marginTop: 'auto',
-                marginBottom: 2,
-              }}
-            >mm</Text>
-          </Card>
-
-
-          <Text numberOfLines={1}
-            style={{
-              color: item.end ? colorsTheme.alert : colorsTheme.text,
-              fontSize: item.end ? 16 : 20,
-              marginHorizontal: 8,
-              flex: 1,
+  const renderBoot = ({ item }: { item: Boots }) => {
+    const swipeRef = useRef<SwipeableMethods | null>(null);
+    return (
+      <ReanimatedSwipeable
+        ref={swipeRef}
+        onSwipeableOpen={() => {
+          // Auto-close after 3 seconds
+          setTimeout(() => {
+            if (swipeRef.current) {
+              swipeRef.current.close();
+            }
+          }, 2000);
+        }}
+        leftThreshold={80}
+        rightThreshold={80}
+        renderLeftActions={() => (
+          <Pressable
+            onPress={() => {
+              (item as any).swipeRef.close();
+              handleEditBoot(item);
             }}
+            style={appStyles.swipePrimary}
           >
-            {new Date(item.begin).toLocaleString(lang, { month: 'short', year: 'numeric' })}
-            {item.end && " -> " + new Date(item.end).toLocaleString(lang, { month: 'short', year: 'numeric' })}
-          </Text>
-          <Card>
-            <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 20 }} />
+            <AppIcon name="pencil" color={colorsTheme.text} />
+            <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
+          </Pressable>
+        )
+        }
+        renderRightActions={() => (
+          <Pressable
+            onPress={() => {
+              (item as any).swipeRef.close();
+              handleDeleteBoot(item);
+            }}
+            style={item.nbOutings > 0 ? appStyles.swipeWarning : appStyles.swipeAlert}
+          >
+            <AppIcon name={item.end ? "box-remove" : (item.nbOutings > 0 ? "box-add" : "bin")} color={colorsTheme.text} />
+            <Text style={{ color: colorsTheme.text }}>{item.end ? t('restore') : (item.nbOutings > 0 ? t('archive') : t('delete'))}</Text>
+          </Pressable>
+        )}
+      >
+        <View style={[appStyles.renderItem, {
+          zIndex: 1,
+          opacity: item.end ? 0.5 : 1,
+          borderRightColor: item.nbOutings > 0 ? colorsTheme.warning : colorsTheme.alert,
+          borderRightWidth: 1,
+        }]}
+        >
+          <Row>
+            <Image source={{ uri: item.icoBrandUri }}
+              style={{ width: iconSize, height: iconSize }} />
+            <Text style={[appStyles.title, { flex: 1 }]}>
+              {item.idBrand === "init-unknown" ? "" : item.brand + " "}
+              {item.flex ? item.flex + " " : ""}
+              {item.size ? "T" + item.size + " " : ""}
+              {item.name}
+            </Text>
+            {item.listUsers && (() => {
+              const users = item.listUsers || [];
+              const [firstUser, secondUser] = users.slice(0, 2).map(id => listUsers.find(u => u.id === id));
+
+              return (
+                <>
+                  <Pastille
+                    key={firstUser?.id}
+                    name={firstUser?.name || "?"}
+                    color={firstUser?.pcolor}
+                    size={32}
+                    style={{ marginLeft: -16, zIndex: 10, opacity: firstUser?.end ? 0.5 : 1 }}
+                  />
+                  {users.length === 2 && secondUser && (
+                    <Pastille
+                      key={secondUser.id}
+                      name={secondUser.name || "?"}
+                      color={secondUser.pcolor}
+                      size={32}
+                      style={{ marginLeft: -16, zIndex: 9, opacity: secondUser.end ? 0.5 : 1 }}
+                    />
+                  )}
+                  {users.length > 2 && (
+                    <Pastille
+                      key="more-users"
+                      name={`+${users.length - 1}`}
+                      color={colorsTheme.pastille}
+                      textColor={colorsTheme.text}
+                      size={32}
+                      style={{ marginLeft: -16, zIndex: 9, opacity: 1 }}
+                    />
+                  )}
+                </>
+              );
+            })()}
+
+          </Row>
+          <Row style={{ marginTop: 4 }}>
+            <Card>
+              <Text numberOfLines={1}
+                style={{
+                  color: colorsTheme.text,
+                  fontSize: 20,
+                }}
+              >
+                {(item.length || "- - -")}
+              </Text>
+              <Text numberOfLines={1}
+                style={{
+                  color: colorsTheme.text,
+                  fontSize: 14,
+                  marginTop: 'auto',
+                  marginBottom: 2,
+                }}
+              >mm</Text>
+            </Card>
+
+
             <Text numberOfLines={1}
               style={{
-                color: colorsTheme.text,
-                fontSize: 20,
+                color: item.end ? colorsTheme.alert : colorsTheme.text,
+                fontSize: item.end ? 16 : 20,
+                marginHorizontal: 8,
+                flex: 1,
               }}
             >
-              {item.nbOutings ? `${item.nbOutings < 10 ? "  " : item.nbOutings < 100 ? " " : ""}${item.nbOutings}` : "0"}
+              {localeDate(item.begin, { month: 'short', year: 'numeric' })}
+              {item.end && " -> " + localeDate(item.end, { month: 'short', year: 'numeric' })}
             </Text>
-          </Card>
-        </Row>
-      </View>
-    </ReanimatedSwipeable>
-  );
+            <Card>
+              <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 20 }} />
+              <Text numberOfLines={1}
+                style={{
+                  color: colorsTheme.text,
+                  fontSize: 20,
+                }}
+              >
+                {item.nbOutings ? `${item.nbOutings < 10 ? "  " : item.nbOutings < 100 ? " " : ""}${item.nbOutings}` : "0"}
+              </Text>
+            </Card>
+          </Row>
+        </View>
+      </ReanimatedSwipeable>
+    )
+  };
 
   //                                    #                  #     #                            
   //      ####  #####  ###### #    #   # #   #####  #####  ##   ##  ####  #####    ##   #     

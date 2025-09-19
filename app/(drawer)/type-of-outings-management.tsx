@@ -7,20 +7,19 @@ import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { deleteTypeOfOutings, insertTypeOfOutings, TOO, updateTypeOfOutings } from "@/hooks/dbTypeOfOuting";
+import { t } from "@/hooks/ToolsBox";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Text, TextInput, View } from "react-native";
 import { Pressable } from 'react-native-gesture-handler';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 export default function TypeOfOutingsManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { t } = useEnvContext();
 
   const [types, setTypes] = useState<TOO[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -154,20 +153,16 @@ export default function TypeOfOutingsManagementScreen() {
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem({ item }: { item: TOO }) {
     const nbActions = item.itemCount || 0;
+    const swipeRef = useRef<SwipeableMethods | null>(null);
+
     return (
       <ReanimatedSwipeable
-        ref={ref => {
-          // Store ref for later use if needed
-          if (ref) {
-            // Optionally store in a map if you want to unswipe specific items
-            (item as any).swipeRef = ref;
-          }
-        }}
+        ref={swipeRef}
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
+            if (swipeRef.current) {
+              swipeRef.current.close();
             }
           }, 2000);
         }}

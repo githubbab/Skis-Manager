@@ -10,7 +10,6 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getLastDBWrite } from "@/hooks/DatabaseManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
@@ -18,6 +17,7 @@ import { Brands, getAllBrands } from "@/hooks/dbBrands";
 import { deleteSki, getAllSkis, initSkis, insertSki, Skis, updateSki } from "@/hooks/dbSkis";
 import { getAllTypeOfSkis, TOS } from "@/hooks/dbTypeOfSkis";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
+import { localeDate, smDate, t } from "@/hooks/ToolsBox";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -35,7 +35,7 @@ import {
 } from 'react-native';
 import { showMessage } from "react-native-flash-message";
 import { Pressable } from 'react-native-gesture-handler';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 let dbState: string = "none";
 let lastCheck = 0;
@@ -64,7 +64,6 @@ export default function SkisManagement() {
   const [bootsVisible, setBootsVisible] = useState<boolean>(false);
   const [beginDatePickerVisible, setBeginDatePickerVisible] = useState<boolean>(false);
   const [endDatePickerVisible, setEndDatePickerVisible] = useState<boolean>(false);
-  const { lang, t, smDate } = useEnvContext();
   const [order_by, setOrderBy] = useState<"order_by_begin" | "order_by_outings" | "order_by_maintains">("order_by_begin");
 
   const [skis2Write, setSkis2Write] = useState<Skis>(initSkis(smDate()));
@@ -197,161 +196,158 @@ export default function SkisManagement() {
   // #####  #      #  # # #    # #      #####        # #  #   #      #
   // #   #  #      #   ## #    # #      #   #  #     # #   #  # #    #
   // #    # ###### #    # #####  ###### #    #  #####  #    # #  #### 
-  const renderSkis: ListRenderItem<Skis> = ({ item }) => (
-    <ReanimatedSwipeable
-      ref={ref => {
-        // Store ref for later use if needed
-        if (ref) {
-          // Optionally store in a map if you want to unswipe specific items
-          (item as any).swipeRef = ref;
-        }
-      }}
-      onSwipeableOpen={() => {
-        // Auto-close after 3 seconds
-        setTimeout(() => {
-          if ((item as any).swipeRef) {
-            (item as any).swipeRef.close();
-          }
-        }, 2000);
-      }}
-      renderLeftActions={() => (
-        <Pressable
-          onPress={() => {
-            (item as any).swipeRef.close();
-            setSkis2Write(item);
-            openModal(true);
-          }}
-          style={appStyles.swipePrimary}
-        >
-          <AppIcon name="pencil" color={colorsTheme.text} />
-          <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
-        </Pressable>
-      )}
-      renderRightActions={() => (
-        <Pressable
-          onPress={() => {
-            (item as any).swipeRef.close();
-            handleDeleteSki(item);
-          }}
-          style={(item.nbOutings || 0) > 0 ? appStyles.swipeWarning : appStyles.swipeAlert}
-        >
-          <AppIcon name={item.end ? "box-remove" : (item.nbOutings || 0) > 0 ? "box-add" : "bin"} color={colorsTheme.text} />
-          <Text style={{ color: colorsTheme.text }}>{item.end ? t('restore') : (item.nbOutings || 0) > 0 ? t('archive') : t('delete')}</Text>
-        </Pressable>
-      )}
-    >
-      <View style={[appStyles.renderItem, {
-        zIndex: 1,
-        opacity: item.end ? 0.5 : 1,
-        borderRightColor: (item.nbOutings || 0) > 0 ? colorsTheme.warning : colorsTheme.alert,
-        borderRightWidth: 1, // Only show border when not swiping
-      }]}>
+  const renderSkis: ListRenderItem<Skis> = ({ item }) => {
+    const swipeRef = useRef<SwipeableMethods | null>(null);
 
-        <Row>
-          {
-            listTos.find(t => t.id === item.idTypeOfSkis)?.icoUri ?
-              <Image source={{ uri: listTos.find(t => t.id === item.idTypeOfSkis)?.icoUri || "" }}
-                style={{ width: iconSize, height: iconSize }} /> :
-              <Pastille size={iconSize} name={item.typeOfSkis || "?"}
-                style={{ width: iconSize, height: iconSize }} />
-          }
-          <Image source={{ uri: listBrands.find(brand => brand.id === item.idBrand)?.icoUri || "" }}
-            style={{ width: iconSize, height: iconSize, marginStart: -8 }} />
-
-          <Text numberOfLines={1}
-            style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
-          >
-            {item.typeOfSkis} {item.idBrand === "init-unknown" ? "" : item.brand + " "}{item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
-          </Text>
-
-
-
-          {item.listUsers && (() => {
-            const users = item.listUsers;
-            const [firstUser, secondUser] = users.slice(0, 2).map(id => listUsers.find(u => u.id === id));
-
-            return (
-              <>
-                <Pastille
-                  key={firstUser?.id}
-                  name={firstUser?.name || "?"}
-                  color={firstUser?.pcolor}
-                  size={32}
-                  style={{ marginLeft: -16, zIndex: 10, opacity: firstUser?.end ? 0.5 : 1 }}
-                />
-                {users.length === 2 && secondUser && (
-                  <Pastille
-                    key={secondUser.id}
-                    name={secondUser.name || "?"}
-                    color={secondUser.pcolor}
-                    size={32}
-                    style={{ marginLeft: -16, zIndex: 9, opacity: secondUser.end ? 0.5 : 1 }}
-                  />
-                )}
-                {users.length > 2 && (
-                  <Pastille
-                    key="more-users"
-                    name={`+${users.length - 1}`}
-                    color={colorsTheme.pastille}
-                    textColor={colorsTheme.text}
-                    size={32}
-                    style={{ marginLeft: -16, zIndex: 9, opacity: 1 }}
-                  />
-                )}
-              </>
-            );
-          })()}
-        </Row>
-        <Row style={{ zIndex: 99 }}>
-          <Card>
-            <AppIcon name={"ski-boot"} color={colorsTheme.text} size={20} />
-            <Text numberOfLines={1}
-              style={{
-                color: colorsTheme.text,
-                fontSize: 20,
-              }}
-            >
-              {(item.listBoots) ? item.listBoots.length.toString() : 0}
-            </Text>
-          </Card>
-          <Text numberOfLines={1}
-            style={{
-              color: item.end ? colorsTheme.alert : colorsTheme.text,
-              fontSize: item.end ? 16 : 20,
-              marginRight: 8,
-              flex: 1,
+    return (
+      <ReanimatedSwipeable
+        ref={swipeRef}
+        onSwipeableOpen={() => {
+          // Auto-close after 3 seconds
+          setTimeout(() => {
+            if (swipeRef.current) {
+              swipeRef.current.close();
+            }
+          }, 2000);
+        }}
+        renderLeftActions={() => (
+          <Pressable
+            onPress={() => {
+              (item as any).swipeRef.close();
+              setSkis2Write(item);
+              openModal(true);
             }}
+            style={appStyles.swipePrimary}
           >
-            {new Date(item.begin).toLocaleString(lang, { month: 'short', year: 'numeric' })}
-            {item.end && " -> " + new Date(item.end).toLocaleString(lang, { month: 'short', year: 'numeric' })}
-          </Text>
-          <Card>
-            <AppIcon name={'sortie'} color={colorsTheme.text} size={20} />
-            <Text numberOfLines={1}
-              style={{
-                color: colorsTheme.text,
-                fontSize: 20,
-              }}
-            >
-              {`${(item.nbOutings ?? 0) < 10 ? " " : ""}${item.nbOutings ?? 0}`}
-            </Text>
-          </Card>
-          <Card>
-            <AppIcon name={'entretien'} color={colorsTheme.text} size={20} />
-            <Text numberOfLines={1}
-              style={{
-                color: colorsTheme.text,
-                fontSize: 20,
-              }}
-            >
-              {`${(item.nbMaintains ?? 0) < 10 ? " " : ""}${item.nbMaintains ?? 0}`}
-            </Text>
-          </Card>
-        </Row>
-      </View>
-    </ReanimatedSwipeable>
-  )
+            <AppIcon name="pencil" color={colorsTheme.text} />
+            <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
+          </Pressable>
+        )}
+        renderRightActions={() => (
+          <Pressable
+            onPress={() => {
+              (item as any).swipeRef.close();
+              handleDeleteSki(item);
+            }}
+            style={(item.nbOutings || 0) > 0 ? appStyles.swipeWarning : appStyles.swipeAlert}
+          >
+            <AppIcon name={item.end ? "box-remove" : (item.nbOutings || 0) > 0 ? "box-add" : "bin"} color={colorsTheme.text} />
+            <Text style={{ color: colorsTheme.text }}>{item.end ? t('restore') : (item.nbOutings || 0) > 0 ? t('archive') : t('delete')}</Text>
+          </Pressable>
+        )}
+      >
+        <View style={[appStyles.renderItem, {
+          zIndex: 1,
+          opacity: item.end ? 0.5 : 1,
+          borderRightColor: (item.nbOutings || 0) > 0 ? colorsTheme.warning : colorsTheme.alert,
+          borderRightWidth: 1, // Only show border when not swiping
+        }]}>
 
+          <Row>
+            {
+              listTos.find(t => t.id === item.idTypeOfSkis)?.icoUri ?
+                <Image source={{ uri: listTos.find(t => t.id === item.idTypeOfSkis)?.icoUri || "" }}
+                  style={{ width: iconSize, height: iconSize }} /> :
+                <Pastille size={iconSize} name={item.typeOfSkis || "?"}
+                  style={{ width: iconSize, height: iconSize }} />
+            }
+            <Image source={{ uri: listBrands.find(brand => brand.id === item.idBrand)?.icoUri || "" }}
+              style={{ width: iconSize, height: iconSize, marginStart: -8 }} />
+
+            <Text numberOfLines={1}
+              style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
+            >
+              {item.typeOfSkis} {item.idBrand === "init-unknown" ? "" : item.brand + " "}{item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
+            </Text>
+
+
+
+            {item.listUsers && (() => {
+              const users = item.listUsers;
+              const [firstUser, secondUser] = users.slice(0, 2).map(id => listUsers.find(u => u.id === id));
+
+              return (
+                <>
+                  <Pastille
+                    key={firstUser?.id}
+                    name={firstUser?.name || "?"}
+                    color={firstUser?.pcolor}
+                    size={32}
+                    style={{ marginLeft: -16, zIndex: 10, opacity: firstUser?.end ? 0.5 : 1 }}
+                  />
+                  {users.length === 2 && secondUser && (
+                    <Pastille
+                      key={secondUser.id}
+                      name={secondUser.name || "?"}
+                      color={secondUser.pcolor}
+                      size={32}
+                      style={{ marginLeft: -16, zIndex: 9, opacity: secondUser.end ? 0.5 : 1 }}
+                    />
+                  )}
+                  {users.length > 2 && (
+                    <Pastille
+                      key="more-users"
+                      name={`+${users.length - 1}`}
+                      color={colorsTheme.pastille}
+                      textColor={colorsTheme.text}
+                      size={32}
+                      style={{ marginLeft: -16, zIndex: 9, opacity: 1 }}
+                    />
+                  )}
+                </>
+              );
+            })()}
+          </Row>
+          <Row style={{ zIndex: 99 }}>
+            <Card>
+              <AppIcon name={"ski-boot"} color={colorsTheme.text} size={20} />
+              <Text numberOfLines={1}
+                style={{
+                  color: colorsTheme.text,
+                  fontSize: 20,
+                }}
+              >
+                {(item.listBoots) ? item.listBoots.length.toString() : 0}
+              </Text>
+            </Card>
+            <Text numberOfLines={1}
+              style={{
+                color: item.end ? colorsTheme.alert : colorsTheme.text,
+                fontSize: item.end ? 16 : 20,
+                marginRight: 8,
+                flex: 1,
+              }}
+            >
+              {localeDate(item.begin, { month: 'short', year: 'numeric' })}
+              {item.end && " -> " + localeDate(item.end, { month: 'short', year: 'numeric' })}
+            </Text>
+            <Card>
+              <AppIcon name={'sortie'} color={colorsTheme.text} size={20} />
+              <Text numberOfLines={1}
+                style={{
+                  color: colorsTheme.text,
+                  fontSize: 20,
+                }}
+              >
+                {`${(item.nbOutings ?? 0) < 10 ? " " : ""}${item.nbOutings ?? 0}`}
+              </Text>
+            </Card>
+            <Card>
+              <AppIcon name={'entretien'} color={colorsTheme.text} size={20} />
+              <Text numberOfLines={1}
+                style={{
+                  color: colorsTheme.text,
+                  fontSize: 20,
+                }}
+              >
+                {`${(item.nbMaintains ?? 0) < 10 ? " " : ""}${item.nbMaintains ?? 0}`}
+              </Text>
+            </Card>
+          </Row>
+        </View>
+      </ReanimatedSwipeable>
+    )
+  };
   //                             #     #                            
   //  ####  #####  ###### #    # ##   ##  ####  #####    ##   #     
   // #    # #    # #      ##   # # # # # #    # #    #  #  #  #     
@@ -818,7 +814,7 @@ export default function SkisManagement() {
                 <Text
                   style={[appStyles.text]}
                 >
-                  {new Date(skis2Write?.begin).toLocaleDateString(lang, { day: '2-digit', month: 'short', year: 'numeric' })}
+                  {localeDate(skis2Write?.begin, { day: '2-digit', month: 'short', year: 'numeric' })}
                 </Text>
               </TouchableOpacity>
               {

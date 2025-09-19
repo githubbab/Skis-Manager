@@ -7,11 +7,12 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getAllSeasons, Seasons } from "@/hooks/dbSeasons";
 import { getTopSkis, Skis } from "@/hooks/dbSkis";
 import { getTopUsers, Users } from "@/hooks/dbUsers";
+import { getLang } from "@/hooks/SettingsManager";
+import { localeDate, t } from "@/hooks/ToolsBox";
 import { Picker } from '@react-native-picker/picker';
 import { useSQLiteContext } from "expo-sqlite";
 import { useContext, useEffect, useState } from "react";
@@ -23,7 +24,6 @@ export default function Stats() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { t, lang } = useEnvContext();
 
   const [seasons, setSeasons] = useState<Seasons[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<Seasons | null>(null);
@@ -125,8 +125,8 @@ export default function Stats() {
               flex: 1,
             }}
           >
-            {new Date(item.begin).toLocaleString(lang, { month: 'short', year: 'numeric' })}
-            {selectedSeason?.end && item?.end && selectedSeason.end > item.end && " -> " + new Date(item.end).toLocaleString(lang, { month: 'short', year: 'numeric' })}
+            {localeDate(item.begin, { month: 'short', year: 'numeric' })}
+            {selectedSeason?.end && item?.end && selectedSeason.end > item.end && " -> " + localeDate(item.end, { month: 'short', year: 'numeric' })}
           </Text>
           <Card>
             <AppIcon name={'sortie'} color={colorsTheme.text} size={20} />
@@ -173,7 +173,7 @@ export default function Stats() {
           {seasons.map(season =>
             <Picker.Item
               key={season.begin}
-              label={`${season.name} (${new Date(season.begin).toLocaleDateString(lang, { year: 'numeric', month: 'short' })}${season.end ? " - " + new Date(season.end).toLocaleDateString(lang, { year: 'numeric', month: 'short' }) : ''})`}
+              label={`${season.name} (${new Date(season.begin).toLocaleDateString(getLang(), { year: 'numeric', month: 'short' })}${season.end ? " - " + new Date(season.end).toLocaleDateString(getLang(), { year: 'numeric', month: 'short' }) : ''})`}
               value={season}
             />
           )}

@@ -1,6 +1,7 @@
 import ThemeProvider from "@/context/ThemeContext";
 import { initDB } from "@/hooks/DatabaseManager";
 import { initFS } from "@/hooks/FileSystemManager";
+import { initSettings } from "@/hooks/SettingsManager";
 import { useFonts } from 'expo-font';
 import { Slot } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
@@ -56,4 +57,5 @@ function RootLayoutNav() {
 async function migrateDbIfNeeded(db: SQLiteDatabase) {
   await initFS();
   await initDB(db);
+  await initSettings(db);
 }

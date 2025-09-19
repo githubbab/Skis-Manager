@@ -1,20 +1,21 @@
 
 import { Asset } from "expo-asset";
-import {
-  copyAsync,
-  deleteAsync,
-  documentDirectory,
-  getInfoAsync,
-  makeDirectoryAsync,
-  readDirectoryAsync,
-  writeAsStringAsync
-} from "expo-file-system";
+import { Directory, File, Paths } from "expo-file-system";
+import { getDeviceID } from "./DatabaseManager";
 
-const queriesStore: string = documentDirectory + "queries/";
-export const imgStore: string = documentDirectory + "images/";
-export const icoUnknownBrand = imgStore + "brand-init-unknown.png";
+export const queriesStorePath = Paths.document + "/queries/";
+export const imgStorePath = Paths.document + "/images/";
+export const icoUnknownBrand = imgStorePath + "brand-init-unknown.png";
 let imageStoreUpdated = false;
 let queryStoreUpdated = false;
+
+export function getQueriesStoreDir(): Directory {
+  return new Directory(queriesStorePath);
+}
+
+export function getImgStoreDir(): Directory {
+  return new Directory(imgStorePath);
+}
 
 const baseImages: { [key: string]: any } = {
   "tos-init-gs.png": require("@/assets/images/tos/init-gs.png"),
@@ -65,7 +66,7 @@ export function hasQueryStoreUpdated() {
 }
 
 export async function getToSIcoURI(id: string): Promise<string | undefined> {
-  const tosIco = await getInfoAsync(imgStore + "tos-" + id + ".png");
+  const tosIco = new File(imgStorePath + "tos-" + id + ".png");
   if (tosIco.exists) {
     return tosIco.uri;
   }
@@ -73,7 +74,7 @@ export async function getToSIcoURI(id: string): Promise<string | undefined> {
 }
 
 export async function getBrandIcoURI(id: string): Promise<string> {
-  const brandIco = await getInfoAsync(imgStore + "brand-" + id + ".png");
+  const brandIco = new File(imgStorePath + "brand-" + id + ".png");
   if (brandIco.exists) {
     return brandIco.uri;
   }
@@ -101,18 +102,16 @@ export async function getDistinctBrandIcoURIs(data: any[]): Promise<string[]> {
   return arrayIcoBrandURI;
 }
 
-async function copyBaseFiles(files?: string[]) {
+async function copyBaseFiles() {
   for (const base of Object.keys(baseImages)) {
-    if (files?.includes(base)) {
-      continue;
-    }
     try {
-      const baseImage = (await Asset.fromModule(baseImages[base]).downloadAsync()).localUri;
-      if (baseImage) {
-        await copyAsync({
-          from: baseImage,
-          to: imgStore + base
-        });
+      const destFile = new File(imgStorePath + base);
+      if (destFile.exists) {
+        continue;
+      }
+      const baseImage = new File((Asset.fromModule(baseImages[base])).uri);
+      baseImage.copy(destFile);
+      if (destFile.exists) {
         console.log("Copied Base Asset", base);
       }
     } catch (error) {
@@ -123,27 +122,23 @@ async function copyBaseFiles(files?: string[]) {
 }
 
 export async function initFS() {
-  console.debug("Initializing FileSystemManager");
-
-  let files: string[] = [];
-  try {
-    files = await readDirectoryAsync(queriesStore)
-    console.debug(`Find dataStore ${queriesStore} (${files.length})`);
+  console.debug("Initializing FileSystemManager", imgStorePath, queriesStorePath);
+  const queriesStoreDir = getQueriesStoreDir();
+  const imgStoreDir = getImgStoreDir();
+  if (!queriesStoreDir.exists) {
+    await queriesStoreDir.create();
+    console.debug("Create dataStore", queriesStoreDir.uri);
+  } else {
+    console.debug("Find dataStore", queriesStoreDir.uri);
   }
-  catch {
-    await makeDirectoryAsync(queriesStore)
-    console.debug("Create dataStore", queriesStore);
-  }
-  try {
-    files = await readDirectoryAsync(imgStore);
-    console.debug(`Find imgStore ${imgStore} (${files.length})`);
-  } catch {
-    await makeDirectoryAsync(imgStore);
-    console.debug("Create imgStore", imgStore);
-    files = await readDirectoryAsync(imgStore);
+  if (!imgStoreDir.exists) {
+    await imgStoreDir.create();
+    console.debug("Create imgStore", imgStoreDir.uri);
+  } else {
+    console.debug("Find imgStore", imgStoreDir.uri);
   }
   try {
-    await copyBaseFiles(files);
+    await copyBaseFiles();
   } catch (error) {
     const message = "Error copying base files: " + error;
     console.error(message);
@@ -151,48 +146,66 @@ export async function initFS() {
   }
 }
 
-export async function writeQuery(filename: string, query: string) {
-  const path = queriesStore + filename;
-  await writeAsStringAsync(path, query);
+export function writeQuery(filename: string, query: string) {
+  const queryFile = new File(queriesStorePath + filename);
+  queryFile.write(query);
   queryStoreUpdated = true;
 }
 
 
 
-export async function copyBrandIco(idBrand: string, fromUri: string) {
-  const toUri = imgStore + "brand-" + idBrand + ".png";
+export function copyBrandIco(idBrand: string, fromUri: string) {
+  const brandIco = new File(imgStorePath + "brand-" + idBrand + ".png");
+  if (brandIco.exists) {
+    brandIco.delete();
+    console.debug("Deleted existing brand ico", brandIco.uri);
+  }
+  const fromFile = new File(fromUri);
+  if (!fromFile.exists) {
+    console.error("Source brand ico does not exist", fromUri);
+    alert("Source brand ico does not exist: " + fromUri);
+    return;
+  }
   try {
-    const fileInfo = await getInfoAsync(toUri);
-    if (fileInfo.exists) {
-      console.debug("Brand ico already exists", toUri);
-      return;
+    fromFile.copy(brandIco);
+    if (brandIco.exists) {
+      imageStoreUpdated = true;
+      console.debug("Copied brand ico", fromUri, "to", brandIco.uri);
     }
-    await copyAsync({
-      from: fromUri,
-      to: toUri
-    });
-    imageStoreUpdated = true;
-    console.debug("Copied brand ico", fromUri, "to", toUri);
+    else {
+      console.error("Error copying brand ico");
+      alert("Error copying brand ico");
+    }
   } catch (error) {
     console.error("Error copying brand ico", error);
     alert("Error copying brand ico: " + error);
   }
+
 }
 
-export async function copyToSIco(idTypeOfSkis: string, fromUri: string) {
-  const toUri = imgStore + "tos-" + idTypeOfSkis + ".png";
+export function copyToSIco(idTypeOfSkis: string, fromUri: string) {
+  const tosIco = new File(imgStorePath + "tos-" + idTypeOfSkis + ".png");
+  if (tosIco.exists) {
+    tosIco.delete();
+    console.debug("Deleted existing ToS ico", tosIco.uri);
+  }
+  const fromFile = new File(fromUri);
+  if (!fromFile.exists) {
+    console.error("Source ToS ico does not exist", fromUri);
+    alert("Source ToS ico does not exist: " + fromUri);
+    return;
+  }
+
   try {
-    const fileInfo = await getInfoAsync(toUri);
-    if (fileInfo.exists) {
-      console.debug("ToS ico already exists", toUri);
-      return;
+    fromFile.copy(tosIco);
+    if (tosIco.exists) {
+      imageStoreUpdated = true;
+      console.debug("Copied ToS ico", fromUri, "to", tosIco.uri);
     }
-    await copyAsync({
-      from: fromUri,
-      to: toUri
-    });
-    imageStoreUpdated = true;
-    console.debug("Copied ToS ico", fromUri, "to", toUri);
+    else {
+      console.error("Error copying ToS ico");
+      alert("Error copying ToS ico");
+    }
   } catch (error) {
     console.error("Error copying ToS ico", error);
     alert("Error copying ToS ico: " + error);
@@ -200,16 +213,36 @@ export async function copyToSIco(idTypeOfSkis: string, fromUri: string) {
 }
 
 export async function clearStore() {
-  for (const fileName of await readDirectoryAsync(queriesStore)) {
-    console.debug("Delete dataStore", queriesStore + fileName);
-    await deleteAsync(queriesStore + fileName)
-  }
-  for (const fileName of await readDirectoryAsync(imgStore)) {
-    if (fileName.startsWith("brand-init") || fileName.startsWith("tos-init")) {
-      continue;
+  await clearQueriesStore();
+  await clearImageStore();
+}
+
+export async function clearImageStore() {
+  const imageFileList = getImgStoreDir().list();
+  for (const item of imageFileList) {
+    if (item instanceof File) {
+      if (item.name.startsWith("brand-init") || item.name.startsWith("tos-init")) {
+        continue;
+      }
+      console.debug("Delete imgStore", item.uri);
+      item.delete();
     }
-    console.debug("Delete imgStore", imgStore + fileName);
-    await deleteAsync(imgStore + fileName)
   }
   await copyBaseFiles();
+}
+
+export function clearQueriesStore(who: string = "all") {
+  const queryFileList = getQueriesStoreDir().list();
+  for (const item of queryFileList) {
+    if (item instanceof File) {
+      if (who === "mine" && !item.name.includes(getDeviceID())) {
+        continue;
+      }
+      if (who !== "all" && !item.name.includes(who)) {
+        continue;
+      }
+      console.debug("Delete queriesStore", item.name);
+      item.delete();
+    }
+  }
 }

@@ -10,7 +10,6 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getLastDBWrite } from "@/hooks/DatabaseManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
@@ -21,6 +20,8 @@ import { initOuting, insertOuting, Outings } from "@/hooks/dbOutings";
 import { getSeasonSkis, getSkis2Sharp, getSkis2Wax, getTopSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, getTopUsers, Users } from "@/hooks/dbUsers";
+import { getSeasonDate, isViewFriends, isViewOuting } from "@/hooks/SettingsManager";
+import { localeDate, smDate, t } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -49,7 +50,6 @@ export default function Index() {
   //  #####   ####  #    #   #   ###### #    #   #   
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
-  const { t, smDate, lang, seasonDate, viewFriends, viewOuting } = useEnvContext();
   const [addOutingMode, setAddOutingMode] = useState<boolean>(false);
   const [addMaintainMode, setAddMaintainMode] = useState<boolean>(false);
 
@@ -123,11 +123,11 @@ export default function Index() {
       setToSharp(toSharpResult);
       const toWaxResult: Skis[] = await getSkis2Wax(db);
       setToWax(toWaxResult);
-      const usersResult: Users[] = await getAllUsers(db, smDate(seasonDate));
+      const usersResult: Users[] = await getAllUsers(db, smDate(getSeasonDate()));
       setListUsers(usersResult);
       const skisResult: Skis[] = await getSeasonSkis(db);
       setListSkis(skisResult);
-      const bootsResult: Boots[] = await getAllBoots(db, smDate(seasonDate));
+      const bootsResult: Boots[] = await getAllBoots(db, smDate(getSeasonDate()));
       setListBoots(bootsResult);
       const typeOfOutings: TOO[] = await getAllTypeOfOutings(db);
       setListOutingTypes(typeOfOutings);
@@ -192,7 +192,7 @@ export default function Index() {
       setOutingViewBoots(false);
     }
     if (outing2write.idBoots) {
-      if (viewOuting) {
+      if (isViewOuting()) {
         setOutingViewToOuting(true);
         const majorType = listSkis.find(ski => ski.id === outing2write.idSkis)?.majorTypeOfOuting;
         if (majorType) {
@@ -212,7 +212,7 @@ export default function Index() {
       } else {
         setOutingViewToOuting(false);
       }
-      if (viewFriends) {
+      if (isViewFriends()) {
         if (listFriends.length > 0) {
           setOutingViewFriends(true);
         }
@@ -303,21 +303,21 @@ export default function Index() {
               <AppIcon name={'sortie'} color={colorsTheme.text} size={18} />
               <Text numberOfLines={1}
                 style={[appStyles.text, { fontSize: 18 }]}>
-                {item.lastOutingDate !== undefined ? new Date(item.lastOutingDate).toLocaleString(lang, { month: 'short', day: 'numeric' }) : "N/A"}
+                {item.lastOutingDate !== undefined ? localeDate(item.lastOutingDate,{ month: 'short', day: 'numeric' }) : "N/A"}
               </Text>
             </Card>
             <Card>
               <AppIcon name={'affuteuse'} color={colorsTheme.text} size={18} />
               <Text numberOfLines={1}
                 style={[appStyles.text, { fontSize: 18 }]}>
-                {item.lastSharpDate !== undefined ? new Date(item.lastSharpDate).toLocaleString(lang, { month: 'short', day: 'numeric' }) : "N/A"}
+                {item.lastSharpDate !== undefined ? localeDate(item.lastSharpDate,{ month: 'short', day: 'numeric' }) : "N/A"}
               </Text>
             </Card>
             <Card>
               <AppIcon name={'fartage'} color={colorsTheme.text} size={18} />
               <Text numberOfLines={1}
                 style={[appStyles.text, { fontSize: 18 }]}>
-                {item.lastWaxDate !== undefined ? new Date(item.lastWaxDate).toLocaleString(lang, { month: 'short', day: 'numeric' }) : "N/A"}
+                {item.lastWaxDate !== undefined ? localeDate(item.lastWaxDate,{ month: 'short', day: 'numeric' }) : "N/A"}
               </Text>
             </Card>
           </Row>
@@ -737,7 +737,7 @@ export default function Index() {
                 <Row>
                   <TouchableOpacity onPress={() => setDateTimePickerVisible("outing")}>
 
-                    <Text style={appStyles.text}>{new Date(outing2write.date).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
+                    <Text style={appStyles.text}>{localeDate(outing2write.date, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
                   </TouchableOpacity>
                   {partOfDay !== 'am' ?
                     <TouchableOpacity
@@ -991,7 +991,7 @@ export default function Index() {
                 <Row>
                   <TouchableOpacity onPress={() => setDateTimePickerVisible("maintain")}>
 
-                    <Text style={appStyles.text}>{new Date(maintain2write.date).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
+                    <Text style={appStyles.text}>{localeDate(maintain2write.date, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
                   </TouchableOpacity>
                   {partOfDay !== 'am' ?
                     <TouchableOpacity
@@ -1117,7 +1117,7 @@ export default function Index() {
         <DateTimePicker
           value={new Date()}
           maximumDate={new Date()}
-          minimumDate={seasonDate}
+          minimumDate={getSeasonDate()}
           mode="date"
           display="default"
           onChange={onDateChange}

@@ -4,28 +4,21 @@ import CheckButton from "@/components/CheckButton";
 import Row from "@/components/Row";
 import Separator from "@/components/Separator";
 import AppStyles from "@/constants/AppStyles";
-import { useEnvContext } from "@/context/EnvContext";
 import { ThemeContext } from "@/context/ThemeContext";
+import { changeLang, getLang, isViewFriends, isViewOuting, toggleViewFriends, toggleViewOuting } from "@/hooks/SettingsManager";
+import { listLanguages, t } from "@/hooks/ToolsBox";
 import { Picker } from "@react-native-picker/picker";
-import React, { useContext, useEffect, useState } from "react";
+import { useSQLiteContext } from "expo-sqlite";
+import React, { useContext, useState } from "react";
 import { Text, View } from "react-native";
 
 
 export default function Settings() {
   const { currentTheme, colorsTheme, toggleTheme, useSystemTheme, isSystemTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
-  const { viewFriends, toggleViewFriends, viewOuting, toggleViewOuting, t, lang, changeLang, listLanguages } = useEnvContext();
-  const [om, setOm] = useState(viewOuting);
-  const [fm, setFm] = useState(viewFriends);
-
-
-  useEffect(() => {
-    toggleViewOuting(om);
-  }, [om])
-
-  useEffect(() => {
-    toggleViewFriends(fm);
-  }, [fm])
+  const db = useSQLiteContext();
+  const [om, setOm] = useState(isViewOuting());
+  const [fm, setFm] = useState(isViewFriends());
 
   return (
     <Body>
@@ -48,9 +41,15 @@ export default function Settings() {
         <AppIcon name={'eye'} color={colorsTheme.text} styles={styles.rightIco} />
         <View style={styles.leftView}>
           <CheckButton title={t('settings_view_outings')} iconName={"hors-piste"}
-            type={'switch'} onPress={() => setOm(!om)} isActive={om} />
+            type={'switch'} onPress={() => {
+              setOm(!om);
+              toggleViewOuting(db, !om);
+            }} isActive={om} />
           <CheckButton title={t('settings_view_friends')} iconName={"accessibility"}
-            type={'switch'} onPress={() => setFm(!fm)} isActive={fm} />
+            type={'switch'} onPress={() => {
+              setFm(!fm);
+              toggleViewFriends(db, !fm);
+            }} isActive={fm} />
         </View>
       </Row>
       <Separator />
@@ -58,9 +57,9 @@ export default function Settings() {
         <AppIcon name={'flag'} color={colorsTheme.text} styles={styles.rightIco} />
 
         <View style={[styles.pickerView, { backgroundColor: colorsTheme.tileBG }]}>
-          <Picker selectedValue={lang} style={{ color: colorsTheme.text }}
+          <Picker selectedValue={getLang()} style={{ color: colorsTheme.text }}
             onValueChange={(itemValue, itemIndex) => {
-              changeLang(itemValue);
+              changeLang(db, itemValue);
             }}
             dropdownIconColor={colorsTheme.text}
             dropdownIconRippleColor={colorsTheme.text}
