@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
 import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DatabaseManager';
-import { getBrandIcoURI, icoUnknownBrand } from "./FileSystemManager";
+import { delBrandIco, getBrandIcoURI, icoUnknownBrand } from "./FileSystemManager";
 
 
 export type Brands = {
@@ -35,6 +35,7 @@ export async function updateBrand(db: SQLiteDatabase, b: { id: string, name: str
 
 export async function deleteBrand(db: SQLiteDatabase, id: string) {
     await execQuery(db, deleteQuery(TABLES.BRANDS, "id = ?", [id]));
+    await delBrandIco(id);
 }
 
 export async function getAllBrands(db: SQLiteDatabase, order_by: "order_by_usage" | "order_by_skis" | "order_by_boots"): Promise<Brands[]> {

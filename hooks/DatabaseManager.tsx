@@ -4,7 +4,6 @@ import { writeQuery } from "@/hooks/FileSystemManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { SQLiteDatabase } from "expo-sqlite";
 import { showMessage } from "react-native-flash-message";
-import { syncData } from "./SyncWebDav";
 
 
 const DATABASE_VERSION = 1;
@@ -87,7 +86,6 @@ export async function execQuery(db: SQLiteDatabase, query: string) {
       return;
     }
     await writeQuery("query-" + new Date().getTime().toString() + "-" + deviceID + ".sql", query);
-    syncData({db: db})
   } catch (err) {
     const message = err ? err.toString() : "Unknown error";
     console.error(message);

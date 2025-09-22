@@ -8,7 +8,7 @@ import { router, Tabs } from 'expo-router';
 import React, { useContext } from 'react';
 import { Pressable, StyleSheet, Text } from "react-native";
 
-export default function TabLayout() {
+const TabLayout = () => {
   const { colorsTheme } = useContext(ThemeContext);
 
 
@@ -38,44 +38,45 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-      tabBarIconStyle: { height: 34 },
-      tabBarStyle: { paddingBottom: -50 },
-      tabBarLabelStyle: { display: 'none' }, // Hide tabBarLabel
-      tabBarActiveTintColor: colorsTheme.primary,
-      tabBarInactiveTintColor: colorsTheme.inactiveText,
-      tabBarActiveBackgroundColor: colorsTheme.bar,
-      tabBarInactiveBackgroundColor: colorsTheme.bar,
-      header(props) {
-        return (
-        <Pressable onPress={() => router.navigate({ pathname: '/(drawer)/seasons-management' })}>
-          <Row style={styles.header}>
-          <Text style={[styles.headerTitle, { marginHorizontal: 'auto' }]}>{getSeasonName()}</Text>
-          <Row style={{ marginHorizontal: 'auto' }}>
-            <AppIcon name="calendar1" color={colorsTheme.inactiveText} size={18} />
-            <Text style={[styles.headerSubtitle, { marginHorizontal: 'auto' }]}>
-            {localeDate(getSeasonDate().getTime(), { day: '2-digit', month: 'short', year: 'numeric' })}
-            </Text>
-          </Row>
-          </Row>
-        </Pressable>
-        );
-      },
-      headerTintColor: colorsTheme.text,
-      headerShadowVisible: false,
+        tabBarIconStyle: { height: 34 },
+        tabBarStyle: { paddingBottom: -50 },
+        tabBarLabelStyle: { display: 'none' }, // Hide tabBarLabel
+        tabBarActiveTintColor: colorsTheme.primary,
+        tabBarInactiveTintColor: colorsTheme.inactiveText,
+        tabBarActiveBackgroundColor: colorsTheme.bar,
+        tabBarInactiveBackgroundColor: colorsTheme.bar,
+        header() {
+          return (
+            <Pressable onPress={() => router.navigate({ pathname: '/(drawer)/seasons-management' })}>
+              <Row style={styles.header}>
+                <Text style={[styles.headerTitle, { marginHorizontal: 'auto' }]}>{getSeasonName()}</Text>
+                <Row style={{ marginHorizontal: 'auto' }}>
+                  <AppIcon name="calendar1" color={colorsTheme.inactiveText} size={18} />
+                  <Text style={[styles.headerSubtitle, { marginHorizontal: 'auto' }]}>
+                    {localeDate(getSeasonDate().getTime(), { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </Text>
+                </Row>
+              </Row>
+            </Pressable>
+          );
+        },
+        headerTintColor: colorsTheme.text,
+        headerShadowVisible: false,
       }}>
       <Tabs.Screen
-      name="index"
-      options={{
-        title: t('home'),
-        tabBarIcon: ({ color }) =>
-        <AppIcon name="home" color={color} size={32} />,
-      }}
+        name="index"
+        options={{
+          title: t('home'),
+          tabBarIcon: ({ color }) =>
+            <AppIcon name="home" color={color} size={32} />,
+        }}
       />
       <Tabs.Screen
-      name="events"
-      options={{
-        tabBarLabel: "",
-        tabBarIcon: ({ color }) =>
+        name="events"
+        options={{
+          tabBarLabel: "",
+          title: "",
+          tabBarIcon: ({ color }) =>
             <Row>
               <AppIcon name="sortie" color={color} size={32} />
               <AppIcon name="loop" color={color} size={24} />
@@ -95,3 +96,5 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+export default TabLayout;

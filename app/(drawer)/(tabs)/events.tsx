@@ -26,22 +26,22 @@ import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, Image, ListRenderItem, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { FlatList, Pressable } from "react-native-gesture-handler";
+import { FlatList, Pressable } from "react-native";
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 
 const iconSize = 32; // Size for icons in the filter row
 
-type Events = { type: "outing" | "maintain"; data: Outings | Maintains };
+type EventsType = { type: "outing" | "maintain"; data: Outings | Maintains };
 
-export default function EventsTabs() {
+const Events = () => {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const [dbState, setDbState] = useState("none");
   const db = useSQLiteContext();
   const [lastCheck, setLastCheck] = useState<number>(0);
 
-  const [listEvents, setListEvents] = useState<Events[]>([]);
+  const [listEvents, setListEvents] = useState<EventsType[]>([]);
   const [tooFilter, setTooFilter] = useState<TOO | null>(null);
   const [viewTooFilter, setViewTooFilter] = useState<boolean>(false);
   const [userFilter, setUserFilter] = useState<Users | null>(null);
@@ -138,7 +138,7 @@ export default function EventsTabs() {
     try {
       const outings = await getAllOutings(db, smDate(getSeasonDate()));
       const maintains = await getAllMaintains(db, smDate(getSeasonDate()));
-      const events: Events[] = [];
+      const events: EventsType[] = [];
       for (const outing of outings) {
         events.push({ type: "outing", data: outing });
       }
@@ -371,7 +371,7 @@ export default function EventsTabs() {
     setOuting2Write(initOuting());
     await loadData(); // Reload data after saving
   }
-const handleDeleteOuting = (outing: Outings) => {
+  const handleDeleteOuting = (outing: Outings) => {
     console.debug("Deleting outing", outing);
     Alert.alert(
       t('delete'),
@@ -391,7 +391,7 @@ const handleDeleteOuting = (outing: Outings) => {
     setMaintainsVisible(false);
     setOutingVisible(false);
   }
-  
+
   //                             #     #                                      
   //  ####    ##   #    # ###### ##   ##   ##   # #    # #####   ##   # #    #
   // #       #  #  #    # #      # # # #  #  #  # ##   #   #    #  #  # ##   #
@@ -591,7 +591,7 @@ const handleDeleteOuting = (outing: Outings) => {
       const outingFriends: Friends[] = listFriends.filter(f => item.data.idFriends?.includes(f.id));
       console.debug("Outing Off-Pistes", item.listOfOffPistes)
       const outingOffPistes: OffPistes[] = extractOffPistes(item.listOfOffPistes || []);
-          const swipeRef = useRef<SwipeableMethods | null>(null);
+      const swipeRef = useRef<SwipeableMethods | null>(null);
       return (
         <ReanimatedSwipeable
           ref={swipeRef}
@@ -745,7 +745,7 @@ const handleDeleteOuting = (outing: Outings) => {
         }
         return "Pas de description";
       }
-          const swipeRef = useRef<SwipeableMethods | null>(null);
+      const swipeRef = useRef<SwipeableMethods | null>(null);
       return (
         <ReanimatedSwipeable
           ref={swipeRef}
@@ -1620,3 +1620,5 @@ const handleDeleteOuting = (outing: Outings) => {
     </Body>
   );
 }
+
+export default Events;

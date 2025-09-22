@@ -11,7 +11,7 @@ import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useState } from "react";
 import { Text, View } from 'react-native';
-import { FlatList } from "react-native-gesture-handler";
+import { FlatList } from "react-native";
 
 
 export default function Offpistes() {

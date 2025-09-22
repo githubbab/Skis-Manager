@@ -27,7 +27,7 @@ import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { TextInput } from "react-native-gesture-handler";
+import { TextInput } from "react-native";
 
 
 

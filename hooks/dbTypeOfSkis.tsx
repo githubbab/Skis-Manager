@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
 import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DatabaseManager';
-import { getToSIcoURI } from './FileSystemManager';
+import { delToSIco, getToSIcoURI } from './FileSystemManager';
 
 export type TOS = {
   id: string;
@@ -38,6 +38,7 @@ export async function updateTypeOfSkis(db: SQLiteDatabase, tos: TOS) {
 
 export async function deleteTypeOfSkis(db: SQLiteDatabase, id: string) {
   await execQuery(db, deleteQuery(TABLES.TYPE_OF_SKIS, "id = ?", [id]));
+  await delToSIco(id);
 }
 
 export async function getAllTypeOfSkis(db: SQLiteDatabase): Promise<TOS[]> {

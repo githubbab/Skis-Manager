@@ -4,16 +4,19 @@ import Row from "@/components/Row";
 import Separator from "@/components/Separator";
 import { ThemeContext } from "@/context/ThemeContext";
 import { isViewFriends, isViewOuting } from "@/hooks/SettingsManager";
+import { syncData } from "@/hooks/SyncWebDav";
 import { t } from "@/hooks/ToolsBox";
 import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
+import { useSQLiteContext } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 const DrawerLayout = () => {
   const { currentTheme, colorsTheme } = useContext(ThemeContext);
+  const db = useSQLiteContext();
 
   console.log("DrawerLayout: ", currentTheme);
   const styles = StyleSheet.create({
@@ -62,6 +65,14 @@ const DrawerLayout = () => {
       alignItems: "center",
     },
   })
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      await syncData({ db: db });
+    }, 60000); // 60000 ms = 1 minute
+
+    return () => clearInterval(interval); // Nettoyage à la destruction du composant
+  }, []);
 
   const CustomDrawerContent = (props: any) => {
     return (

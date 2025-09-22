@@ -22,7 +22,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useRef, useState } from "react";
 import { Alert, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
-import { Pressable } from 'react-native-gesture-handler';
+import { Pressable } from 'react-native';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 

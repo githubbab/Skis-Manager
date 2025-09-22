@@ -1,10 +1,11 @@
 import { Buffer } from "buffer";
-import { File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { SQLiteDatabase } from "expo-sqlite";
 import { showMessage } from "react-native-flash-message";
 import { AuthType, createClient, FileStat, WebDAVClient } from "webdav";
 import { cancelConcatQueries, execQuery, getDeviceID, hasDatabaseUpdated, startConcatQueries } from "./DatabaseManager";
-import { clearQueriesStore, getImgStoreDir, getQueriesStoreDir, hasImageStoreUpdated, hasQueryStoreUpdated, imgStorePath } from "./FileSystemManager";
+import { clearQueriesStore, hasImageStoreUpdated, hasQueryStoreUpdated, imgStorePath, queriesStorePath } from "./FileSystemManager";
+import { get } from "http";
 
 
 let webdavParams: { enabled: boolean, url: string, user: string, password: string } = { enabled: false, url: "", user: "", password: "" };
@@ -135,14 +136,13 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
   console.debug("Sync mode: ", syncMode);
   //import queries
   try {
-    const queriesStoreDir = getQueriesStoreDir();
+    const localQueries = await FileSystem.readDirectoryAsync(queriesStorePath);
     let nbRemoteQueries = 0;
     if (syncMode === "multi") {
       const remoteQueries: FileStat[] = await getRemoteDirectoryContents(client, "/queries/");
       //import remote queries if newer than local DB
       if (newerBase && newerBase.basename !== ("skis-manager-" + (getDeviceID() ?? "not-an-id") + ".db")) {
         console.debug("Remote queries to import: ", remoteQueries.length);
-        const localQueries = queriesStoreDir.list().map((item) => item.name);
         console.debug("Local queries: ", localQueries.length);
         startConcatQueries();
         for (const queryFile of remoteQueries) {
@@ -154,7 +154,7 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
             if (new Date(queryFile.lastmod) < (olderBase ? new Date(olderBase.lastmod) : 0)) {
               console.debug("Query file is older than or same as local DB, deleting: ", queryFile.basename);
               await client.deleteFile(`/queries/${queryFile.basename}`);
-              clearQueriesStore(queryFile.basename);
+              await clearQueriesStore(queryFile.basename);
             }
             continue;
           }
@@ -163,8 +163,7 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
           if (typeof fileStream !== "string") {
             throw new Error("Unsupported fileStream type for query file");
           }
-          const query2import = new File(queriesStoreDir.uri + queryFile.basename);
-          query2import.write(fileStream);
+          const query2import = await FileSystem.writeAsStringAsync(FileSystem.documentDirectory + "temp-" + queryFile.basename, fileStream);
           await execQuery(db, fileStream);
           nbRemoteQueries++;
           console.debug("Query file imported: ", queryFile.basename);
@@ -175,13 +174,10 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
       else {
         console.debug("No newer remote database found, skipping query import");
       }
-
       if (hasQueryStoreUpdated() || force) {
         //upload local queries
-        const localQueriesUpdated = queriesStoreDir.list().map((item) => item.name);
-        console.debug("Local queries to sync: ", localQueriesUpdated.length);
         const remoteQueryNames = remoteQueries.map((item) => item.basename);
-        for (const query of localQueriesUpdated) {
+        for (const query of localQueries) {
           if (!query.startsWith("query-")) {
             continue;
           }
@@ -191,13 +187,13 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
           }
           if (!remoteQueryNames.includes(query)) {
             console.debug("Uploading query file: ", query);
-            const queryStream = new File(queriesStoreDir.uri + query).base64Sync();
+            const queryStream = await FileSystem.readAsStringAsync(queriesStorePath + query, { encoding: FileSystem.EncodingType.Base64 });
             const queryBuffer = Buffer.from(queryStream, 'base64');
             await client.putFileContents(`/queries/${query}`, queryBuffer, { overwrite: true });
             console.debug("Query file uploaded: ", query);
           }
         }
-        await clearQueriesStore("mine");
+        await clearQueriesStore(getDeviceID());
         console.debug("All local queries are synced");
       }
       else {
@@ -209,17 +205,16 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
       await clearQueriesStore("all");
     }
     //sync images
-    const imgStoreDir = getImgStoreDir();
+    const localImages = await FileSystem.readDirectoryAsync(imgStorePath);
     const remoteImages: FileStat[] = await getRemoteDirectoryContents(client, "/images/");
     if (syncMode === "multi") {
-      const localImages = imgStoreDir.list().map((item) => item.name);
       for (const imageFile of remoteImages) {
         if (!(imageFile.basename.startsWith("brand-") || imageFile.basename.startsWith("tos-"))) {
           continue;
         }
         if (!force && localImages.includes(imageFile.basename)) {
-          const localInfo = new File(imgStoreDir.uri + imageFile.basename).info();
-          if (localInfo.exists && (localInfo.modificationTime || 0) * 1000 >= new Date(imageFile.lastmod).getTime()) {
+          const localInfo = await FileSystem.getInfoAsync(imgStorePath + imageFile.basename);
+          if (localInfo.exists && localInfo.modificationTime * 1000 >= new Date(imageFile.lastmod).getTime()) {
             console.debug("Image file already exists locally with same or greater modification time, skipping: ", imageFile.basename);
             continue;
           }
@@ -232,42 +227,33 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
     }
     if (hasImageStoreUpdated() || force) {
       //upload local images if needed
-      if (hasImageStoreUpdated() || force) {
-        console.debug("Image store has been updated locally, syncing images to remote");
-        const localImagesUpdated = imgStoreDir.list().map((item) => item.name);
-        console.debug("Local images to sync: ", localImagesUpdated.length);
-
-        const remoteImageNames = remoteImages.map((item) => item.basename);
-        for (const image of localImagesUpdated) {
-          if (!(image.startsWith("brand-") || image.startsWith("tos-"))) {
-            continue;
-          }
-          if (!remoteImageNames.includes(image)) {
-            console.debug("Uploading image file: ", image);
-            const imageStream = new File(imgStoreDir.uri + image).base64Sync();
-            const imageBuffer = Buffer.from(imageStream, 'base64');
-            await client.putFileContents(`/images/${image}`, imageBuffer, { overwrite: true });
-            console.debug("Image file uploaded: ", image);
-          }
-          else {
-            const remoteImage = remoteImages.find((item) => item.basename === image);
-            if (remoteImage) {
-              const localInfo = new File(imgStoreDir.uri + remoteImage.basename).info();
-              if (localInfo.exists && (localInfo.modificationTime || 0) * 1000 > new Date(remoteImage.lastmod).getTime()) {
-                console.debug("Uploading updated image file: ", image);
-                const imageStream = new File(imgStoreDir.uri + image).base64Sync();
-                const imageBuffer = Buffer.from(imageStream, 'base64');
-                await client.putFileContents(`/images/${image}`, imageBuffer, { overwrite: true });
-                console.debug("Updated image file uploaded: ", image);
-              }
-            }
-            else {
-              console.warn("Remote image not found for existing local image, skipping: ", image);
+      console.debug("Image store has been updated locally, syncing images to remote");
+      const remoteImageNames = remoteImages.map((item) => item.basename);
+      for (const image of localImages) {
+        if (!(image.startsWith("brand-") || image.startsWith("tos-"))) {
+          continue;
+        }
+        if (!remoteImageNames.includes(image)) {
+          console.debug("Uploading image file: ", image);
+          const imageStream = await FileSystem.readAsStringAsync(imgStorePath + image, { encoding: FileSystem.EncodingType.Base64 });
+          const imageBuffer = Buffer.from(imageStream, 'base64');
+          await client.putFileContents(`/images/${image}`, imageBuffer, { overwrite: true });
+          console.debug("Image file uploaded: ", image);
+        }
+        else {
+          const remoteImage = remoteImages.find((item) => item.basename === image);
+          if (remoteImage) {
+            const localInfo = await FileSystem.getInfoAsync(imgStorePath + image);
+            if (localInfo.exists && localInfo.modificationTime * 1000 > new Date(remoteImage.lastmod).getTime()) {
+              console.debug("Uploading updated image file: ", image);
+              const imageStream = await FileSystem.readAsStringAsync(imgStorePath + image, { encoding: FileSystem.EncodingType.Base64 });
+              const imageBuffer = Buffer.from(imageStream, 'base64');
+              await client.putFileContents(`/images/${image}`, imageBuffer, { overwrite: true });
+              console.debug("Updated image file uploaded: ", image);
             }
           }
         }
       }
-
     } else {
       console.debug("Image store has not been updated locally, skipping image sync to remote");
     }
@@ -280,10 +266,11 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
         throw new Error("No deviceID found - cannot sync");
       }
       const dbfile = "skis-manager-" + deviceID + ".db";
-      const fileStream = new File(Paths.document + "SQLite/" + dbfile).base64Sync();
-      console.debug("Read DB file stream, length: ", fileStream.length);
+      const fileStream = await FileSystem.readAsStringAsync(FileSystem.documentDirectory + dbfile, { encoding: FileSystem.EncodingType.Base64 });
+      if (typeof fileStream !== "string") {
+        throw new Error("Unsupported fileStream type for database file");
+      }
       const buffer = Buffer.from(fileStream, 'base64');
-      console.debug("Converted DB file to buffer, length: ", buffer.length);
       await client.putFileContents(`/${dbfile}`, buffer, { overwrite: true });
       console.debug("DB file synced: ", dbfile);
     } else {
@@ -326,12 +313,12 @@ async function importRemoteImage(client: any, imageName: string): Promise<void> 
       } else {
         throw new Error("Unsupported fileStream type");
       }
-      const imageFile = new File(imgStorePath + imageName);
+      const imageFile = await FileSystem.getInfoAsync(imgStorePath + imageName);
       if (imageFile.exists) {
-        imageFile.delete();
+        await FileSystem.deleteAsync(imgStorePath + imageName);
         console.debug("Deleted existing image file: ", imageName);
       }
-      imageFile.write(buffer.toString('base64'));
+      await FileSystem.writeAsStringAsync(imgStorePath + imageName, buffer.toString('base64'));
       console.debug("Image file copied: ", imageName);
       resolve();
     } catch (error) {

@@ -34,7 +34,7 @@ import {
   View
 } from 'react-native';
 import { showMessage } from "react-native-flash-message";
-import { Pressable } from 'react-native-gesture-handler';
+import { Pressable } from 'react-native';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 let dbState: string = "none";

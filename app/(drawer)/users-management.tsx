@@ -19,7 +19,7 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import { colorPickerStyle } from '@/constants/colorPickerStyle';
 import { smDate, t } from "@/hooks/ToolsBox";
-import { Pressable } from 'react-native-gesture-handler';
+import { Pressable } from 'react-native';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import type { ColorFormatsObject } from 'reanimated-color-picker';
 import ColorPicker, { HueCircular, Panel1, Swatches } from 'reanimated-color-picker';

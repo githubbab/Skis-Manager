@@ -10,15 +10,14 @@ import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
 import { ThemeContext } from "@/context/ThemeContext";
 import { Brands, deleteBrand, getAllBrands, insertBrand, updateBrand } from "@/hooks/dbBrands";
-import { copyBrandIco, icoUnknownBrand, imgStoreDir } from "@/hooks/FileSystemManager";
+import { copyBrandIco, icoUnknownBrand } from "@/hooks/FileSystemManager";
 import { t } from "@/hooks/ToolsBox";
 import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
 import { ImageManipulator } from 'expo-image-manipulator';
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Pressable } from 'react-native-gesture-handler';
+import { Pressable } from 'react-native';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 
@@ -148,12 +147,6 @@ export default function BrandsManagementScreen() {
           text: t('ok'),
           onPress: async () => {
             await deleteBrand(db, brand.id);
-            // Supprime l'image associée si elle existe
-            const brandImgPath = `${imgStoreDir.uri}/brand-${brand.id}.png`;
-            const img2del = new File(brandImgPath);
-            if (img2del.exists) {
-              img2del.delete();
-            }
             loadData();
           },
         }

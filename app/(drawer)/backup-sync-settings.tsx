@@ -18,10 +18,11 @@ import { initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks
 import { insertUser, Users } from "@/hooks/dbUsers";
 import { clearStore } from "@/hooks/FileSystemManager";
 import { getLang, getWebDavPassword, getWebDavUrl, getWebDavUser, isWebDavSyncEnabled, toggleSyncWebDav } from "@/hooks/SettingsManager";
-import { checkWebDavSync, getSyncDevices, getSyncMode, syncData, testWebDavConnection } from "@/hooks/SyncWebDav";
+import { checkWebDavSync, getSyncDevices, getSyncMode, testWebDavConnection } from "@/hooks/SyncWebDav";
 import { localeDate, smDate, t } from "@/hooks/ToolsBox";
 import { reloadAppAsync } from "expo";
-import { Directory, File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
+import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect } from "expo-router";
 import * as Sharing from 'expo-sharing';
 import * as SQLite from 'expo-sqlite';
@@ -29,7 +30,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 import { showMessage } from "react-native-flash-message";
-import { FlatList } from "react-native-gesture-handler";
+import { FlatList } from "react-native";
 import { FileStat } from "webdav";
 
 
@@ -302,22 +303,31 @@ export default function BackupSyncSettings() {
   }, [webDavUrlState, webDavUserState, webDavPasswordState])
 
   const restoreOldDB = async () => {
-    const dbRestoreDir = new Directory(Paths.document, "dbRestore");
-    const file2restore = new File(Paths.document + "dbRestore/restore.db")
+    const dbRestoreDir = await FileSystem.getInfoAsync(FileSystem.documentDirectory + "dbRestore/");
+    if (!dbRestoreDir.exists) {
+      await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory + "dbRestore/", { intermediates: true });
+    }
     try {
-      const file2copy = await File.pickFileAsync();
-      if (file2copy instanceof File) {
-        file2copy.copy(file2restore);
-        file2copy.delete();
+     const result = await DocumentPicker.getDocumentAsync({
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled) {
+        setInactivated(true);
+        const dbURI = result.assets[0].uri;
+        console.log(`Database URI: ${dbURI}`);
+        const file2copy = await FileSystem.getInfoAsync(dbURI);
+        if (!file2copy.exists) {
+          console.log("File does not exist:", dbURI);
+          setInactivated(false);
+          return;
+        }
+        const fileStreams = await FileSystem.readAsStringAsync(file2copy.uri, { encoding: FileSystem.EncodingType.Base64 });
+        await FileSystem.writeAsStringAsync(dbRestoreDir.uri + "restore.db", fileStreams, { encoding: FileSystem.EncodingType.Base64 });
+        await FileSystem.deleteAsync(file2copy.uri);
       }
       else {
-        console.log("No valide file selected");
-        showMessage({
-          message: "No valid file selected !",
-          type: "danger",
-          autoHide: true,
-          duration: 3000
-        })
+        console.log("No valid file selected");
         return;
       }
     } catch (error) {
@@ -370,7 +380,7 @@ export default function BackupSyncSettings() {
             autoHide: true,
             duration: 5000
           });
-          file2restore.delete();
+          SQLite.deleteDatabaseAsync("restore.db", dbRestoreDir.uri);
           setInactivated(false);
           return;
         }
@@ -389,12 +399,14 @@ export default function BackupSyncSettings() {
           let { user_version: dbVersion } = await db.getFirstAsync('PRAGMA user_version');
           console.log("Database version " + dbVersion);
           await clearStore()
-          const dbFile = new File(db.databasePath);
           await db.closeAsync()
-          if (dbFile.exists) {
-            dbFile.delete();
-          }
-          file2restore.move(dbFile);
+          const file2restore = await FileSystem.getInfoAsync(dbRestoreDir.uri + "restore.db");
+          const dbFile = await FileSystem.getInfoAsync(db.databasePath);
+          await FileSystem.deleteAsync(db.databasePath);
+          await FileSystem.moveAsync({
+            from: file2restore.uri,
+            to: dbFile.uri
+          });
           console.log("Database restored to " + dbFile.uri);
           await reloadAppAsync()
         } else {
@@ -417,8 +429,10 @@ export default function BackupSyncSettings() {
       })
     } finally {
       setInactivated(false);
+      if ((await FileSystem.getInfoAsync(dbRestoreDir.uri + "restore.db")).exists) {
+        await FileSystem.deleteAsync(dbRestoreDir.uri + "restore.db");
+      }
     }
-    file2restore.delete();
     showMessage({
       message: "Database restored !",
       type: "success",
@@ -463,7 +477,6 @@ export default function BackupSyncSettings() {
                   onPress: async () => {
                     await clearDatabase(db);
                     await clearStore();
-                    await syncData({ db: db });
                     toggleSyncWebDav(db, true, webDavUrlState, webDavUserState, webDavPasswordState);
                     setInactivated(false);
                   }
@@ -473,13 +486,11 @@ export default function BackupSyncSettings() {
             );
           }
           else {
-            await syncData({ db: db });
             toggleSyncWebDav(db, true, webDavUrlState, webDavUserState, webDavPasswordState);
             setInactivated(false);
           }
         }
         else {
-          await syncData({ db: db });
           toggleSyncWebDav(db, true, webDavUrlState, webDavUserState, webDavPasswordState);
           setInactivated(false);
         }
@@ -559,7 +570,6 @@ export default function BackupSyncSettings() {
         isWebDavSyncEnabled() && <>
           <AppButton onPress={async () => {
             setInactivated(true);
-            await syncData({ db: db });
             setInactivated(false);
           }} icon={"shuffle"} disabled={inactivated} caption={t('sync_webdav_force')} />
           <Tile>

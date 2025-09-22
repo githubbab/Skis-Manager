@@ -10,13 +10,11 @@ import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
 import { ThemeContext } from "@/context/ThemeContext";
 import { deleteTypeOfSkis, getAllTypeOfSkis, initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
-import { getToSIcoURI } from "@/hooks/FileSystemManager";
 import { t } from "@/hooks/ToolsBox";
-import { File } from "expo-file-system";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Pressable } from 'react-native-gesture-handler';
+import { Pressable } from 'react-native';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 export default function TypeOfSkisManagementScreen() {
@@ -124,13 +122,6 @@ export default function TypeOfSkisManagementScreen() {
           text: t('ok'),
           onPress: async () => {
             await deleteTypeOfSkis(db, tos.id);
-            // Supprime l'image associée si elle existe
-            const tosImgPath = await getToSIcoURI(tos.id);
-            if (!tosImgPath) return;
-            const img2del = new File(tosImgPath);
-            if (img2del.exists) {
-              img2del.delete();
-            }
             loadData();
           },
         }

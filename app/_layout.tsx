@@ -3,17 +3,12 @@ import { initDB } from "@/hooks/DatabaseManager";
 import { initFS } from "@/hooks/FileSystemManager";
 import { initSettings } from "@/hooks/SettingsManager";
 import { useFonts } from 'expo-font';
-import { Slot } from "expo-router";
+import { Slot, ErrorBoundary, Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { type SQLiteDatabase, SQLiteProvider } from "expo-sqlite";
 import { useEffect } from "react";
 import FlashMessage from "react-native-flash-message";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary
-} from 'expo-router';
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -31,8 +26,9 @@ function RootLayoutNav() {
       <SQLiteProvider databaseName="skis-manager.db" onInit={migrateDbIfNeeded}
         assetSource={{ assetId: require('@/assets/skis-manager.db') }}>
         <ThemeProvider>
-          <Slot />
-          <FlashMessage position="top" />
+          <Stack>
+            <Stack.Screen name="(drawer)" options={{ headerShown: false }} /> 
+          </Stack>
         </ThemeProvider>
       </SQLiteProvider>
     </SafeAreaView>
