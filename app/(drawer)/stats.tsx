@@ -7,12 +7,11 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getAllSeasons, Seasons } from "@/hooks/dbSeasons";
 import { getTopSkis, Skis } from "@/hooks/dbSkis";
 import { getTopUsers, Users } from "@/hooks/dbUsers";
-import { getLang } from "@/hooks/SettingsManager";
-import { localeDate, t } from "@/hooks/ToolsBox";
 import { Picker } from '@react-native-picker/picker';
 import { useSQLiteContext } from "expo-sqlite";
 import { useContext, useEffect, useState } from "react";
@@ -24,6 +23,7 @@ export default function Stats() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
+  const { localeDate, t, lang } = useContext(SettingsContext);
 
   const [seasons, setSeasons] = useState<Seasons[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<Seasons | null>(null);
@@ -173,7 +173,7 @@ export default function Stats() {
           {seasons.map(season =>
             <Picker.Item
               key={season.begin}
-              label={`${season.name} (${new Date(season.begin).toLocaleDateString(getLang(), { year: 'numeric', month: 'short' })}${season.end ? " - " + new Date(season.end).toLocaleDateString(getLang(), { year: 'numeric', month: 'short' }) : ''})`}
+              label={`${season.name} (${localeDate(season.begin, { year: 'numeric', month: 'short' })}${season.end ? " - " + localeDate(season.end, { year: 'numeric', month: 'short' }) : ''})`}
               value={season}
             />
           )}

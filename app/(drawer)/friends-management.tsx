@@ -8,9 +8,9 @@ import Row from "@/components/Row";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { Friends, deleteFriend, getFriendsWithOutingsCount, insertFriend, updateFriend } from "@/hooks/dbFriends";
-import { t } from "@/hooks/ToolsBox";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Text, TextInput, View } from "react-native";
@@ -28,6 +28,7 @@ export default function FriendsManagement() {
   const [name, setName] = useState("");
   const inputRef = useRef<TextInput>(null);
 
+  const { t } = useContext(SettingsContext);
 
   //                      #######                                  
   // #    #  ####  ###### #       ###### ###### ######  ####  #####
@@ -145,16 +146,19 @@ export default function FriendsManagement() {
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem(item: Friends) {
     const nbActions = item.nbOutings || 0;
-        const swipeRef = useRef<SwipeableMethods | null>(null);
     
     return (
       <ReanimatedSwipeable
-        ref={swipeRef}
+        ref={ref => {
+          if (ref) {
+            (item as any).swipeRef = ref as SwipeableMethods;
+          }
+        }}
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            if (swipeRef.current) {
-              swipeRef.current.close();
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
             }
           }, 2000);
         }}

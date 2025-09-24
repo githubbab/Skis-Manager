@@ -2,21 +2,20 @@ import AppIcon from "@/components/AppIcon";
 import OpenMenu from "@/components/OpenMenu";
 import Row from "@/components/Row";
 import Separator from "@/components/Separator";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { isViewFriends, isViewOuting } from "@/hooks/SettingsManager";
-import { syncData } from "@/hooks/SyncWebDav";
-import { t } from "@/hooks/ToolsBox";
 import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
-import React, { useContext, useEffect } from "react";
+import React, { useContext } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 const DrawerLayout = () => {
   const { currentTheme, colorsTheme } = useContext(ThemeContext);
   const db = useSQLiteContext();
+  const { t, localeDate: localeDate, viewOuting, viewFriends } = useContext(SettingsContext)!;
 
   console.log("DrawerLayout: ", currentTheme);
   const styles = StyleSheet.create({
@@ -65,14 +64,6 @@ const DrawerLayout = () => {
       alignItems: "center",
     },
   })
-
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      await syncData({ db: db });
-    }, 60000); // 60000 ms = 1 minute
-
-    return () => clearInterval(interval); // Nettoyage à la destruction du composant
-  }, []);
 
   const CustomDrawerContent = (props: any) => {
     return (
@@ -139,7 +130,7 @@ const DrawerLayout = () => {
             router.push("/(drawer)/users-management");
           }}
         />
-        {isViewOuting() &&
+        {viewOuting &&
           <DrawerItem
             label={t('menu_offpistes')}
             labelStyle={styles.drawerTitle}
@@ -154,7 +145,7 @@ const DrawerLayout = () => {
               router.push("/(drawer)/offpistes-management");
             }}
           />}
-        {isViewFriends() &&
+        {viewFriends &&
           <DrawerItem
             label={t('menu_friends')}
             labelStyle={styles.drawerTitle}
@@ -225,7 +216,7 @@ const DrawerLayout = () => {
             router.push("/(drawer)/type-of-skis-management");
           }}
         />
-        {isViewOuting() &&
+        {viewOuting &&
           <DrawerItem
             label={t('menu_too')}
             labelStyle={styles.drawerTitle}

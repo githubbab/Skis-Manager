@@ -1,26 +1,11 @@
 import { Buffer } from "buffer";
-import * as FileSystem from "expo-file-system/legacy";
+import * as FileSystem from "expo-file-system";
 import { SQLiteDatabase } from "expo-sqlite";
 import { showMessage } from "react-native-flash-message";
 import { AuthType, createClient, FileStat, WebDAVClient } from "webdav";
 import { cancelConcatQueries, execQuery, getDeviceID, hasDatabaseUpdated, startConcatQueries } from "./DatabaseManager";
 import { clearQueriesStore, hasImageStoreUpdated, hasQueryStoreUpdated, imgStorePath, queriesStorePath } from "./FileSystemManager";
-import { get } from "http";
 
-
-let webdavParams: { enabled: boolean, url: string, user: string, password: string } = { enabled: false, url: "", user: "", password: "" };
-let syncing = false;
-let syncMode: "none" | "error" | "mono" | "multi" = "none";
-let syncDevices: { id: string, fileState: FileStat }[] = [];
-
-
-export function getWebDavParams(): { enabled: boolean, url: string, user: string, password: string } {
-  return webdavParams;
-}
-
-export function setWebDavParams(params: { enabled: boolean, url: string, user: string, password: string }) {
-  webdavParams = params;
-}
 
 export async function checkWebDavSync(url: string, user: string, password: string): Promise<FileStat[] | false> {
   console.debug("Checking WebDav sync settings");
@@ -50,19 +35,20 @@ export async function checkWebDavSync(url: string, user: string, password: strin
   }
 }
 
-export async function testWebDavConnection(): Promise<WebDAVClient | null> {
-  syncDevices = [];
-  if (!webdavParams.enabled) {
-    console.debug("WebDav sync is disabled, aborting test");
-    return null;
-  }
+export async function testWebDavConnection(myID: string, webDavUrl: string, webDavUser: string, webDavPassword: string): Promise<{
+  syncMode: "mono" | "multi" | "none" | "wait",
+  client: WebDAVClient | null,
+  devices: { id: string, fileStat: FileStat | null }[],
+  error?: string
+}> {
+  let syncDevices = [];
   console.debug("Testing WebDav connection");
   try {
     const client = createClient(
-      webdavParams.url,
+      webDavUrl,
       {
-        username: webdavParams.user,
-        password: webdavParams.password,
+        username: webDavUser,
+        password: webDavPassword,
         authType: AuthType.Password,
       }
     );
@@ -70,37 +56,73 @@ export async function testWebDavConnection(): Promise<WebDAVClient | null> {
     for (const item of contents) {
       if (item.type === "file" && item.basename.startsWith("skis-manager-") && item.basename.endsWith(".db")) {
         const id = item.basename.substring(13, item.basename.length - 3);
-        syncDevices.push({ id: id, fileState: item });
+        syncDevices.push({ id: id, fileStat: item });
       }
     }
     if (syncDevices.length > 1) {
       console.debug("WebDav connection is valid(multi)");
-      syncMode = "multi";
+      if (!syncDevices.find((device) => device.id === myID)) {
+        syncDevices.push({ id: myID, fileStat: null });
+      }
+      return { syncMode: "multi", client, devices: syncDevices };
     }
-    else if (syncDevices.length === 1 && syncDevices[0].id !== getDeviceID()) {
+    else if (syncDevices.length === 1 && syncDevices[0].id !== myID) {
       console.debug("WebDav connection is valid(multi)");
-      syncMode = "multi";
+      syncDevices.push({ id: myID, fileStat: null });
+      return { syncMode: "multi", client, devices: syncDevices };
     }
     else {
       console.debug("WebDav connection is valid(mono)");
-      syncMode = "mono";
+      if (syncDevices.length === 1 && syncDevices[0].id === myID) {
+        syncDevices.push(syncDevices[0]);
+      } else {
+        syncDevices.push({ id: myID, fileStat: null });
+      }
+      return { syncMode: "mono", client, devices: syncDevices };
     }
-    return client;
   } catch (error) {
     console.error("WebDav connection is invalid: ", error);
-    syncMode = "error";
+    return { syncMode: "wait", client: null, devices: [], error: error instanceof Error ? error.message : String(error) };
   }
-  return null;
 }
 
-export async function syncData(params: { db: SQLiteDatabase, force?: boolean, background?: boolean }): Promise<void> {
-  const { db, force, background } = params;
+export async function syncData(params: {
+  db: SQLiteDatabase,
+  webDavUrl: string,
+  webDavUser: string,
+  webDavPassword: string,
+  webDavSyncMode: 'none' | 'mono' | 'multi' | 'wait',
+  webDavStatus: "synced" | "syncing" | "error" | "disabled" | "never",
+  updateWebDavStatus: (status: "synced" | "syncing" | "error" | "disabled" | "never", error?: string) => void,
+  updateWebDavSyncMode: (mode: 'none' | 'mono' | 'multi' | 'wait', webDavSyncDevices?: { id: string, fileStat: FileStat | null }[]) => void,
+  force?: boolean,
+  background?: boolean
+}): Promise<void> {
+  const {
+    db,
+    webDavUrl,
+    webDavUser,
+    webDavPassword,
+    webDavSyncMode,
+    webDavStatus,
+    updateWebDavStatus,
+    updateWebDavSyncMode,
+    force = false,
+    background = true
+  } = params;
+  const myID = getDeviceID();
+  if (!myID || myID === "not-an-id") {
+    console.debug("No device ID found, cannot sync with WebDav");
+    updateWebDavStatus("error", "No device ID found - cannot sync");
+    return;
+  }
 
-  if (!webdavParams.enabled) {
+  if (!webDavSyncMode || webDavSyncMode === 'none') {
     console.debug("WebDav sync is disabled, aborting sync");
-    syncing = false;
-    syncMode = "none";
-    syncDevices = [];
+    return;
+  }
+  if (webDavStatus === 'syncing') {
+    console.debug("WebDav sync is already in progress, aborting new sync");
     return;
   }
 
@@ -108,28 +130,30 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
     console.debug("Database and stores have not been updated, skipping sync");
     return;
   }
-  if (syncing) {
-    console.debug("WebDav sync is already in progress, aborting new sync");
-    return;
-  }
-  syncing = true;
+  updateWebDavStatus("syncing");
   console.debug("Starting sync with WebDav");
 
-  const client = await testWebDavConnection();
+  const { syncMode, client, devices, error } = await testWebDavConnection(myID, webDavUrl, webDavUser, webDavPassword);
+  updateWebDavSyncMode(syncMode, devices);
+  if (syncMode === "wait" && error) {
+    updateWebDavStatus("error", error || "Unknown error");
+    return;
+  }
   if (!client) {
-    syncing = false;
+    updateWebDavStatus("error", "No WebDav client");
     return;
   }
 
   let olderBase: FileStat | null = null;
   let newerBase: FileStat | null = null;
 
-  for (const device of syncDevices) {
-    if (!olderBase || new Date(device.fileState.lastmod) < new Date(olderBase.lastmod)) {
-      olderBase = device.fileState;
+  for (const device of devices) {
+    let fileDate: Date = device.fileStat ? new Date(device.fileStat.lastmod) : new Date(0);
+    if (!olderBase || fileDate < new Date(olderBase.lastmod)) {
+      olderBase = device.fileStat;
     }
-    if (!newerBase || new Date(device.fileState.lastmod) > new Date(newerBase.lastmod)) {
-      newerBase = device.fileState;
+    if (!newerBase || fileDate > new Date(newerBase.lastmod)) {
+      newerBase = device.fileStat;
     }
   }
 
@@ -141,7 +165,7 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
     if (syncMode === "multi") {
       const remoteQueries: FileStat[] = await getRemoteDirectoryContents(client, "/queries/");
       //import remote queries if newer than local DB
-      if (newerBase && newerBase.basename !== ("skis-manager-" + (getDeviceID() ?? "not-an-id") + ".db")) {
+      if (newerBase && newerBase.basename !== ("skis-manager-" + myID + ".db")) {
         console.debug("Remote queries to import: ", remoteQueries.length);
         console.debug("Local queries: ", localQueries.length);
         startConcatQueries();
@@ -181,7 +205,7 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
           if (!query.startsWith("query-")) {
             continue;
           }
-          if (query.endsWith("-" + getDeviceID() + ".sql")) {
+          if (query.endsWith("-" + myID + ".sql")) {
             console.debug("Skipping upload of query file created by this device: ", query);
             continue;
           }
@@ -193,7 +217,7 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
             console.debug("Query file uploaded: ", query);
           }
         }
-        await clearQueriesStore(getDeviceID());
+        await clearQueriesStore(myID);
         console.debug("All local queries are synced");
       }
       else {
@@ -261,11 +285,7 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
     //save DB if needed
     if (nbRemoteQueries > 0 || hasQueryStoreUpdated() || force) {
       console.debug("Queries have been updated locally or remotely, saving database");
-      const deviceID = getDeviceID() ?? "not-an-id";
-      if (deviceID === "not-an-id") {
-        throw new Error("No deviceID found - cannot sync");
-      }
-      const dbfile = "skis-manager-" + deviceID + ".db";
+      const dbfile = "skis-manager-" + myID + ".db";
       const fileStream = await FileSystem.readAsStringAsync(FileSystem.documentDirectory + dbfile, { encoding: FileSystem.EncodingType.Base64 });
       if (typeof fileStream !== "string") {
         throw new Error("Unsupported fileStream type for database file");
@@ -283,6 +303,8 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
         duration: 3000,
       });
     }
+    updateWebDavStatus("synced");
+    console.debug("WebDav sync completed successfully");
   } catch (error) {
     cancelConcatQueries();
     console.error("Error syncing data with WebDav: ", error);
@@ -293,9 +315,7 @@ export async function syncData(params: { db: SQLiteDatabase, force?: boolean, ba
         hideOnPress: true,
       });
     }
-  }
-  finally {
-    syncing = false;
+    updateWebDavStatus("error", error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -334,12 +354,4 @@ async function getRemoteDirectoryContents(client: any, path: string): Promise<Fi
     ? contentsRaw
     : (contentsRaw.data as FileStat[]);
   return contents;
-}
-
-export function getSyncMode(): "none" | "error" | "mono" | "multi" {
-  return syncMode;
-}
-
-export function getSyncDevices(): { id: string, fileState: FileStat }[] {
-  return syncDevices;
 }

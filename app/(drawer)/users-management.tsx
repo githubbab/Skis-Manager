@@ -18,11 +18,12 @@ import Row from "@/components/Row";
 import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import { colorPickerStyle } from '@/constants/colorPickerStyle';
-import { smDate, t } from "@/hooks/ToolsBox";
+import { smDate } from "@/hooks/ToolsBox";
 import { Pressable } from 'react-native';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import type { ColorFormatsObject } from 'reanimated-color-picker';
 import ColorPicker, { HueCircular, Panel1, Swatches } from 'reanimated-color-picker';
+import SettingsContext from "@/context/SettingsContext";
 
 const customSwatches = ["#6CC5B0", "#F3722C", "#FF8AB7", "#3CA951", "#A463F2", "#4269D0"];
 
@@ -31,6 +32,7 @@ export default function UsersManagementScreen() {
   const { colorsTheme, currentTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
+  const { t } = useContext(SettingsContext);
 
   const [users, setUsers] = useState<Users[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -236,15 +238,18 @@ export default function UsersManagementScreen() {
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem(item: Users) {
     const nbActions = item.nbOutings + item.nbBoots + item.nbSkis;
-        const swipeRef = useRef<SwipeableMethods | null>(null);
     return (
       <ReanimatedSwipeable
-        ref={swipeRef}
+        ref={ref => {
+          if (ref) {
+            (item as any).swipeRef = ref as SwipeableMethods;
+          }
+        }}
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            if (swipeRef.current) {
-              swipeRef.current.close();
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
             }
           }, 2000);
         }}

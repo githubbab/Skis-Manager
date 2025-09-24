@@ -17,7 +17,7 @@ import { Brands, getAllBrands } from "@/hooks/dbBrands";
 import { deleteSki, getAllSkis, initSkis, insertSki, Skis, updateSki } from "@/hooks/dbSkis";
 import { getAllTypeOfSkis, TOS } from "@/hooks/dbTypeOfSkis";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
-import { localeDate, smDate, t } from "@/hooks/ToolsBox";
+import { smDate } from "@/hooks/ToolsBox";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -35,7 +35,8 @@ import {
 } from 'react-native';
 import { showMessage } from "react-native-flash-message";
 import { Pressable } from 'react-native';
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import SettingsContext from "@/context/SettingsContext";
 
 let dbState: string = "none";
 let lastCheck = 0;
@@ -72,7 +73,7 @@ export default function SkisManagement() {
   const inputSizeRef = useRef<TextInput>(null);
   const inputRadiusRef = useRef<TextInput>(null);
 
-
+  const { t, localeDate } = useContext(SettingsContext);
 
 
 
@@ -197,16 +198,20 @@ export default function SkisManagement() {
   // #   #  #      #   ## #    # #      #   #  #     # #   #  # #    #
   // #    # ###### #    # #####  ###### #    #  #####  #    # #  #### 
   const renderSkis: ListRenderItem<Skis> = ({ item }) => {
-    const swipeRef = useRef<SwipeableMethods | null>(null);
 
     return (
       <ReanimatedSwipeable
-        ref={swipeRef}
+        ref={ref => {
+          if (ref) {
+            (item as any).swipeRef = ref;
+          }
+        }}
+
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            if (swipeRef.current) {
-              swipeRef.current.close();
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
             }
           }, 2000);
         }}

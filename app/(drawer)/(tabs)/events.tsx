@@ -9,6 +9,7 @@ import Row from "@/components/Row";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getLastDBWrite } from "@/hooks/DatabaseManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
@@ -19,8 +20,7 @@ import { deleteOuting, getAllOutings, initOuting, insertOuting, Outings } from "
 import { getSeasonSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
-import { getSeasonDate, isViewFriends, isViewOuting } from "@/hooks/SettingsManager";
-import { localeDate, smDate, t } from "@/hooks/ToolsBox";
+import { smDate } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -74,6 +74,8 @@ const Events = () => {
   const [maintainViewSharp, setMaintainViewSharp] = useState<boolean>(true);
   const [maintainViewWax, setMaintainViewWax] = useState<boolean>(true);
   const [maintainViewRepair, setMaintainViewRepair] = useState<boolean>(true);
+
+  const { t, localeDate: localeDate, seasonDate, viewOuting, viewFriends } = useContext(SettingsContext)!;
 
   const handleCancelFilters = () => {
     setViewUserFilter(false);
@@ -136,8 +138,8 @@ const Events = () => {
   const loadData = async () => {
     setDbState("loading");
     try {
-      const outings = await getAllOutings(db, smDate(getSeasonDate()));
-      const maintains = await getAllMaintains(db, smDate(getSeasonDate()));
+      const outings = await getAllOutings(db, smDate(seasonDate));
+      const maintains = await getAllMaintains(db, smDate(seasonDate));
       const events: EventsType[] = [];
       for (const outing of outings) {
         events.push({ type: "outing", data: outing });
@@ -146,9 +148,9 @@ const Events = () => {
         events.push({ type: "maintain", data: maintain });
       }
       setListEvents(events.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()));
-      setListUsers(await getAllUsers(db, smDate(getSeasonDate())));
+      setListUsers(await getAllUsers(db, smDate(seasonDate)));
       setListSkis(await getSeasonSkis(db));
-      setListBoots(await getAllBoots(db, smDate(getSeasonDate())));
+      setListBoots(await getAllBoots(db, smDate(seasonDate)));
       setListOutingTypes(await getAllTypeOfOutings(db));
       setListFriends(await getAllFriends(db));
       setListOffPistes(await getAllOffPistes(db));
@@ -242,7 +244,7 @@ const Events = () => {
       setOutingViewBoots(false);
     }
     if (outing2write.idBoots) {
-      if (isViewOuting()) {
+      if (viewOuting) {
         setOutingViewToOuting(true);
         const majorType = listSkis.find(ski => ski.id === outing2write.idSkis)?.majorTypeOfOuting;
         if (majorType) {
@@ -262,7 +264,7 @@ const Events = () => {
       } else {
         setOutingViewToOuting(false);
       }
-      if (isViewFriends()) {
+      if (viewFriends) {
         if (listFriends.length > 0) {
           setOutingViewFriends(true);
         }
@@ -591,23 +593,27 @@ const Events = () => {
       const outingFriends: Friends[] = listFriends.filter(f => item.data.idFriends?.includes(f.id));
       console.debug("Outing Off-Pistes", item.listOfOffPistes)
       const outingOffPistes: OffPistes[] = extractOffPistes(item.listOfOffPistes || []);
-      const swipeRef = useRef<SwipeableMethods | null>(null);
       return (
         <ReanimatedSwipeable
-          ref={swipeRef}
+          ref={ref => {
+            if (ref) {
+              (item as any).swipeRef = ref as SwipeableMethods;
+            }
+          }}
           onSwipeableOpen={() => {
             // Auto-close after 3 seconds
             setTimeout(() => {
-              if (swipeRef.current) {
-                swipeRef.current.close();
+              if ((item as any).swipeRef) {
+                (item as any).swipeRef.close();
               }
             }, 2000);
           }}
-          dragOffsetFromRightEdge={80}
-          dragOffsetFromLeftEdge={80}
+          dragOffsetFromRightEdge={20}
+          dragOffsetFromLeftEdge={20}
           renderLeftActions={() => (
             <Pressable
               onPress={() => {
+                console.debug("Edit outing", item.data);
                 (item as any).swipeRef.close();
                 setOuting2Write(item.data);
                 setOutingVisible(true);
@@ -632,6 +638,7 @@ const Events = () => {
         >
           <TouchableOpacity
             onPress={() => {
+              console.debug("Select outing", item.data);
               if (outing2write.id !== item.data.id) {
                 setOuting2Write(item.data)
                 setMaintain2Write(initMaintain()); // Clear selected maintains if outing is selected
@@ -745,26 +752,31 @@ const Events = () => {
         }
         return "Pas de description";
       }
-      const swipeRef = useRef<SwipeableMethods | null>(null);
       return (
         <ReanimatedSwipeable
-          ref={swipeRef}
+          ref={ref => {
+            if (ref) {
+              (item as any).swipeRef = ref as SwipeableMethods;
+            }
+          }}
           onSwipeableOpen={() => {
             // Auto-close after 3 seconds
             setTimeout(() => {
-              if (swipeRef.current) {
-                swipeRef.current.close();
+              if ((item as any).swipeRef) {
+                (item as any).swipeRef.close();
               }
             }, 2000);
           }}
+          
           dragOffsetFromRightEdge={80}
           dragOffsetFromLeftEdge={80}
           renderLeftActions={() => (
             <Pressable
               onPress={() => {
+                console.debug("Edit maintain", item.data);
                 (item as any).swipeRef.close();
-                setMaintainsVisible(true);
                 setMaintain2Write(item.data);
+                setMaintainsVisible(true);
               }}
               style={appStyles.swipePrimary}
             >
@@ -1492,7 +1504,7 @@ const Events = () => {
         <DateTimePicker
           value={new Date()}
           maximumDate={new Date()}
-          minimumDate={getSeasonDate()}
+          minimumDate={seasonDate}
           mode="date"
           display="default"
           onChange={onDateChange}

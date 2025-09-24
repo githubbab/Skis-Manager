@@ -10,6 +10,7 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getLastDBWrite } from "@/hooks/DatabaseManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
@@ -20,8 +21,7 @@ import { initOuting, insertOuting, Outings } from "@/hooks/dbOutings";
 import { getSeasonSkis, getSkis2Sharp, getSkis2Wax, getTopSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, getTopUsers, Users } from "@/hooks/dbUsers";
-import { getSeasonDate, isViewFriends, isViewOuting } from "@/hooks/SettingsManager";
-import { localeDate, smDate, t } from "@/hooks/ToolsBox";
+import { smDate } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -83,6 +83,8 @@ export default function Index() {
   const [outingViewFriends, setOutingViewFriends] = useState<boolean>(false);
   const [effectActive, setEffectActive] = useState<boolean>(false);
 
+  const { t, localeDate, seasonDate, viewFriends, viewOuting } = useContext(SettingsContext)!;
+
   const filterOutingSkis = (idUser: string) => listSkis.filter(ski => ski.listUsers?.includes(idUser)).sort((a, b) => {
     const aNb = a.nbOutings || 0;
     const bNb = b.nbOutings || 0;
@@ -123,11 +125,11 @@ export default function Index() {
       setToSharp(toSharpResult);
       const toWaxResult: Skis[] = await getSkis2Wax(db);
       setToWax(toWaxResult);
-      const usersResult: Users[] = await getAllUsers(db, smDate(getSeasonDate()));
+      const usersResult: Users[] = await getAllUsers(db, smDate(seasonDate));
       setListUsers(usersResult);
       const skisResult: Skis[] = await getSeasonSkis(db);
       setListSkis(skisResult);
-      const bootsResult: Boots[] = await getAllBoots(db, smDate(getSeasonDate()));
+      const bootsResult: Boots[] = await getAllBoots(db, smDate(seasonDate));
       setListBoots(bootsResult);
       const typeOfOutings: TOO[] = await getAllTypeOfOutings(db);
       setListOutingTypes(typeOfOutings);
@@ -192,7 +194,7 @@ export default function Index() {
       setOutingViewBoots(false);
     }
     if (outing2write.idBoots) {
-      if (isViewOuting()) {
+      if (viewOuting) {
         setOutingViewToOuting(true);
         const majorType = listSkis.find(ski => ski.id === outing2write.idSkis)?.majorTypeOfOuting;
         if (majorType) {
@@ -212,7 +214,7 @@ export default function Index() {
       } else {
         setOutingViewToOuting(false);
       }
-      if (isViewFriends()) {
+      if (viewFriends) {
         if (listFriends.length > 0) {
           setOutingViewFriends(true);
         }
@@ -508,8 +510,6 @@ export default function Index() {
   // #   #  #      #   ## #    # #      #   #  #     # #    # # #   ##   #   #    # # #   ## #     # #   #  # #    #
   // #    # ###### #    # #####  ###### #    # #     # #    # # #    #   #   #    # # #    #  #####  #    # #  #### 
   const renderMaintainSkis: ListRenderItem<Skis> = ({ item }) => {
-    console.debug("renderMaintainSkis:", item);
-    console.debug("nbMaintains:", (toSharp.find(s => s.id === 'toSharp-' + item.id)?.nbMaintains || 0), (toWax.find(s => s.id === 'toWax-' + item.id)?.nbMaintains || 0));
     const nbMaintains = (toSharp.find(s => s.id === 'toSharp-' + item.id)?.nbMaintains || 0) + (toWax.find(s => s.id === 'toWax-' + item.id)?.nbMaintains || 0);
     return (
       <TouchableOpacity
@@ -625,7 +625,8 @@ export default function Index() {
         setOuting2Write({ ...outing2write, date: date2Save });
       }
     } else {
-      setMaintain2Write({ ...maintain2write, date: smDate(date2Save) });
+      console.debug("changeDate maintain", date2Save);
+      setMaintain2Write({ ...maintain2write, date: date2Save });
     }
   }
 
@@ -1117,7 +1118,7 @@ export default function Index() {
         <DateTimePicker
           value={new Date()}
           maximumDate={new Date()}
-          minimumDate={getSeasonDate()}
+          minimumDate={seasonDate}
           mode="date"
           display="default"
           onChange={onDateChange}

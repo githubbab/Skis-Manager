@@ -18,8 +18,13 @@ export async function getSettings(db: SQLiteDatabase, name: string): Promise<Set
   }
   return null;
 }
+
 export async function getAllSettings(db: SQLiteDatabase): Promise<Settings[]> {
   const result: Settings[] = await db.getAllAsync(`SELECT * FROM ${TABLES.SETTINGS}`);
   return result;
 }
 
+export async function deleteSettings(db: SQLiteDatabase, name: string) {
+  const query = formatSQL('DELETE FROM settings WHERE name = ?', [name]);
+  await execQuery(db, query);
+}

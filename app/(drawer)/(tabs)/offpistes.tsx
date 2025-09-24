@@ -4,9 +4,9 @@ import Separator from "@/components/Separator";
 import Tile from '@/components/Tile';
 import TileIconTitle from '@/components/TileIconTitle';
 import AppStyles from "@/constants/AppStyles";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getSeasonOffPistes, OffPistes } from "@/hooks/dbOffPistes";
-import { t } from "@/hooks/ToolsBox";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useState } from "react";
@@ -18,6 +18,8 @@ export default function Offpistes() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
+
+  const { t } = useContext(SettingsContext)!;
 
   const [listOffPistes, setListOffPistes] = useState<OffPistes[]>([]);
 

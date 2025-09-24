@@ -7,9 +7,9 @@ import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { deleteTypeOfOutings, insertTypeOfOutings, TOO, updateTypeOfOutings } from "@/hooks/dbTypeOfOuting";
-import { t } from "@/hooks/ToolsBox";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Text, TextInput, View } from "react-native";
@@ -20,6 +20,7 @@ export default function TypeOfOutingsManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
+  const { t } = useContext(SettingsContext);
 
   const [types, setTypes] = useState<TOO[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -153,16 +154,19 @@ export default function TypeOfOutingsManagementScreen() {
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem({ item }: { item: TOO }) {
     const nbActions = item.itemCount || 0;
-    const swipeRef = useRef<SwipeableMethods | null>(null);
 
     return (
       <ReanimatedSwipeable
-        ref={swipeRef}
+        ref={ref => {
+          if (ref) {
+            (item as any).swipeRef = ref as SwipeableMethods;
+          }
+        }}
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            if (swipeRef.current) {
-              swipeRef.current.close();
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
             }
           }, 2000);
         }}

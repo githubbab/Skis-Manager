@@ -15,7 +15,6 @@ import { getLastDBWrite } from "@/hooks/DatabaseManager";
 import { Boots, deleteBoots, getAllBoots, initBoots, insertBoots, updateBoots } from "@/hooks/dbBoots";
 import { Brands, getAllBrands } from "@/hooks/dbBrands";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
-import { localeDate, t } from "@/hooks/ToolsBox";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -24,6 +23,7 @@ import { Alert, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, 
 import { showMessage } from "react-native-flash-message";
 import { Pressable } from 'react-native';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import SettingsContext from "@/context/SettingsContext";
 
 
 let dbState: string = "none";
@@ -54,6 +54,8 @@ export default function BootsManagement() {
   const [listBrands, setListBrands] = useState<Brands[]>([]);
   const [boots2Write, setBoots2Write] = useState<Boots>(initBoots());
   const [order_by, setOrderBy] = useState<"order_by_begin" | "order_by_outings">("order_by_begin");
+
+  const { t, localeDate } = useContext(SettingsContext);
 
   const listBootsFiltered = boots.filter(b => {
     if (viewArchived === "only" && !b.end) return false;
@@ -190,15 +192,18 @@ export default function BootsManagement() {
   //     #   #  #      #   ## #    # #      #   #  #     # #    # #    #   #  
   //     #    # ###### #    # #####  ###### #    # ######   ####   ####    #  
   const renderBoot = ({ item }: { item: Boots }) => {
-    const swipeRef = useRef<SwipeableMethods | null>(null);
     return (
       <ReanimatedSwipeable
-        ref={swipeRef}
+        ref={ref => {
+          if (ref) {
+            (item as any).swipeRef = ref;
+          }
+        }}
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            if (swipeRef.current) {
-              swipeRef.current.close();
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
             }
           }, 2000);
         }}

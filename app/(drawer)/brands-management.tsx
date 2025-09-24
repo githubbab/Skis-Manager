@@ -8,10 +8,10 @@ import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { Brands, deleteBrand, getAllBrands, insertBrand, updateBrand } from "@/hooks/dbBrands";
 import { copyBrandIco, icoUnknownBrand } from "@/hooks/FileSystemManager";
-import { t } from "@/hooks/ToolsBox";
 import * as DocumentPicker from 'expo-document-picker';
 import { ImageManipulator } from 'expo-image-manipulator';
 import { useSQLiteContext } from "expo-sqlite";
@@ -32,6 +32,8 @@ export default function BrandsManagementScreen() {
   const [name, setName] = useState("");
   const [brandImage, setBrandImage] = useState<string | undefined>(undefined);
   const inputRef = useRef<TextInput>(null);
+
+  const { t } = useContext(SettingsContext)!;
 
   const iconSize = 48;
 
@@ -178,15 +180,20 @@ export default function BrandsManagementScreen() {
 
   function renderItem(item: Brands) {
     const nbActions = item.nbSkis + item.nbBoots;
-    const swipeRef = useRef<SwipeableMethods | null>(null);
 
     return (
       <ReanimatedSwipeable
-        ref={swipeRef}
+        ref={ref => {
+          if (ref) {
+            (item as any).swipeRef = ref as SwipeableMethods;
+          }
+        }}
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            swipeRef.current?.close();
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
+            }
           }, 2000);
         }}
         renderLeftActions={() => (
@@ -205,7 +212,7 @@ export default function BrandsManagementScreen() {
           if (nbActions > 0 || item.id.startsWith('init-')) return null;
           return (
             <Pressable
-              onPress={() => handleDelete(item)}
+              onPress={() => {  (item as any).swipeRef.close(); handleDelete(item); }}
               style={appStyles.swipeAlert}
             >
               <AppIcon name={"bin"} color={colorsTheme.text} />

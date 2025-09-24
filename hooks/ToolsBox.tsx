@@ -1,10 +1,5 @@
-import translations, { TranslationKey } from "@/constants/Translations";
-import { getLang } from "./SettingsManager";
+// Utility functions
 
-// Function to list available languages
-export function listLanguages(): string[] {
-  return Object.keys(translations);
-};
 // Function to convert various date formats to a timestamp
 export function smDate(value?: any): number {
   const now = new Date(Date.now());
@@ -36,19 +31,3 @@ export function smDate(value?: any): number {
   }
   return date;
 };
-
-export function t(key: TranslationKey): string {
-  return translations[getLang()][key];
-}
-
-export function localeDate(date: number, options?: Intl.DateTimeFormatOptions): string {
-  return new Date(date).toLocaleDateString(getLang(), options);
-}
-
-export function localeTime(date: number, options?: Intl.DateTimeFormatOptions): string {
-  return new Date(date).toLocaleTimeString(getLang(), options);
-}
-
-export function localeDateTime(date: number, options?: Intl.DateTimeFormatOptions): string {
-  return new Date(date).toLocaleString(getLang(), options);
-}

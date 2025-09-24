@@ -312,5 +312,8 @@ const translations = {
 
 export type Lang = keyof typeof translations;
 export type TranslationKey = keyof typeof translations["fr"];
+export const listLanguages = (): string[] => {
+  return Object.keys(translations);
+}
 
 export default translations;

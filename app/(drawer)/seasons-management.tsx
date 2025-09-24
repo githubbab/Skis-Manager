@@ -7,11 +7,10 @@ import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import type { Seasons } from "@/hooks/dbSeasons";
 import { deleteSeason, getAllSeasons, insertSeason, updateSeason } from "@/hooks/dbSeasons";
-import { initSeasonDate } from "@/hooks/SettingsManager";
-import { localeDate, t } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
@@ -30,6 +29,8 @@ const SeasonsManagement = () => {
   const [dateTimePickerVisible, setDateTimePickerVisible] = useState(false);
   const db = useSQLiteContext();
 
+  const { localeDate, t, changeSeason } = useContext(SettingsContext);
+
   //                             ######                     
   // #       ####    ##   #####  #     #   ##   #####   ##  
   // #      #    #  #  #  #    # #     #  #  #    #    #  # 
@@ -38,9 +39,11 @@ const SeasonsManagement = () => {
   // #      #    # #    # #    # #     # #    #   #   #    #
   // ######  ####  #    # #####  ######  #    #   #   #    #
   const loadData = async () => {
-    await initSeasonDate(db);
     const data: Seasons[] = await getAllSeasons(db);
     setSeasons(data);
+      if (data.length > 0) {
+        changeSeason(new Date(data[0].begin), data[0].name);
+      }
     console.debug("Seasons loaded:", seasons);
   };
 
@@ -126,15 +129,18 @@ const SeasonsManagement = () => {
   // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem(item: Seasons) {
-    const swipeRef = useRef<SwipeableMethods | null>(null);
     return (
       <ReanimatedSwipeable
-        ref={swipeRef}
+        ref={ref => {
+          if (ref) {
+            (item as any).swipeRef = ref as SwipeableMethods;
+          }
+        }}
         onSwipeableOpen={() => {
           // Auto-close after 3 seconds
           setTimeout(() => {
-            if (swipeRef.current) {
-              swipeRef.current.close();
+            if ((item as any).swipeRef) {
+              (item as any).swipeRef.close();
             }
           }, 2000);
         }}

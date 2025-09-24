@@ -76,7 +76,6 @@ export async function clearDatabase(db: SQLiteDatabase) {
 }
 
 export async function execQuery(db: SQLiteDatabase, query: string) {
-  console.debug("execQuery", query);
   try {
     await db.execAsync(query);
     lastDBWrite = Date.now();
@@ -221,14 +220,3 @@ export async function initDB(db: SQLiteDatabase): Promise<void> {
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
   console.info("initDB: initializing database DONE");
 }
-
-
-
-
-
-
-
-
-
-
-

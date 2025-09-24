@@ -1,15 +1,15 @@
 import AppIcon from "@/components/AppIcon";
 import Row from "@/components/Row";
 import { appFontSize } from "@/constants/AppStyles";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { getSeasonDate, getSeasonName, isViewOuting } from "@/hooks/SettingsManager";
-import { localeDate, t } from "@/hooks/ToolsBox";
 import { router, Tabs } from 'expo-router';
 import React, { useContext } from 'react';
 import { Pressable, StyleSheet, Text } from "react-native";
 
 const TabLayout = () => {
   const { colorsTheme } = useContext(ThemeContext);
+  const { t, localeDate: localeDate, seasonDate, seasonName, viewOuting } = useContext(SettingsContext)!;
 
 
   const styles = StyleSheet.create({
@@ -49,11 +49,11 @@ const TabLayout = () => {
           return (
             <Pressable onPress={() => router.navigate({ pathname: '/(drawer)/seasons-management' })}>
               <Row style={styles.header}>
-                <Text style={[styles.headerTitle, { marginHorizontal: 'auto' }]}>{getSeasonName()}</Text>
+                <Text style={[styles.headerTitle, { marginHorizontal: 'auto' }]}>{seasonName}</Text>
                 <Row style={{ marginHorizontal: 'auto' }}>
                   <AppIcon name="calendar1" color={colorsTheme.inactiveText} size={18} />
                   <Text style={[styles.headerSubtitle, { marginHorizontal: 'auto' }]}>
-                    {localeDate(getSeasonDate().getTime(), { day: '2-digit', month: 'short', year: 'numeric' })}
+                    {localeDate(seasonDate.getTime(), { day: '2-digit', month: 'short', year: 'numeric' })}
                   </Text>
                 </Row>
               </Row>
@@ -87,7 +87,7 @@ const TabLayout = () => {
       <Tabs.Screen
         name="offpistes"
         options={{
-          href: isViewOuting() ? undefined : null,
+          href: viewOuting ? undefined : null,
           title: t('tab_offpistes'),
           tabBarIcon: ({ color }) =>
             <AppIcon name="hors-piste" color={color} size={32} />,

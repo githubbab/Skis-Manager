@@ -4,9 +4,9 @@ import CheckButton from "@/components/CheckButton";
 import Row from "@/components/Row";
 import Separator from "@/components/Separator";
 import AppStyles from "@/constants/AppStyles";
+import { listLanguages } from "@/constants/Translations";
+import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { changeLang, getLang, isViewFriends, isViewOuting, toggleViewFriends, toggleViewOuting } from "@/hooks/SettingsManager";
-import { listLanguages, t } from "@/hooks/ToolsBox";
 import { Picker } from "@react-native-picker/picker";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useState } from "react";
@@ -17,8 +17,9 @@ export default function Settings() {
   const { currentTheme, colorsTheme, toggleTheme, useSystemTheme, isSystemTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const [om, setOm] = useState(isViewOuting());
-  const [fm, setFm] = useState(isViewFriends());
+  const  { lang, changeLang, viewOuting, toggleViewOuting, viewFriends, toggleViewFriends, t } = useContext(SettingsContext);
+  const [om, setOm] = useState(viewOuting);
+  const [fm, setFm] = useState(viewFriends);
 
   return (
     <Body>
@@ -43,12 +44,12 @@ export default function Settings() {
           <CheckButton title={t('settings_view_outings')} iconName={"hors-piste"}
             type={'switch'} onPress={() => {
               setOm(!om);
-              toggleViewOuting(db, !om);
+              toggleViewOuting(!om);
             }} isActive={om} />
           <CheckButton title={t('settings_view_friends')} iconName={"accessibility"}
             type={'switch'} onPress={() => {
               setFm(!fm);
-              toggleViewFriends(db, !fm);
+              toggleViewFriends(!fm);
             }} isActive={fm} />
         </View>
       </Row>
@@ -57,9 +58,9 @@ export default function Settings() {
         <AppIcon name={'flag'} color={colorsTheme.text} styles={styles.rightIco} />
 
         <View style={[styles.pickerView, { backgroundColor: colorsTheme.tileBG }]}>
-          <Picker selectedValue={getLang()} style={{ color: colorsTheme.text }}
+          <Picker selectedValue={lang} style={{ color: colorsTheme.text }}
             onValueChange={(itemValue, itemIndex) => {
-              changeLang(db, itemValue);
+              changeLang(itemValue === 'fr' ? 'fr' : 'en');
             }}
             dropdownIconColor={colorsTheme.text}
             dropdownIconRippleColor={colorsTheme.text}
@@ -94,5 +95,3 @@ const styles = {
   }
 
 }
-
-
