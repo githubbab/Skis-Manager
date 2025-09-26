@@ -1,6 +1,6 @@
 
 import { Asset } from "expo-asset";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 export const queriesStorePath = FileSystem.documentDirectory + "/queries/";
 export const imgStorePath = FileSystem.documentDirectory + "/images/";

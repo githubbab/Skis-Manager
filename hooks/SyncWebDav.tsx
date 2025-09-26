@@ -1,5 +1,5 @@
 import { Buffer } from "buffer";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { SQLiteDatabase } from "expo-sqlite";
 import { showMessage } from "react-native-flash-message";
 import { AuthType, createClient, FileStat, WebDAVClient } from "webdav";

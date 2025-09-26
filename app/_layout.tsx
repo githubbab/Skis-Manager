@@ -3,11 +3,12 @@ import ThemeProvider from "@/context/ThemeContext";
 import { initDB } from "@/hooks/DatabaseManager";
 import { initFS } from "@/hooks/FileSystemManager";
 import { useFonts } from 'expo-font';
-import { Slot, ErrorBoundary, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { type SQLiteDatabase, SQLiteProvider } from "expo-sqlite";
 import { useEffect } from "react";
 import { SafeAreaView } from "react-native";
+import FlashMessage from "react-native-flash-message";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -29,6 +30,7 @@ function RootLayoutNav() {
             <Stack>
               <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
             </Stack>
+            <FlashMessage position="top" />
           </ThemeProvider>
         </SettingsProvider>
       </SQLiteProvider>

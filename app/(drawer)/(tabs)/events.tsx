@@ -15,9 +15,9 @@ import { ThemeContext } from "@/context/ThemeContext";
 import { getLastDBWrite } from "@/hooks/DatabaseManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
 import { Friends, getAllFriends } from "@/hooks/dbFriends";
-import { deleteMaintain, getAllMaintains, initMaintain, insertMaintain, Maintains } from "@/hooks/dbMaintains";
+import { deleteMaintain, getAllMaintains, initMaintain, insertMaintain, Maintains, updateMaintain } from "@/hooks/dbMaintains";
 import { getAllOffPistes, OffPistes } from "@/hooks/dbOffPistes";
-import { deleteOuting, getAllOutings, initOuting, insertOuting, Outings } from "@/hooks/dbOutings";
+import { deleteOuting, getAllOutings, initOuting, insertOuting, Outings, updateOuting } from "@/hooks/dbOutings";
 import { getSeasonSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
@@ -368,8 +368,12 @@ const Events = () => {
   //  ####  #    #   ##   ###### #######  ####    #   # #    #  #### 
   const saveOuting = async () => {
     console.debug("Saving outing", outing2write);
+    if (outing2write.id === "not-an-id") {
+      await insertOuting(db, outing2write);
+    } else {
+      await updateOuting(db, outing2write);
+    }
     setOutingVisible(false);
-    await insertOuting(db, outing2write);
     setOuting2Write(initOuting());
     await loadData(); // Reload data after saving
   }
@@ -402,9 +406,13 @@ const Events = () => {
   // #    # #    #  #  #  #      #     # #    # # #   ##   #   #    # # #   ##
   //  ####  #    #   ##   ###### #     # #    # # #    #   #   #    # # #    #
   const saveMaintain = async () => {
-    console.debug("Saving maintain");
+    console.debug("Saving maintain", maintain2write);
+    if (maintain2write.id === "not-an-id") {
+      await insertMaintain(db, maintain2write);
+    } else {
+      await updateMaintain(db, maintain2write);
+    }
     setMaintainsVisible(false);
-    await insertMaintain(db, maintain2write);
     setMaintain2Write(initMaintain());
     await loadData(); // Reload data after saving
   }
@@ -610,65 +618,65 @@ const Events = () => {
           style={{ backgroundColor: colorsTheme.transparentBlue }}
 
         >
-            <Row>
-              <AppIcon name={"sortie"} color={colorsTheme.primary} styles={{ marginLeft: 4 }} />
-              <View style={{ flex: 1 }}>
-                <Row style={{ marginVertical: 2 }}>
-                  <Card>
-                    <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
-                  </Card>
-                  <Text style={[appStyles.text]}>
-                    {outingType?.name || ""}
-                    {outingOffPistes.length > 0 && `(${outingOffPistes.reduce((sum, off) => sum + (off.count || 0), 0)})`}
-                  </Text>
-                  {!userFilter && <Pastille size={iconSize} name={outingUser.name} color={outingUser.pcolor} />}
-                </Row>
-                {!skisFilter &&
-                  <Row>
-                    <AppIcon name={"skis"} color={colorsTheme.text} />
-                    {outingSkis.icoTypeOfSkisUri ?
-                      <Image source={{ uri: outingSkis.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
-                      <Pastille size={iconSize} name={outingSkis.typeOfSkis || ""} />
-                    }
-                    <Image source={{ uri: outingSkis.icoBrandUri }}
-                      style={{ width: iconSize, height: iconSize }} />
-                    <Text numberOfLines={1}
-                      style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontWeight: 'bold' }}
-                    >
-                      {outingSkis.size ? outingSkis.size + " " : ""}{outingSkis.radius ? outingSkis.radius + "m " : ""}{outingSkis.name}
-                    </Text>
-                  </Row>
-                }
+          <Row>
+            <AppIcon name={"sortie"} color={colorsTheme.primary} styles={{ marginLeft: 4 }} />
+            <View style={{ flex: 1 }}>
+              <Row style={{ marginVertical: 2 }}>
+                <Card>
+                  <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
+                </Card>
+                <Text style={[appStyles.text]}>
+                  {outingType?.name || ""}
+                  {outingOffPistes.length > 0 && `(${outingOffPistes.reduce((sum, off) => sum + (off.count || 0), 0)})`}
+                </Text>
+                {!userFilter && <Pastille size={iconSize} name={outingUser.name} color={outingUser.pcolor} />}
+              </Row>
+              {!skisFilter &&
                 <Row>
-                  <AppIcon name={"ski-boot"} color={colorsTheme.text} />
-                  <Image source={{ uri: outingBoots.icoBrandUri }}
+                  <AppIcon name={"skis"} color={colorsTheme.text} />
+                  {outingSkis.icoTypeOfSkisUri ?
+                    <Image source={{ uri: outingSkis.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+                    <Pastille size={iconSize} name={outingSkis.typeOfSkis || ""} />
+                  }
+                  <Image source={{ uri: outingSkis.icoBrandUri }}
                     style={{ width: iconSize, height: iconSize }} />
-                  <Text style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontWeight: 'bold' }}>
-                    {outingBoots.flex ? outingBoots.flex + " " : ""}
-                    {outingBoots.size ? "T" + outingBoots.size + " " : ""}
-                    {outingBoots.name}
+                  <Text numberOfLines={1}
+                    style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontWeight: 'bold' }}
+                  >
+                    {outingSkis.size ? outingSkis.size + " " : ""}{outingSkis.radius ? outingSkis.radius + "m " : ""}{outingSkis.name}
                   </Text>
-                  {outingFriends.length > 0 && (
-                    <Card>
-                      <AppIcon name={"accessibility"} color={colorsTheme.text} />
-                      {outingFriends.map(friend => (
-                        <Pastille key={friend.id} name={friend.name} />
-                      ))}
-                    </Card>
-                  )}
                 </Row>
-                {outingOffPistes.length > 0 &&
-                  <Row>
-                    <AppIcon name={"hors-piste"} color={colorsTheme.text} />
-                    <Text style={[appStyles.text, { fontSize: 18, flex: 1 }]}>
-                      {outingOffPistes.map(off => `${off.name} (${off.count})`).join(', ')}
-                    </Text>
-                  </Row>
-                }
+              }
+              <Row>
+                <AppIcon name={"ski-boot"} color={colorsTheme.text} />
+                <Image source={{ uri: outingBoots.icoBrandUri }}
+                  style={{ width: iconSize, height: iconSize }} />
+                <Text style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontWeight: 'bold' }}>
+                  {outingBoots.flex ? outingBoots.flex + " " : ""}
+                  {outingBoots.size ? "T" + outingBoots.size + " " : ""}
+                  {outingBoots.name}
+                </Text>
+                {outingFriends.length > 0 && (
+                  <Card>
+                    <AppIcon name={"accessibility"} color={colorsTheme.text} />
+                    {outingFriends.map(friend => (
+                      <Pastille key={friend.id} name={friend.name} />
+                    ))}
+                  </Card>
+                )}
+              </Row>
+              {outingOffPistes.length > 0 &&
+                <Row>
+                  <AppIcon name={"hors-piste"} color={colorsTheme.text} />
+                  <Text style={[appStyles.text, { fontSize: 18, flex: 1 }]}>
+                    {outingOffPistes.map(off => `${off.name} (${off.count})`).join(', ')}
+                  </Text>
+                </Row>
+              }
 
-              </View>
-            </Row>
-          </RowItem>
+            </View>
+          </Row>
+        </RowItem>
       );
     }
     // #     #                                             

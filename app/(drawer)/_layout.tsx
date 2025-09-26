@@ -4,15 +4,15 @@ import Row from "@/components/Row";
 import Separator from "@/components/Separator";
 import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
+import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
 import React, { useContext } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
-const DrawerLayout = () => {
+export default function DrawerLayout() {
   const { currentTheme, colorsTheme } = useContext(ThemeContext);
   const db = useSQLiteContext();
   const { t, localeDate: localeDate, viewOuting, viewFriends } = useContext(SettingsContext)!;
@@ -380,7 +380,4 @@ const DrawerLayout = () => {
     </Drawer>
   )
 }
-
-export default DrawerLayout;
-
 

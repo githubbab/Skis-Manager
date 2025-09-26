@@ -49,3 +49,4 @@ web-build/
 android
 ios
 *.apk
+package-lock.json

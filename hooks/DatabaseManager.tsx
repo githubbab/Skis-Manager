@@ -52,7 +52,7 @@ export function formatSQL(sql: string, values: any[]): string {
 export function createId() {
   let newId = new Date().getTime().toString() + "-" + deviceID;
   while (newId === lastId) {
-    console.error("createId: collision, regenerating");
+    console.warn("createId: collision, regenerating");
     // Very unlikely, but just in case
     newId = new Date().getTime().toString() + "-" + deviceID;
   }

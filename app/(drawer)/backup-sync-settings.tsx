@@ -20,7 +20,7 @@ import { clearStore } from "@/hooks/FileSystemManager";
 import { checkWebDavSync } from "@/hooks/SyncWebDav";
 import { smDate } from "@/hooks/ToolsBox";
 import { reloadAppAsync } from "expo";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import * as SQLite from 'expo-sqlite';
@@ -288,8 +288,8 @@ export default function BackupSyncSettings() {
 
 
   useEffect(() => {
-      if (webDavSyncEnabled && (webDavUrlState !== webDavUrl || webDavUserState !== webDavUser || webDavPasswordState !== webDavPassword))
-        changeWebDavSync(false, webDavUrl, webDavUser, webDavPassword, webDavSyncPeriod);
+    if (webDavSyncEnabled && (webDavUrlState !== webDavUrl || webDavUserState !== webDavUser || webDavPasswordState !== webDavPassword))
+      changeWebDavSync(false, webDavUrl, webDavUser, webDavPassword, webDavSyncPeriod);
   }, [webDavUrlState, webDavUserState, webDavPasswordState])
 
   const restoreOldDB = async () => {
@@ -298,7 +298,7 @@ export default function BackupSyncSettings() {
       await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory + "dbRestore/", { intermediates: true });
     }
     try {
-     const result = await DocumentPicker.getDocumentAsync({
+      const result = await DocumentPicker.getDocumentAsync({
         multiple: false,
         copyToCacheDirectory: true,
       });
@@ -371,7 +371,8 @@ export default function BackupSyncSettings() {
             autoHide: true,
             duration: 5000
           });
-          SQLite.deleteDatabaseAsync("restore.db", dbRestoreDir.uri);
+          await sqLiteDatabase.closeAsync();
+          await FileSystem.deleteAsync(sqLiteDatabase.databasePath);
           setInactivated(false);
           return;
         }
