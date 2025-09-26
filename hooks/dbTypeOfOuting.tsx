@@ -9,6 +9,14 @@ export type TOO = {
   itemCount?: number; 
 };
 
+export function initTypeOfOutings(): TOO {
+  return {
+    id: "not-an-id",
+    name: "",
+    canOffPiste: false,
+    itemCount: undefined,
+  };
+}
 
 // -------------------- TYPE OF OUTING --------------------
 export async function insertTypeOfOutings(db: SQLiteDatabase, too: { name: string, canOffPiste: boolean }) {

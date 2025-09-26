@@ -103,7 +103,6 @@ export async function getAllOutings(db: SQLiteDatabase, seasonDate: number): Pro
     GROUP BY o.id
     ORDER BY o.date DESC
     `, [seasonDate]);
-    console.log("getAllOutings result", result);
   return result.map((row: any) => ({
     id: row.id,
     date: row.date,

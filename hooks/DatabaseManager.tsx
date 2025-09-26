@@ -3,7 +3,6 @@ import asyncAlert from "@/components/AsyncAlert";
 import { writeQuery } from "@/hooks/FileSystemManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { SQLiteDatabase } from "expo-sqlite";
-import { showMessage } from "react-native-flash-message";
 
 
 const DATABASE_VERSION = 1;
@@ -11,6 +10,7 @@ let currentDbVersion = 0;
 let lastDBWrite = Date.now();
 let dbUpdated = false;
 let deviceID: string = "not-an-id";
+let lastId: string = "not-an-id";
 
 const concatQueries: string[] = [];
 let concatQueriesActive = false;
@@ -44,13 +44,20 @@ export function formatSQL(sql: string, values: any[]): string {
   return sql.replace(/\?/g, () => {
     const val = values[i++];
     if (val === null) return 'NULL';
-    if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+    if (typeof val === 'string') return `'${val.replace(/'/g, "'$&'")}'`;
     return val.toString();
   });
 }
 
 export function createId() {
-  return new Date().getTime().toString() + "-" + deviceID;
+  let newId = new Date().getTime().toString() + "-" + deviceID;
+  while (newId === lastId) {
+    console.error("createId: collision, regenerating");
+    // Very unlikely, but just in case
+    newId = new Date().getTime().toString() + "-" + deviceID;
+  }
+  lastId = newId;
+  return newId;
 }
 
 export function getDeviceID() {
@@ -86,14 +93,10 @@ export async function execQuery(db: SQLiteDatabase, query: string) {
     }
     await writeQuery("query-" + new Date().getTime().toString() + "-" + deviceID + ".sql", query);
   } catch (err) {
+    const errNumber = (err as any)?.code ?? -1;
     const message = err ? err.toString() : "Unknown error";
     console.error(message);
-    await asyncAlert("alert", message);
-    showMessage({
-      message: message,
-      type: "danger",
-      duration: 5000,
-    });
+    await asyncAlert("alert err n°" + errNumber, message);
   }
 }
 

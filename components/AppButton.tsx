@@ -43,7 +43,7 @@ export default function AppButton({ onPress, color, textColor, style, caption, i
   });
 
   return (
-    <TouchableOpacity style={[styles.button, style]} activeOpacity={0.7} onPress={onPress} disabled={disabled}>
+    <TouchableOpacity style={[styles.button, style]} activeOpacity={disabled ? 1 : 0.7} onPress={disabled ? undefined : onPress}>
       <View style={styles.buttonBody}>
         {icon && <AppIcon name={icon} color={textColor || colorsTheme.text} size={20} />}
         {caption && <Text style={[styles.textButton, { color: textColor || colorsTheme.text }]}>{caption}</Text>}

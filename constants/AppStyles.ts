@@ -85,30 +85,6 @@ export default function (colors: typeof AppColors['light']) {
         paddingBottom: 4,
         paddingStart: 4,
       },
-      swipePrimary: {
-        backgroundColor: colors.primary,
-        width: 80,
-        paddingVertical: "auto",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 99,
-      },
-      swipeAlert: {
-        backgroundColor: colors.alert,
-        width: 80,
-        paddingVertical: "auto",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 99,
-      },
-      swipeWarning: {
-        backgroundColor: colors.warning,
-        width: 80,
-        paddingVertical: "auto",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 99,
-      },
     }
     )
   )

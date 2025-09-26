@@ -6,6 +6,7 @@ import Card from "@/components/Card";
 import ModalEditor from "@/components/ModalEditor";
 import Pastille from "@/components/Pastille";
 import Row from "@/components/Row";
+import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
 import SettingsContext from "@/context/SettingsContext";
@@ -14,8 +15,6 @@ import { deleteTypeOfSkis, getAllTypeOfSkis, initTypeOfSkis, insertTypeOfSkis, T
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Pressable } from 'react-native';
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 export default function TypeOfSkisManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
@@ -25,10 +24,10 @@ export default function TypeOfSkisManagementScreen() {
 
   const [types, setTypes] = useState<TOS[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingTOS, setEditingTOS] = useState<TOS | null>(null);
+  const [editingTOS, setEditingTOS] = useState<TOS>(initTypeOfSkis());
   const [name, setName] = useState("");
-  const [waxNeed, setWaxNeed] = useState<number | undefined>(undefined);
-  const [sharpNeed, setSharpNeed] = useState<number | undefined>(undefined);
+  const [waxNeed, setWaxNeed] = useState<number>(0);
+  const [sharpNeed, setSharpNeed] = useState<number>(0);
   const inputRef = useRef<TextInput>(null);
 
   const iconSize = 48;
@@ -64,10 +63,10 @@ export default function TypeOfSkisManagementScreen() {
   // #    # #      #      #   ## #     # #    # #    # #     # #    # #    # #    # #     
   //  ####  #      ###### #    # #     # #####  #####  #     #  ####  #####  #    # ######
   function openAddModal() {
-    setEditingTOS(null);
+    setEditingTOS(initTypeOfSkis());
     setName("");
-    setWaxNeed(0);
-    setSharpNeed(0);
+    setWaxNeed(1);
+    setSharpNeed(1);
     setModalVisible(true);
   }
 
@@ -79,6 +78,7 @@ export default function TypeOfSkisManagementScreen() {
   // #    # #      #      #   ## #       #    # #   #   #     # #    # #    # #    # #     
   //  ####  #      ###### #    # ####### #####  #   #   #     #  ####  #####  #    # ######
   function openEditModal(tos: TOS) {
+    console.debug("Editing TOS:", tos);
     setEditingTOS(tos);
     setName(tos.name);
     setWaxNeed(tos.waxNeed);
@@ -96,13 +96,13 @@ export default function TypeOfSkisManagementScreen() {
   //  ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   async function saveAction() {
     if (!name.trim()) return;
-    if (editingTOS) {
+    if (editingTOS.id !== "not-an-id") {
       await updateTypeOfSkis(db, { ...initTypeOfSkis(), id: editingTOS.id, name, waxNeed, sharpNeed });
     } else {
       await insertTypeOfSkis(db, { name, waxNeed, sharpNeed });
     }
     setModalVisible(false);
-    setEditingTOS(null);
+    setEditingTOS(initTypeOfSkis());
     loadData();
   }
 
@@ -115,8 +115,8 @@ export default function TypeOfSkisManagementScreen() {
   // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   function handleDelete(tos: TOS) {
     Alert.alert(
-      t('delete'),
-      t('del_tos'),
+      tos.itemCount>0? t('delete') : t('archive'),
+      tos.itemCount>0? t('del_tos') : t('archive_tos'),
       [
         { text: t('cancel'), style: "cancel" },
         {
@@ -139,7 +139,7 @@ export default function TypeOfSkisManagementScreen() {
   //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
-    setEditingTOS(null);
+    setEditingTOS(initTypeOfSkis());
     setName("");
     inputRef.current?.blur();
   }
@@ -153,80 +153,43 @@ export default function TypeOfSkisManagementScreen() {
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem({ item }: { item: TOS }) {
     const nbActions = item.itemCount || 0;
-    
+
     return (
-      <ReanimatedSwipeable
-        ref={ref => {
-          if (ref) {
-            (item as any).swipeRef = ref as SwipeableMethods;
+      <RowItem
+        isActive={item.id === editingTOS.id}
+        onSelect={() => {
+          if (item.id === editingTOS.id) {
+            setEditingTOS(initTypeOfSkis());
+          } else {
+            setEditingTOS(item);
           }
         }}
-        onSwipeableOpen={() => {
-          // Auto-close after 3 seconds
-          setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
-            }
-          }, 2000);
-        }}
-        renderLeftActions={() => (
-          <Pressable
-            onPress={() => {
-              (item as any).swipeRef.close();
-              openEditModal(item);
-            }}
-            style={appStyles.swipePrimary}
-          >
-            <AppIcon name="pencil" color={colorsTheme.text} />
-            <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
-          </Pressable>
-        )}
-        renderRightActions={() => {
-          if (nbActions > 0 || item.id.startsWith('init-')) return null;
-          return (
-            <Pressable
-              onPress={() => {
-                (item as any).swipeRef.close();
-                handleDelete(item);
-              }}
-              style={appStyles.swipeAlert}
-            >
-              <AppIcon name={"bin"} color={colorsTheme.text} />
-              <Text style={{ color: colorsTheme.text }}>{t('delete')}</Text>
-            </Pressable>
-          );
-        }}
+        onEdit={() => openEditModal(item)}
+        onDelete={() => handleDelete(item)}
+        deleteMode={nbActions > 0 ? "archive" : "delete"}
       >
-        <View style={[appStyles.renderItem, {
-          zIndex: 1,
-          borderRightColor: nbActions > 0 || item.id.startsWith('init-') ? 'transparent' : colorsTheme.alert,
-          borderRightWidth: 1,
-          justifyContent: 'center',
-          paddingHorizontal: 4
-        }]}>
-          <Row >
-            {item.icoUri ? (
-              <Image source={{ uri: item.icoUri }}
-                style={{ width: iconSize, height: iconSize, marginRight: 8, borderRadius: 8 }} />
-            ) : <Pastille name={item.name} size={iconSize} />}
-            <Text style={[appStyles.title, { flex: 1 }]}>
-              {item.name}{item.itemCount > 0 && <Text style={[appStyles.text, { color: colorsTheme.inactiveText }]}> ({item.itemCount.toString()})</Text>}
-            </Text>
-            {item.sharpNeed ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
-                <AppIcon name="affuteuse" color={colorsTheme.primary} styles={{ fontSize: 20, marginRight: 2 }} />
-                <Text style={[appStyles.text, { color: colorsTheme.inactiveText, fontSize: 18 }]}>{item.sharpNeed}</Text>
-              </View>
-            ) : null}
-            {item.waxNeed ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
-                <AppIcon name="fartage" color={colorsTheme.primary} styles={{ fontSize: 20, marginRight: 2 }} />
-                <Text style={[appStyles.text, { color: colorsTheme.inactiveText, fontSize: 18 }]}>{item.waxNeed}</Text>
-              </View>
-            ) : null}
-          </Row>
-        </View>
-      </ReanimatedSwipeable>
+        <Row >
+          {item.icoUri ? (
+            <Image source={{ uri: item.icoUri }}
+              style={{ width: iconSize, height: iconSize, marginRight: 8, borderRadius: 8 }} />
+          ) : <Pastille name={item.name} size={iconSize} />}
+          <Text style={[appStyles.title, { flex: 1 }]}>
+            {item.name}{item.itemCount > 0 && <Text style={[appStyles.text, { color: colorsTheme.inactiveText }]}> ({item.itemCount.toString()})</Text>}
+          </Text>
+          {item.sharpNeed ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+              <AppIcon name="affuteuse" color={colorsTheme.primary} styles={{ fontSize: 20, marginRight: 2 }} />
+              <Text style={[appStyles.text, { color: colorsTheme.inactiveText, fontSize: 18 }]}>{item.sharpNeed}</Text>
+            </View>
+          ) : null}
+          {item.waxNeed ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+              <AppIcon name="fartage" color={colorsTheme.primary} styles={{ fontSize: 20, marginRight: 2 }} />
+              <Text style={[appStyles.text, { color: colorsTheme.inactiveText, fontSize: 18 }]}>{item.waxNeed}</Text>
+            </View>
+          ) : null}
+        </Row>
+      </RowItem>
     )
   }
 
@@ -262,7 +225,7 @@ export default function TypeOfSkisManagementScreen() {
       <ModalEditor visible={modalVisible}>
         <Row>
           <Text style={[appStyles.title, { flex: 1, textAlign: 'center' }]}>
-            {editingTOS ? t("modify_tos") : t("add_tos")}
+            {editingTOS.id !== "not-an-id" ? t("modify_tos") : t("add_tos")}
           </Text>
         </Row>
 
@@ -288,21 +251,21 @@ export default function TypeOfSkisManagementScreen() {
           {/* SharpNeed */}
           <Card borderColor={sharpNeed ? colorsTheme.primary : undefined}>
 
-            <TouchableOpacity onPress={() => setSharpNeed(sharpNeed === undefined ? 1 : undefined)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => setSharpNeed(sharpNeed === 0 ? 1 : 0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AppIcon name="affuteuse" color={sharpNeed ? colorsTheme.text : colorsTheme.inactiveText} styles={{ fontSize: 32, marginRight: 4 }} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setSharpNeed(Math.max(1, (sharpNeed || 1) - 1))}
+              onPress={() => { if (sharpNeed !== 0) setSharpNeed(Math.max(1, sharpNeed - 1)) }}
               style={{ paddingHorizontal: 8 }}
-              disabled={sharpNeed === undefined}
+              disabled={sharpNeed === 0}
             >
               <Text style={{ fontSize: 32, color: sharpNeed ? colorsTheme.primary : colorsTheme.inactiveText }}>-</Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 28, color: sharpNeed ? colorsTheme.text : colorsTheme.inactiveText, minWidth: 24, textAlign: 'center' }}>{sharpNeed}</Text>
+            <Text style={{ fontSize: 28, color: sharpNeed ? colorsTheme.text : colorsTheme.inactiveText, minWidth: 24, textAlign: 'center' }}>{sharpNeed === 0 ? '' : sharpNeed}</Text>
             <TouchableOpacity
-              onPress={() => setSharpNeed((sharpNeed || 1) + 1)}
+              onPress={() => { if (sharpNeed !== 0) setSharpNeed((sharpNeed || 1) + 1) }}
               style={{ paddingHorizontal: 8 }}
-              disabled={sharpNeed === undefined}
+              disabled={sharpNeed === 0}
             >
               <Text style={{ fontSize: 32, color: sharpNeed ? colorsTheme.primary : colorsTheme.inactiveText }}>+</Text>
             </TouchableOpacity>
@@ -310,21 +273,21 @@ export default function TypeOfSkisManagementScreen() {
 
           {/* WaxNeed */}
           <Card borderColor={waxNeed ? colorsTheme.primary : undefined}>
-            <TouchableOpacity onPress={() => setWaxNeed(waxNeed === undefined ? 1 : undefined)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => setWaxNeed(waxNeed === 0 ? 1 : 0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AppIcon name="fartage" color={waxNeed ? colorsTheme.text : colorsTheme.inactiveText} styles={{ fontSize: 32, marginRight: 4 }} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setWaxNeed(Math.max(1, (waxNeed || 1) - 1))}
+              onPress={() => { if (waxNeed !== 0) setWaxNeed(Math.max(1, waxNeed - 1)) }}
               style={{ paddingHorizontal: 8 }}
-              disabled={waxNeed === undefined}
+              disabled={waxNeed === 0}
             >
               <Text style={{ fontSize: 32, color: waxNeed ? colorsTheme.primary : colorsTheme.inactiveText }}>-</Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 28, color: waxNeed ? colorsTheme.text : colorsTheme.inactiveText, minWidth: 24, textAlign: 'center' }}>{waxNeed}</Text>
+            <Text style={{ fontSize: 28, color: waxNeed ? colorsTheme.text : colorsTheme.inactiveText, minWidth: 24, textAlign: 'center' }}>{waxNeed === 0 ? '' : waxNeed}</Text>
             <TouchableOpacity
-              onPress={() => setWaxNeed((waxNeed || 1) + 1)}
+              onPress={() => { if (waxNeed !== 0) setWaxNeed((waxNeed || 1) + 1) }}
               style={{ paddingHorizontal: 8 }}
-              disabled={waxNeed === undefined}
+              disabled={waxNeed === 0}
             >
               <Text style={{ fontSize: 32, color: waxNeed ? colorsTheme.primary : colorsTheme.inactiveText }}>+</Text>
             </TouchableOpacity>
@@ -335,7 +298,7 @@ export default function TypeOfSkisManagementScreen() {
             onPress={saveAction}
             color={name.trim() ? colorsTheme.activeButton : colorsTheme.inactiveButton}
             flex={true}
-            caption={editingTOS === null ? t('add') : t('modify')}
+            caption={editingTOS.id === "not-an-id" ? t('add') : t('modify')}
             disabled={!name.trim()}
           />
           <AppButton onPress={cancelAction} color={colorsTheme.transparentGray} flex={true} style={{ flex: 1 }} caption={t('cancel')} />

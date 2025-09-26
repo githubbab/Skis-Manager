@@ -19,11 +19,10 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import { colorPickerStyle } from '@/constants/colorPickerStyle';
 import { smDate } from "@/hooks/ToolsBox";
-import { Pressable } from 'react-native';
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import type { ColorFormatsObject } from 'reanimated-color-picker';
 import ColorPicker, { HueCircular, Panel1, Swatches } from 'reanimated-color-picker';
 import SettingsContext from "@/context/SettingsContext";
+import RowItem from "@/components/RowItem";
 
 const customSwatches = ["#6CC5B0", "#F3722C", "#FF8AB7", "#3CA951", "#A463F2", "#4269D0"];
 
@@ -239,79 +238,45 @@ export default function UsersManagementScreen() {
   function renderItem(item: Users) {
     const nbActions = item.nbOutings + item.nbBoots + item.nbSkis;
     return (
-      <ReanimatedSwipeable
-        ref={ref => {
-          if (ref) {
-            (item as any).swipeRef = ref as SwipeableMethods;
+      <RowItem
+        isActive={item.id === selectedUser.id}
+        onSelect={() => {
+          if (selectedUser.id === item.id) {
+            setSelectedUser(initUser());
+          } else {
+            setSelectedUser(item);
           }
         }}
-        onSwipeableOpen={() => {
-          // Auto-close after 3 seconds
-          setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
-            }
-          }, 2000);
-        }}
-        renderLeftActions={() => (
-          <Pressable
-            onPress={() => {
-              (item as any).swipeRef.close();
-              openEditModal(item);
-            }}
-            style={appStyles.swipePrimary}
-          >
-            <AppIcon name="pencil" color={colorsTheme.text} />
-            <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
-          </Pressable>
-        )}
-        renderRightActions={() => (
-          <Pressable
-            onPress={() => {
-              (item as any).swipeRef.close();
-              handleDelete(item);
-            }}
-            style={nbActions > 0 ? appStyles.swipeWarning : appStyles.swipeAlert}
-          >
-            <AppIcon name={item.end ? "box-remove" : (nbActions > 0 ? "box-add" : "bin")} color={colorsTheme.text} />
-            <Text style={{ color: colorsTheme.text }}>{item.end ? t('restore') : (nbActions > 0 ? t('archive') : t('delete'))}</Text>
-          </Pressable>
-        )}
+        onEdit={() => openEditModal(item)}
+        onDelete={() => handleDelete(item)}
+        deleteMode={item.end ? "restore" : nbActions > 0 ? "archive" : "delete"}
       >
-        <View style={[appStyles.renderItem,
-        {
-          opacity: item.end ? 0.5 : 1,
-          borderRightColor: item.nbOutings + item.nbBoots + item.nbSkis > 0 ? colorsTheme.warning : colorsTheme.alert,
-          borderRightWidth: 1,
-        }]}
-        >
-          <Row>
-            <Pastille name={item.name} size={48} color={item.pcolor || undefined} />
-            <Text style={[appStyles.textBold, { paddingHorizontal: 8, flex: 1 }]}>
-              {item.name} {item.end ? `(fin: ${(new Date(item.end)).toLocaleDateString()})` : ""}
-            </Text>
-            <View >
-              <Row>
-                <View style={{ flex: 1 }} />
-                <Card>
-                  <Text style={[appStyles.text, { textAlign: 'right' }]}>{item.nbOutings}</Text>
-                  <AppIcon name={"sortie"} color={colorsTheme.text} size={18} />
-                </Card>
-              </Row>
-              <Row>
-                <Card>
-                  <Text style={[appStyles.text]}>{item.nbBoots}</Text>
-                  <AppIcon name={"ski-boot"} color={colorsTheme.text} size={18} />
-                </Card>
-                <Card>
-                  <Text style={[appStyles.text]}>{item.nbSkis}</Text>
-                  <AppIcon name={"skis"} color={colorsTheme.text} size={18} />
-                </Card>
-              </Row>
-            </View>
-          </Row>
-        </View>
-      </ReanimatedSwipeable>
+        <Row>
+          <Pastille name={item.name} size={48} color={item.pcolor || undefined} />
+          <Text style={[appStyles.textBold, { paddingHorizontal: 8, flex: 1 }]}>
+            {item.name} {item.end ? `(fin: ${(new Date(item.end)).toLocaleDateString()})` : ""}
+          </Text>
+          <View >
+            <Row>
+              <View style={{ flex: 1 }} />
+              <Card>
+                <Text style={[appStyles.text, { textAlign: 'right' }]}>{item.nbOutings}</Text>
+                <AppIcon name={"sortie"} color={colorsTheme.text} size={18} />
+              </Card>
+            </Row>
+            <Row>
+              <Card>
+                <Text style={[appStyles.text]}>{item.nbBoots}</Text>
+                <AppIcon name={"ski-boot"} color={colorsTheme.text} size={18} />
+              </Card>
+              <Card>
+                <Text style={[appStyles.text]}>{item.nbSkis}</Text>
+                <AppIcon name={"skis"} color={colorsTheme.text} size={18} />
+              </Card>
+            </Row>
+          </View>
+        </Row>
+      </RowItem>
     );
   }
 

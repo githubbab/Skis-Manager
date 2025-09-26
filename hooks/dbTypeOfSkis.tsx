@@ -5,8 +5,8 @@ import { delToSIco, getToSIcoURI } from './FileSystemManager';
 export type TOS = {
   id: string;
   name: string;
-  waxNeed?: number;
-  sharpNeed?: number;
+  waxNeed: number;
+  sharpNeed: number;
   icoUri?: string;
   itemCount: number; // Optional, will be filled when fetching
 };

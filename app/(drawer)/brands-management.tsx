@@ -6,19 +6,18 @@ import Body from "@/components/Body";
 import Card from "@/components/Card";
 import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
+import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
 import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { Brands, deleteBrand, getAllBrands, insertBrand, updateBrand } from "@/hooks/dbBrands";
+import { Brands, deleteBrand, getAllBrands, initBrand, insertBrand, updateBrand } from "@/hooks/dbBrands";
 import { copyBrandIco, icoUnknownBrand } from "@/hooks/FileSystemManager";
 import * as DocumentPicker from 'expo-document-picker';
 import { ImageManipulator } from 'expo-image-manipulator';
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Pressable } from 'react-native';
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 
 export default function BrandsManagementScreen() {
@@ -28,9 +27,10 @@ export default function BrandsManagementScreen() {
 
   const [brands, setBrands] = useState<Brands[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingBrand, setEditingBrand] = useState<Brands | null>(null);
+  const [editingBrand, setEditingBrand] = useState<Brands>(initBrand());
   const [name, setName] = useState("");
   const [brandImage, setBrandImage] = useState<string | undefined>(undefined);
+  const [imageChanged, setImageChanged] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
   const { t } = useContext(SettingsContext)!;
@@ -68,10 +68,11 @@ export default function BrandsManagementScreen() {
   // #    # #      #      #   ## #     # #    # #    # #     # #    # #    # #    # #     
   //  ####  #      ###### #    # #     # #####  #####  #     #  ####  #####  #    # ######
   function openAddModal() {
-    setEditingBrand(null);
+    setEditingBrand(initBrand());
     setName("");
     setBrandImage(undefined);
     setModalVisible(true);
+    setImageChanged(false);
   }
 
 
@@ -87,6 +88,7 @@ export default function BrandsManagementScreen() {
     setName(brand.name);
     setBrandImage(brand.icoUri);
     setModalVisible(true);
+    setImageChanged(false);
   }
 
   //                                #                                
@@ -98,20 +100,21 @@ export default function BrandsManagementScreen() {
   //  ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   async function saveAction() {
     if (!name.trim()) return;
-    let brandId = editingBrand ? editingBrand.id : undefined;
-    if (editingBrand) {
+    let brandId = editingBrand.id;
+    if (brandId !== "not-an-id") {
       await updateBrand(db, { id: editingBrand.id, name });
     } else {
       const res = await insertBrand(db, { name });
       brandId = res.id;
     }
     // Si une image a été sélectionnée, la sauvegarder dans le dossier local
-    if (brandImage && brandId) {
+    if (brandImage && brandId && imageChanged) {
       // Si l'image n'est pas déjà dans le bon dossier, la copier
+      console.log("Brand image:", brandImage, "Brand ID:", brandId);
       copyBrandIco(brandId, brandImage);
     }
     setModalVisible(false);
-    setEditingBrand(null);
+    setEditingBrand(initBrand());
     setBrandImage(undefined);
     loadData();
   }
@@ -127,6 +130,8 @@ export default function BrandsManagementScreen() {
       const manipulator = ImageManipulator.manipulate(img.uri).resize({ width: 256, height: 256 });
       const manipResult = await (await manipulator.renderAsync()).saveAsync();
       setBrandImage(manipResult.uri);
+      setImageChanged(true);
+      console.log("Image sélectionnée :", manipResult.uri);
     }
   }
 
@@ -165,8 +170,10 @@ export default function BrandsManagementScreen() {
   //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
-    setEditingBrand(null);
+    setEditingBrand(initBrand());
     setName("");
+    setImageChanged(false);
+    setBrandImage(undefined);
     inputRef.current?.blur();
   }
 
@@ -182,52 +189,13 @@ export default function BrandsManagementScreen() {
     const nbActions = item.nbSkis + item.nbBoots;
 
     return (
-      <ReanimatedSwipeable
-        ref={ref => {
-          if (ref) {
-            (item as any).swipeRef = ref as SwipeableMethods;
-          }
-        }}
-        onSwipeableOpen={() => {
-          // Auto-close after 3 seconds
-          setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
-            }
-          }, 2000);
-        }}
-        renderLeftActions={() => (
-          <Pressable
-            onPress={() => {
-              (item as any).swipeRef.close();
-              openEditModal(item);
-            }}
-            style={appStyles.swipePrimary}
-          >
-            <AppIcon name="pencil" color={colorsTheme.text} />
-            <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
-          </Pressable>
-        )}
-        renderRightActions={() => {
-          if (nbActions > 0 || item.id.startsWith('init-')) return null;
-          return (
-            <Pressable
-              onPress={() => {  (item as any).swipeRef.close(); handleDelete(item); }}
-              style={appStyles.swipeAlert}
-            >
-              <AppIcon name={"bin"} color={colorsTheme.text} />
-              <Text style={{ color: colorsTheme.text }}>{t('delete')}</Text>
-            </Pressable>
-          );
-        }}
-      >
-        <View style={[appStyles.renderItem, {
-          height: 64,
-          zIndex: 1,
-          borderRightColor: nbActions > 0 || item.id.startsWith('init-') ? "transparent" : colorsTheme.alert,
-          borderRightWidth: 1,
-          justifyContent: 'center',
-        }]}>
+      <RowItem
+        isActive={ item.id === editingBrand.id }
+        onSelect={() => { if (item.id === editingBrand.id) setEditingBrand(initBrand()); else setEditingBrand(item); }}
+        onEdit={() => openEditModal(item)}
+        deleteMode={"delete"}
+        onDelete={item.id.startsWith('init-') ? undefined : () => handleDelete(item)  }
+        >
           <Row>
             <Image source={{ uri: item.icoUri }}
               style={{ width: iconSize, height: iconSize, marginRight: 8, borderRadius: 8 }} />
@@ -247,8 +215,7 @@ export default function BrandsManagementScreen() {
             {(item.nbSkis + item.nbBoots === 0) &&
               <Text style={[appStyles.inactiveText]}>{t('not_used')}</Text>}
           </Row>
-        </View>
-      </ReanimatedSwipeable>
+      </RowItem>
     );
   }
 
@@ -282,11 +249,11 @@ export default function BrandsManagementScreen() {
       }
       <ModalEditor visible={modalVisible}>
         <Text style={appStyles.title}>
-          {editingBrand ? t("modify_brand") : t("add_brand")}
+          {editingBrand.id !== "not-an-id" ? t("modify_brand") : t("add_brand")}
         </Text>
         <Row style={{ justifyContent: 'center', alignItems: 'center', marginVertical: 8 }}>
           <TouchableOpacity onPress={pickImage} style={{ alignItems: 'center' }}>
-            <Image source={{ uri: brandImage || editingBrand?.icoUri || icoUnknownBrand }}
+            <Image source={{ uri: brandImage || editingBrand.icoUri || icoUnknownBrand }}
               style={{ width: 64, height: 64, borderRadius: 12, marginBottom: 8, borderWidth: 2, borderColor: colorsTheme.primary }} />
             <Text style={{ color: colorsTheme.primary, fontSize: 12 }}>{t('choose_image') || 'Choisir une image'}</Text>
           </TouchableOpacity>
@@ -302,7 +269,7 @@ export default function BrandsManagementScreen() {
           />
         </Row>
         <Row>
-          <AppButton onPress={saveAction} color={colorsTheme.activeButton} flex={1} caption={editingBrand ? t('modify') : t('add')} />
+          <AppButton onPress={saveAction} color={colorsTheme.activeButton} flex={1} caption={editingBrand.id !== "not-an-id" ? t('modify') : t('add')} />
           <AppButton onPress={cancelAction} color={colorsTheme.transparentGray} flex={1} caption={t('cancel')} />
         </Row>
       </ModalEditor>

@@ -516,6 +516,7 @@ export default function BackupSyncSettings() {
       <Row>
         <AppIcon name="sphere" color={colorsTheme.text} />
         <TextInput
+          placeholderTextColor={colorsTheme.inactiveText}
           placeholder={t('sync_webdav_url')}
           selectionHandleColor={colorsTheme.inactiveText}
           autoCapitalize="none"
@@ -532,6 +533,7 @@ export default function BackupSyncSettings() {
       <Row>
         <AppIcon name="user" color={colorsTheme.text} />
         <TextInput
+          placeholderTextColor={colorsTheme.inactiveText}
           placeholder={t('sync_webdav_user')}
           autoCapitalize="none"
           autoCorrect={false}
@@ -544,6 +546,7 @@ export default function BackupSyncSettings() {
       <Row>
         <AppIcon name="lock" color={colorsTheme.text} />
         <TextInput
+          placeholderTextColor={colorsTheme.inactiveText}
           placeholder={t('sync_webdav_password')}
           selectionHandleColor={colorsTheme.inactiveText}
           autoCapitalize="none"

@@ -5,17 +5,17 @@ import Body from "@/components/Body";
 import Card from "@/components/Card";
 import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
+import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
 import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { OffPistes, deleteOffPiste, getAllOffPistes, insertOffPiste, updateOffPiste } from "@/hooks/dbOffPistes";
+import { OffPistes, deleteOffPiste, getAllOffPistes, initOffPiste, insertOffPiste, updateOffPiste } from "@/hooks/dbOffPistes";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Text, TextInput, View } from "react-native";
 import { Pressable } from 'react-native';
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 export default function OffpistesManagement() {
   const { colorsTheme } = useContext(ThemeContext);
@@ -24,7 +24,7 @@ export default function OffpistesManagement() {
 
   const [offpistes, setOffpistes] = useState<OffPistes[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingOffpiste, setEditingOffpiste] = useState<OffPistes | null>(null);
+  const [editingOffpiste, setEditingOffpiste] = useState<OffPistes>(initOffPiste());
   const [name, setName] = useState("");
   const inputRef = useRef<TextInput>(null);
 
@@ -61,7 +61,7 @@ export default function OffpistesManagement() {
   // #    # #      #      #   ## #     # #    # #    # #     # #    # #    # #    # #     
   //  ####  #      ###### #    # #     # #####  #####  #     #  ####  #####  #    # ######
   function openAddModal() {
-    setEditingOffpiste(null);
+    setEditingOffpiste(initOffPiste());
     setName("");
     setModalVisible(true);
   }
@@ -88,13 +88,13 @@ export default function OffpistesManagement() {
   //  ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   async function saveAction() {
     if (!name.trim()) return;
-    if (editingOffpiste) {
+    if (editingOffpiste.id !== "not-an-id") {
       await updateOffPiste(db, { id: editingOffpiste.id, name, count: 0 });
     } else {
       await insertOffPiste(db, { name });
     }
     setModalVisible(false);
-    setEditingOffpiste(null);
+    setEditingOffpiste(initOffPiste());
     loadData();
   }
 
@@ -131,7 +131,7 @@ export default function OffpistesManagement() {
   //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
-    setEditingOffpiste(null);
+    setEditingOffpiste(initOffPiste());
     setName("");
     inputRef.current?.blur();
   }
@@ -145,70 +145,35 @@ export default function OffpistesManagement() {
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem(item: OffPistes) {
     const nbActions = item.count || 0;
-    
+
     return (
-      <ReanimatedSwipeable
-        ref={ref => {
-          if (ref) {
-            (item as any).swipeRef = ref as SwipeableMethods;
+      <RowItem
+        key={item.id}
+        onSelect={() => {
+          if (item.id === editingOffpiste.id) {
+            setEditingOffpiste(initOffPiste());
+            setName("");
+          } else {
+            setEditingOffpiste(item);
           }
         }}
-        onSwipeableOpen={() => {
-          // Auto-close after 3 seconds
-          setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
-            }
-          }, 2000);
-        }}
-        renderLeftActions={() => (
-          <Pressable
-            onPress={() => {
-              (item as any).swipeRef.close();
-              openEditModal(item);
-            }}
-            style={appStyles.swipePrimary}
-          >
-            <AppIcon name="pencil" color={colorsTheme.text} />
-            <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
-          </Pressable>
-        )}
-        renderRightActions={() => {
-          if (nbActions > 0) return null;
-          return (
-            <Pressable
-              onPress={() => {
-                (item as any).swipeRef.close();
-                handleDelete(item);
-              }}
-              style={appStyles.swipeAlert}
-            >
-              <AppIcon name={"bin"} color={colorsTheme.text} />
-              <Text style={{ color: colorsTheme.text }}>{t('delete')}</Text>
-            </Pressable>
-          );
-        }}
+        onEdit={() => openEditModal(item)}
+        onDelete={nbActions === 0 ? () => handleDelete(item) : undefined}
+        isActive={item.id === editingOffpiste.id}
+        deleteMode="delete"
       >
-        <View style={[appStyles.renderItem, {
-          height: 64,
-          zIndex: 1,
-          borderRightColor: nbActions > 0 ? "transparent" : colorsTheme.alert,
-          borderRightWidth: 1,
-          justifyContent: 'center',
-        }]}>
-          <Row>
-            <Text style={appStyles.title}>
-              {item.name}
-            </Text>
-            {(nbActions) > 0 && (
-              <Card>
-                <AppIcon name="sortie" color={colorsTheme.text} />
-                <Text style={[appStyles.text]}>{nbActions}</Text>
-              </Card>
-            )}
-          </Row>
-        </View>
-      </ReanimatedSwipeable>
+        <Row>
+          <Text style={appStyles.title}>
+            {item.name}
+          </Text>
+          {(nbActions) > 0 && (
+            <Card>
+              <AppIcon name="sortie" color={colorsTheme.text} />
+              <Text style={[appStyles.text]}>{nbActions}</Text>
+            </Card>
+          )}
+        </Row>
+      </RowItem>
     )
   }
 
@@ -244,7 +209,7 @@ export default function OffpistesManagement() {
       <ModalEditor visible={modalVisible}>
         <Row>
           <Text style={[appStyles.title, { flex: 1, textAlign: 'center' }]}>
-            {editingOffpiste ? t("modify") : t("add")}
+            {editingOffpiste.id !== "not-an-id" ? t("modify") : t("add")}
           </Text>
         </Row>
         <Row>
@@ -258,7 +223,7 @@ export default function OffpistesManagement() {
           />
         </Row>
         <Row>
-          <AppButton caption={editingOffpiste ? t("modify") : t("add")} onPress={saveAction} color={colorsTheme.primary} flex={1} textColor={colorsTheme.text} />
+          <AppButton caption={editingOffpiste.id !== "not-an-id" ? t("modify") : t("add")} onPress={saveAction} color={colorsTheme.primary} flex={1} textColor={colorsTheme.text} />
           <AppButton caption={t("cancel")} onPress={cancelAction} color={colorsTheme.inactiveText} flex={1} textColor={colorsTheme.text} />
         </Row>
       </ModalEditor>

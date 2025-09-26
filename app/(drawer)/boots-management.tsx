@@ -21,9 +21,8 @@ import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useRef, useState } from "react";
 import { Alert, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
-import { Pressable } from 'react-native';
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import SettingsContext from "@/context/SettingsContext";
+import RowItem from "@/components/RowItem";
 
 
 let dbState: string = "none";
@@ -144,14 +143,26 @@ export default function BootsManagement() {
       );
     } else {
       if (item.nbOutings > 0) {
-        // If the boot is active, archive it
-        setEndDatePickerVisible(true);
+        Alert.alert(
+          t('archive'),
+          t('archive_boots'),
+          [
+            { text: t('cancel'), style: "cancel" },
+            {
+              text: t('put_end_date'),
+              onPress: () => {
+                if (!item.id) return;
+                setEndDatePickerVisible(true);
+              },
+            }
+          ]
+        );
       }
       else {
         // If the boot has no outings, delete it
         Alert.alert(
           t('delete'),
-          t('del_boots') || 'Supprimer ces chaussures ?',
+          t('del_boots'),
           [
             { text: t('cancel'), style: "cancel" },
             {
@@ -193,147 +204,107 @@ export default function BootsManagement() {
   //     #    # ###### #    # #####  ###### #    # ######   ####   ####    #  
   const renderBoot = ({ item }: { item: Boots }) => {
     return (
-      <ReanimatedSwipeable
-        ref={ref => {
-          if (ref) {
-            (item as any).swipeRef = ref;
-          }
+      <RowItem
+        isActive={boots2Write.id === item.id}
+        onSelect={() => {
+          if (boots2Write.id === item.id) { setBoots2Write(initBoots()) }
+          else { setBoots2Write(item) }
         }}
-        onSwipeableOpen={() => {
-          // Auto-close after 3 seconds
-          setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
-            }
-          }, 2000);
-        }}
-        leftThreshold={80}
-        rightThreshold={80}
-        renderLeftActions={() => (
-          <Pressable
-            onPress={() => {
-              (item as any).swipeRef.close();
-              handleEditBoot(item);
-            }}
-            style={appStyles.swipePrimary}
-          >
-            <AppIcon name="pencil" color={colorsTheme.text} />
-            <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
-          </Pressable>
-        )
-        }
-        renderRightActions={() => (
-          <Pressable
-            onPress={() => {
-              (item as any).swipeRef.close();
-              handleDeleteBoot(item);
-            }}
-            style={item.nbOutings > 0 ? appStyles.swipeWarning : appStyles.swipeAlert}
-          >
-            <AppIcon name={item.end ? "box-remove" : (item.nbOutings > 0 ? "box-add" : "bin")} color={colorsTheme.text} />
-            <Text style={{ color: colorsTheme.text }}>{item.end ? t('restore') : (item.nbOutings > 0 ? t('archive') : t('delete'))}</Text>
-          </Pressable>
-        )}
+        onEdit={() => handleEditBoot(item)}
+        onDelete={() => handleDeleteBoot(item)}
+        deleteMode={item.end ? "restore" : item.nbOutings > 0 ? "archive" : "delete"}
       >
-        <View style={[appStyles.renderItem, {
-          zIndex: 1,
-          opacity: item.end ? 0.5 : 1,
-          borderRightColor: item.nbOutings > 0 ? colorsTheme.warning : colorsTheme.alert,
-          borderRightWidth: 1,
-        }]}
-        >
-          <Row>
-            <Image source={{ uri: item.icoBrandUri }}
-              style={{ width: iconSize, height: iconSize }} />
-            <Text style={[appStyles.title, { flex: 1 }]}>
-              {item.idBrand === "init-unknown" ? "" : item.brand + " "}
-              {item.flex ? item.flex + " " : ""}
-              {item.size ? "T" + item.size + " " : ""}
-              {item.name}
-            </Text>
-            {item.listUsers && (() => {
-              const users = item.listUsers || [];
-              const [firstUser, secondUser] = users.slice(0, 2).map(id => listUsers.find(u => u.id === id));
+        <Row>
+          <Image source={{ uri: item.icoBrandUri }}
+            style={{ width: iconSize, height: iconSize }} />
+          <Text style={[appStyles.title, { flex: 1 }]}>
+            {item.idBrand === "init-unknown" ? "" : item.brand + " "}
+            {item.flex ? item.flex + " " : ""}
+            {item.size ? "T" + item.size + " " : ""}
+            {item.name}
+          </Text>
+          {item.listUsers && (() => {
+            const users = item.listUsers || [];
+            const [firstUser, secondUser] = users.slice(0, 2).map(id => listUsers.find(u => u.id === id));
 
-              return (
-                <>
+            return (
+              <>
+                <Pastille
+                  key={firstUser?.id}
+                  name={firstUser?.name || "?"}
+                  color={firstUser?.pcolor}
+                  size={32}
+                  style={{ marginLeft: -16, zIndex: 10, opacity: firstUser?.end ? 0.5 : 1 }}
+                />
+                {users.length === 2 && secondUser && (
                   <Pastille
-                    key={firstUser?.id}
-                    name={firstUser?.name || "?"}
-                    color={firstUser?.pcolor}
+                    key={secondUser.id}
+                    name={secondUser.name || "?"}
+                    color={secondUser.pcolor}
                     size={32}
-                    style={{ marginLeft: -16, zIndex: 10, opacity: firstUser?.end ? 0.5 : 1 }}
+                    style={{ marginLeft: -16, zIndex: 9, opacity: secondUser.end ? 0.5 : 1 }}
                   />
-                  {users.length === 2 && secondUser && (
-                    <Pastille
-                      key={secondUser.id}
-                      name={secondUser.name || "?"}
-                      color={secondUser.pcolor}
-                      size={32}
-                      style={{ marginLeft: -16, zIndex: 9, opacity: secondUser.end ? 0.5 : 1 }}
-                    />
-                  )}
-                  {users.length > 2 && (
-                    <Pastille
-                      key="more-users"
-                      name={`+${users.length - 1}`}
-                      color={colorsTheme.pastille}
-                      textColor={colorsTheme.text}
-                      size={32}
-                      style={{ marginLeft: -16, zIndex: 9, opacity: 1 }}
-                    />
-                  )}
-                </>
-              );
-            })()}
+                )}
+                {users.length > 2 && (
+                  <Pastille
+                    key="more-users"
+                    name={`+${users.length - 1}`}
+                    color={colorsTheme.pastille}
+                    textColor={colorsTheme.text}
+                    size={32}
+                    style={{ marginLeft: -16, zIndex: 9, opacity: 1 }}
+                  />
+                )}
+              </>
+            );
+          })()}
 
-          </Row>
-          <Row style={{ marginTop: 4 }}>
-            <Card>
-              <Text numberOfLines={1}
-                style={{
-                  color: colorsTheme.text,
-                  fontSize: 20,
-                }}
-              >
-                {(item.length || "- - -")}
-              </Text>
-              <Text numberOfLines={1}
-                style={{
-                  color: colorsTheme.text,
-                  fontSize: 14,
-                  marginTop: 'auto',
-                  marginBottom: 2,
-                }}
-              >mm</Text>
-            </Card>
-
-
+        </Row>
+        <Row style={{ marginTop: 4 }}>
+          <Card>
             <Text numberOfLines={1}
               style={{
-                color: item.end ? colorsTheme.alert : colorsTheme.text,
-                fontSize: item.end ? 16 : 20,
-                marginHorizontal: 8,
-                flex: 1,
+                color: colorsTheme.text,
+                fontSize: 20,
               }}
             >
-              {localeDate(item.begin, { month: 'short', year: 'numeric' })}
-              {item.end && " -> " + localeDate(item.end, { month: 'short', year: 'numeric' })}
+              {(item.length || "- - -")}
             </Text>
-            <Card>
-              <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 20 }} />
-              <Text numberOfLines={1}
-                style={{
-                  color: colorsTheme.text,
-                  fontSize: 20,
-                }}
-              >
-                {item.nbOutings ? `${item.nbOutings < 10 ? "  " : item.nbOutings < 100 ? " " : ""}${item.nbOutings}` : "0"}
-              </Text>
-            </Card>
-          </Row>
-        </View>
-      </ReanimatedSwipeable>
+            <Text numberOfLines={1}
+              style={{
+                color: colorsTheme.text,
+                fontSize: 14,
+                marginTop: 'auto',
+                marginBottom: 2,
+              }}
+            >mm</Text>
+          </Card>
+
+
+          <Text numberOfLines={1}
+            style={{
+              color: item.end ? colorsTheme.alert : colorsTheme.text,
+              fontSize: item.end ? 16 : 20,
+              marginHorizontal: 8,
+              flex: 1,
+            }}
+          >
+            {localeDate(item.begin, { month: 'short', year: 'numeric' })}
+            {item.end && " -> " + localeDate(item.end, { month: 'short', year: 'numeric' })}
+          </Text>
+          <Card>
+            <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 20 }} />
+            <Text numberOfLines={1}
+              style={{
+                color: colorsTheme.text,
+                fontSize: 20,
+              }}
+            >
+              {item.nbOutings ? `${item.nbOutings < 10 ? "  " : item.nbOutings < 100 ? " " : ""}${item.nbOutings}` : "0"}
+            </Text>
+          </Card>
+        </Row>
+      </RowItem >
     )
   };
 

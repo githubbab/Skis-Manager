@@ -6,6 +6,7 @@ import CheckButton from "@/components/CheckButton";
 import ModalEditor from "@/components/ModalEditor";
 import Pastille from "@/components/Pastille";
 import Row from "@/components/Row";
+import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
@@ -24,10 +25,8 @@ import { smDate } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Alert, Image, ListRenderItem, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { FlatList, Pressable } from "react-native";
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import React, { useCallback, useContext, useEffect, useState } from "react";
+import { Alert, Image, ListRenderItem, Text, TextInput, TouchableOpacity, View, FlatList } from 'react-native';
 
 
 const iconSize = 32; // Size for icons in the filter row
@@ -74,6 +73,7 @@ const Events = () => {
   const [maintainViewSharp, setMaintainViewSharp] = useState<boolean>(true);
   const [maintainViewWax, setMaintainViewWax] = useState<boolean>(true);
   const [maintainViewRepair, setMaintainViewRepair] = useState<boolean>(true);
+  const [activeDelete, setActiveDelete] = useState<number>(0);
 
   const { t, localeDate: localeDate, seasonDate, viewOuting, viewFriends } = useContext(SettingsContext)!;
 
@@ -564,7 +564,6 @@ const Events = () => {
   // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   const renderItem: ListRenderItem<any> = ({ item }) => {
-    console.debug("renderItem", item);
     // #######                                    
     // #     # #    # ##### # #    #  ####   #### 
     // #     # #    #   #   # ##   # #    # #     
@@ -573,7 +572,6 @@ const Events = () => {
     // #     # #    #   #   # #   ## #    # #    #
     // #######  ####    #   # #    #  ####   #### 
     if (item.type === "outing") {
-      console.debug("renderOutings", item);
       const outingSkis: Skis | undefined = listSkis.find(s => s.id === item.data.idSkis);
       if (!outingSkis) {
         console.warn("No skis found for outing:", item.id, item.idSkis);
@@ -591,127 +589,65 @@ const Events = () => {
         return null;
       }
       const outingFriends: Friends[] = listFriends.filter(f => item.data.idFriends?.includes(f.id));
-      console.debug("Outing Off-Pistes", item.listOfOffPistes)
-      const outingOffPistes: OffPistes[] = extractOffPistes(item.listOfOffPistes || []);
+      const outingOffPistes: OffPistes[] = extractOffPistes(item.data.listOfOffPistes);
       return (
-        <ReanimatedSwipeable
-          ref={ref => {
-            if (ref) {
-              (item as any).swipeRef = ref as SwipeableMethods;
+        <RowItem
+          key={item.data.id}
+          isActive={outing2write.id === item.data.id}
+          onSelect={() => {
+            setMaintain2Write(initMaintain());
+            if (outing2write.id === item.data.id) {
+              setOuting2Write(initOuting());
+            } else {
+              setOuting2Write(item.data);
             }
           }}
-          onSwipeableOpen={() => {
-            // Auto-close after 3 seconds
-            setTimeout(() => {
-              if ((item as any).swipeRef) {
-                (item as any).swipeRef.close();
-              }
-            }, 2000);
+          onDelete={() => handleDeleteOuting(item.data)}
+          onEdit={() => {
+            setOuting2Write(item.data);
+            setOutingVisible(true);
           }}
-          dragOffsetFromRightEdge={20}
-          dragOffsetFromLeftEdge={20}
-          renderLeftActions={() => (
-            <Pressable
-              onPress={() => {
-                console.debug("Edit outing", item.data);
-                (item as any).swipeRef.close();
-                setOuting2Write(item.data);
-                setOutingVisible(true);
-              }}
-              style={appStyles.swipePrimary}
-            >
-              <AppIcon name={"pencil"} color={colorsTheme.text} size={iconSize} />
-            </Pressable>
-          )}
-          renderRightActions={() => (
-            <Pressable
-              onPress={() => {
-                (item as any).swipeRef.close();
-                handleDeleteOuting(item.data);
-              }}
-              style={appStyles.swipeAlert}
-            >
-              <AppIcon name={"bin"} color={colorsTheme.text} size={iconSize} />
-            </Pressable>
-          )}
+          style={{ backgroundColor: colorsTheme.transparentBlue }}
 
         >
-          <TouchableOpacity
-            onPress={() => {
-              console.debug("Select outing", item.data);
-              if (outing2write.id !== item.data.id) {
-                setOuting2Write(item.data)
-                setMaintain2Write(initMaintain()); // Clear selected maintains if outing is selected
-              }
-              else {
-                setOuting2Write(initOuting())
-              }
-
-            }}
-            style={[appStyles.renderItem, {
-              backgroundColor: outing2write.id === item.data.id ? colorsTheme.transparentGray : 'transparent',
-              borderRightWidth: 1,
-              borderRightColor: colorsTheme.alert
-            }]}
-          >
-            <Row style={{ marginVertical: 2 }}>
-              <Card>
-                <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
-              </Card>
-              {!skisFilter &&
-                <>
-                  {outingSkis.icoTypeOfSkisUri ?
-                    <Image source={{ uri: outingSkis.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
-                    <Pastille size={iconSize} name={outingSkis.typeOfSkis || ""} />
-                  }
-                  <Image source={{ uri: outingSkis.icoBrandUri }}
-                    style={{ width: iconSize, height: iconSize }} />
-                  <Text numberOfLines={1}
-                    style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
-                  >
-                    {outingSkis.size ? outingSkis.size + " " : ""}{outingSkis.radius ? outingSkis.radius + "m " : ""}{outingSkis.name}
-                  </Text>
-                </>
-              }
-              {skisFilter ?
-                <Row>
-                  <Pastille size={iconSize} name={outingUser.name} color={outingUser.pcolor} />
-                  <Text style={[appStyles.text]}>
-                    {outingUser.name}
-                  </Text>
-                </Row> :
-                <Pastille size={iconSize} name={outingUser.name} color={outingUser.pcolor} />
-
-              }
-
-            </Row>
             <Row>
-              <AppIcon name={"sortie"} color={colorsTheme.text} styles={{ marginLeft: 4 }} />
-              <Text style={[appStyles.text]}>
-                {outingType?.name || ""}
-                {outingOffPistes.length > 0 && `(${outingOffPistes.reduce((sum, off) => sum + (off.count || 0), 0)})`}
-              </Text>
-              <Row isFlex={false} >
-                <AppIcon name={"ski-boot"} color={colorsTheme.text} />
-                <Image source={{ uri: outingBoots.icoBrandUri }}
-                  style={{ width: iconSize, height: iconSize }} />
-                <Text style={[appStyles.title,]}>
-                  {outingBoots.flex ? outingBoots.flex + " " : ""}
-                  {outingBoots.size ? "T" + outingBoots.size + " " : ""}
-                  {outingBoots.name}
-                </Text>
-              </Row>
-            </Row>
-
-            {outing2write.id === item.data.id &&
-              <View>
+              <AppIcon name={"sortie"} color={colorsTheme.primary} styles={{ marginLeft: 4 }} />
+              <View style={{ flex: 1 }}>
+                <Row style={{ marginVertical: 2 }}>
+                  <Card>
+                    <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
+                  </Card>
+                  <Text style={[appStyles.text]}>
+                    {outingType?.name || ""}
+                    {outingOffPistes.length > 0 && `(${outingOffPistes.reduce((sum, off) => sum + (off.count || 0), 0)})`}
+                  </Text>
+                  {!userFilter && <Pastille size={iconSize} name={outingUser.name} color={outingUser.pcolor} />}
+                </Row>
+                {!skisFilter &&
+                  <Row>
+                    <AppIcon name={"skis"} color={colorsTheme.text} />
+                    {outingSkis.icoTypeOfSkisUri ?
+                      <Image source={{ uri: outingSkis.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
+                      <Pastille size={iconSize} name={outingSkis.typeOfSkis || ""} />
+                    }
+                    <Image source={{ uri: outingSkis.icoBrandUri }}
+                      style={{ width: iconSize, height: iconSize }} />
+                    <Text numberOfLines={1}
+                      style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontWeight: 'bold' }}
+                    >
+                      {outingSkis.size ? outingSkis.size + " " : ""}{outingSkis.radius ? outingSkis.radius + "m " : ""}{outingSkis.name}
+                    </Text>
+                  </Row>
+                }
                 <Row>
-                  <AppIcon name={"hors-piste"} color={colorsTheme.text} />
-                  <View style={{ flex: 1 }}>
-                    {outingOffPistes.map(off => (
-                      <Text key={off.id} style={appStyles.text}>{off.name}({off.count})</Text>
-                    ))}
-                  </View>
+                  <AppIcon name={"ski-boot"} color={colorsTheme.text} />
+                  <Image source={{ uri: outingBoots.icoBrandUri }}
+                    style={{ width: iconSize, height: iconSize }} />
+                  <Text style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontWeight: 'bold' }}>
+                    {outingBoots.flex ? outingBoots.flex + " " : ""}
+                    {outingBoots.size ? "T" + outingBoots.size + " " : ""}
+                    {outingBoots.name}
+                  </Text>
                   {outingFriends.length > 0 && (
                     <Card>
                       <AppIcon name={"accessibility"} color={colorsTheme.text} />
@@ -721,10 +657,18 @@ const Events = () => {
                     </Card>
                   )}
                 </Row>
+                {outingOffPistes.length > 0 &&
+                  <Row>
+                    <AppIcon name={"hors-piste"} color={colorsTheme.text} />
+                    <Text style={[appStyles.text, { fontSize: 18, flex: 1 }]}>
+                      {outingOffPistes.map(off => `${off.name} (${off.count})`).join(', ')}
+                    </Text>
+                  </Row>
+                }
+
               </View>
-            }
-          </TouchableOpacity>
-        </ReanimatedSwipeable>
+            </Row>
+          </RowItem>
       );
     }
     // #     #                                             
@@ -735,7 +679,6 @@ const Events = () => {
     // #     # #    # # #   ##   #   #    # # #   ## #    #
     // #     # #    # # #    #   #   #    # # #    #  #### 
     if (item.type === "maintain") {
-      console.debug("renderMaintains", item);
       const maintainSkis: Skis | undefined = listSkis.find(s => s.id === item.data.idSkis);
       if (!maintainSkis) {
         console.warn("No skis found for maintain", item.data.idSkis);
@@ -752,65 +695,42 @@ const Events = () => {
         }
         return "Pas de description";
       }
+      const maintainIconSize = item.data.swr && item.data.swr.length > 2 ? iconSize * 0.6 : item.data.swr && item.data.swr.length > 1 ? iconSize * 0.8 : iconSize;
       return (
-        <ReanimatedSwipeable
-          ref={ref => {
-            if (ref) {
-              (item as any).swipeRef = ref as SwipeableMethods;
+        <RowItem
+          key={item.data.id}
+          isActive={maintain2write.id === item.data.id}
+          onSelect={() => {
+            setOuting2Write(initOuting());
+            if (maintain2write.id === item.data.id) {
+              setMaintain2Write(initMaintain());
+            } else {
+              setMaintain2Write(item.data);
             }
           }}
-          onSwipeableOpen={() => {
-            // Auto-close after 3 seconds
-            setTimeout(() => {
-              if ((item as any).swipeRef) {
-                (item as any).swipeRef.close();
-              }
-            }, 2000);
+          onDelete={() => handleDeleteMaintain(item.data)}
+          onEdit={() => {
+            setMaintainsVisible(true);
           }}
-          
-          dragOffsetFromRightEdge={80}
-          dragOffsetFromLeftEdge={80}
-          renderLeftActions={() => (
-            <Pressable
-              onPress={() => {
-                console.debug("Edit maintain", item.data);
-                (item as any).swipeRef.close();
-                setMaintain2Write(item.data);
-                setMaintainsVisible(true);
-              }}
-              style={appStyles.swipePrimary}
-            >
-              <AppIcon name={"pencil"} color={colorsTheme.text} size={iconSize} />
-            </Pressable>
-          )}
-          renderRightActions={() => (
-            <Pressable
-              onPress={() => {
-                (item as any).swipeRef.close();
-                handleDeleteMaintain(item.data);
-              }}
-              style={appStyles.swipeAlert}
-            >
-              <AppIcon name={"bin"} color={colorsTheme.text} size={iconSize} />
-            </Pressable>
-          )}
-
+          style={{ backgroundColor: colorsTheme.transparentGreen }}
         >
+          <Row>
+            <View style={{ width: iconSize, alignItems: 'center' }}>
+              {/S/.test(item.data.swr) && <AppIcon name={"affuteuse"} color={colorsTheme.primaryGreen} size={maintainIconSize} />}
+              {/W/.test(item.data.swr) && <AppIcon name={"fartage"} color={colorsTheme.primaryGreen} size={maintainIconSize} />}
+              {/R/.test(item.data.swr) && <AppIcon name={"aid-kit"} color={colorsTheme.warning} size={maintainIconSize} />}
+            </View>
+            <View style={{ flex: 1 }}>
 
-          <View
-            style={[appStyles.renderItem,
-            {
-              backgroundColor: maintain2write.id === item.data.id ? colorsTheme.transparentGray : 'transparent',
-              borderRightWidth: 1,
-              borderRightColor: colorsTheme.alert
-            }]}
-          >
-            <Row style={{ marginVertical: 2 }}>
-              <Card>
-                <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
-              </Card>
+              <Row isFlex={true}>
+                <Card>
+                  <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
+                </Card>
+
+                <Text style={appStyles.text}>{description()}</Text>
+              </Row>
               {!skisFilter &&
-                <>
+                <Row>
                   {maintainSkis.icoTypeOfSkisUri ?
                     <Image source={{ uri: maintainSkis.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
                     <Pastille size={iconSize} name={maintainSkis.typeOfSkis || ""} />
@@ -822,23 +742,11 @@ const Events = () => {
                   >
                     {maintainSkis.size ? maintainSkis.size + " " : ""}{maintainSkis.radius ? maintainSkis.radius + "m " : ""}{maintainSkis.name}
                   </Text>
-                </>
+                </Row>
               }
-            </Row>
-            <Row>
-              <AppIcon name={"entretien"} color={colorsTheme.text} styles={{ marginLeft: 4 }} />
-              <Card>
-                {/S/.test(item.data.swr) && <AppIcon name={"affuteuse"} color={colorsTheme.primary} size={iconSize} />}
-                {/W/.test(item.data.swr) && <AppIcon name={"fartage"} color={colorsTheme.primary} size={iconSize} />}
-                {/R/.test(item.data.swr) && <AppIcon name={"aid-kit"} color={colorsTheme.primary} size={iconSize} />}
-              </Card>
-              <Text numberOfLines={1} style={[appStyles.textItalic]}>
-                {description()}
-              </Text>
-            </Row>
-          </View>
-        </ReanimatedSwipeable>
-
+            </View>
+          </Row>
+        </RowItem>
       );
     }
     return null; // Fallback if no type matches

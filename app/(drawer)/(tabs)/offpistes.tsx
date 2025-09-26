@@ -1,5 +1,6 @@
 import Body from "@/components/Body";
 import Row from "@/components/Row";
+import RowItem from "@/components/RowItem";
 import Separator from "@/components/Separator";
 import Tile from '@/components/Tile';
 import TileIconTitle from '@/components/TileIconTitle';
@@ -10,7 +11,7 @@ import { getSeasonOffPistes, OffPistes } from "@/hooks/dbOffPistes";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useState } from "react";
-import { Text, View } from 'react-native';
+import { Text } from 'react-native';
 import { FlatList } from "react-native";
 
 
@@ -67,12 +68,12 @@ export default function Offpistes() {
           data={listOffPistes}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={[appStyles.renderItem, { borderLeftColor: 'transparent'}]}>
+            <RowItem isActive={false} onSelect={() => { }}>
               <Row>
                 <Text style={appStyles.text}>{item.name}</Text>
                 <Text style={appStyles.text}>{item.count > 0 ? item.count : ""}</Text>
               </Row>
-            </View>
+            </RowItem>
           )}
         />
       </Tile>

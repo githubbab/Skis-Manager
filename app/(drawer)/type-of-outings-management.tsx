@@ -5,16 +5,15 @@ import Body from "@/components/Body";
 import CheckButton from "@/components/CheckButton";
 import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
+import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
 import SettingsContext from "@/context/SettingsContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { deleteTypeOfOutings, insertTypeOfOutings, TOO, updateTypeOfOutings } from "@/hooks/dbTypeOfOuting";
+import { deleteTypeOfOutings, initTypeOfOutings, insertTypeOfOutings, TOO, updateTypeOfOutings } from "@/hooks/dbTypeOfOuting";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Text, TextInput, View } from "react-native";
-import { Pressable } from 'react-native';
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 export default function TypeOfOutingsManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
@@ -24,7 +23,7 @@ export default function TypeOfOutingsManagementScreen() {
 
   const [types, setTypes] = useState<TOO[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingType, setEditingType] = useState<TOO | null>(null);
+  const [editingType, setEditingType] = useState<TOO>(initTypeOfOutings());
   const [name, setName] = useState("");
   const [canOffPiste, setCanOffPiste] = useState<boolean>(false);
   const inputRef = useRef<TextInput>(null);
@@ -68,7 +67,7 @@ export default function TypeOfOutingsManagementScreen() {
   // #    # #      #      #   ## #     # #    # #    # #     # #    # #    # #    # #     
   //  ####  #      ###### #    # #     # #####  #####  #     #  ####  #####  #    # ######
   function openAddModal() {
-    setEditingType(null);
+    setEditingType(initTypeOfOutings());
     setName("");
     setCanOffPiste(false);
     setModalVisible(true);
@@ -97,13 +96,13 @@ export default function TypeOfOutingsManagementScreen() {
   //  ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   async function saveAction() {
     if (!name.trim()) return;
-    if (editingType) {
+    if (editingType.id !== "not-an-id") {
       await updateTypeOfOutings(db, { id: editingType.id, name, canOffPiste });
     } else {
       await insertTypeOfOutings(db, { name, canOffPiste });
     }
     setModalVisible(false);
-    setEditingType(null);
+    setEditingType(initTypeOfOutings());
     loadData();
   }
 
@@ -140,7 +139,7 @@ export default function TypeOfOutingsManagementScreen() {
   //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
-    setEditingType(null);
+    setEditingType(initTypeOfOutings());
     setName("");
     inputRef.current?.blur();
   }
@@ -156,72 +155,35 @@ export default function TypeOfOutingsManagementScreen() {
     const nbActions = item.itemCount || 0;
 
     return (
-      <ReanimatedSwipeable
-        ref={ref => {
-          if (ref) {
-            (item as any).swipeRef = ref as SwipeableMethods;
+      <RowItem
+        isActive={item.id === editingType.id}
+        onSelect={() => {
+          if (item.id === editingType.id) {
+            setEditingType(initTypeOfOutings());
+          } else {
+            setEditingType(item);
           }
         }}
-        onSwipeableOpen={() => {
-          // Auto-close after 3 seconds
-          setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
-            }
-          }, 2000);
-        }}
-        renderLeftActions={() => (
-          <Pressable
-            onPress={() => {
-              (item as any).swipeRef.close();
-              openEditModal(item);
-            }}
-            style={appStyles.swipePrimary}
-          >
-            <AppIcon name="pencil" color={colorsTheme.text} />
-            <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
-          </Pressable>
-        )}
-        renderRightActions={() => {
-          if (nbActions > 0 || item.id.startsWith('init-')) return null;
-          return (
-            <Pressable
-              onPress={() => {
-                (item as any).swipeRef.close();
-                handleDelete(item);
-              }}
-              style={appStyles.swipeAlert}
-            >
-              <AppIcon name={"bin"} color={colorsTheme.text} />
-              <Text style={{ color: colorsTheme.text }}>{t('delete')}</Text>
-            </Pressable>
-          );
-        }}
+        onEdit={() => openEditModal(item)}
+        onDelete={() => handleDelete(item)}
+        deleteMode={nbActions > 0 ? "archive" : "delete"}
       >
-        <View style={[appStyles.renderItem, {
-          zIndex: 1,
-          borderRightColor: nbActions > 0 || item.id.startsWith('init-') ? 'transparent' : colorsTheme.alert,
-          borderRightWidth: 1,
-          justifyContent: 'center',
-          paddingHorizontal: 4
-        }]}>
-          <Row>
-            <Text style={[appStyles.title]}>
-              {item.name}
+        <Row>
+          <Text style={[appStyles.title]}>
+            {item.name}
 
-              {(item.itemCount || 0) > 0 && (
-                <Text style={[appStyles.inactiveText, { flex: 1 }]}> ({item.itemCount})</Text>
-              )}
-            </Text>
+            {(item.itemCount || 0) > 0 && (
+              <Text style={[appStyles.inactiveText, { flex: 1 }]}> ({item.itemCount})</Text>
+            )}
+          </Text>
 
-            {item.canOffPiste ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
-                <AppIcon name="hors-piste" size={28} color={colorsTheme.primary} />
-              </View>
-            ) : null}
-          </Row>
-        </View>
-      </ReanimatedSwipeable>
+          {item.canOffPiste ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+              <AppIcon name="hors-piste" size={28} color={colorsTheme.primary} />
+            </View>
+          ) : null}
+        </Row>
+      </RowItem>
     );
   }
 

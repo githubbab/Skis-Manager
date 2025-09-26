@@ -183,7 +183,8 @@ export async function delToSIco(idTypeOfSkis: string) {
 }
 
 export async function copyBrandIco(idBrand: string, fromUri: string) {
-  const brandIco = await FileSystem.getInfoAsync(imgStorePath + "brand-" + idBrand + ".png");
+  const brandIcoUri = imgStorePath + "brand-" + idBrand + ".png";
+  const brandIco = await FileSystem.getInfoAsync(brandIcoUri);
   if (brandIco.exists) {
     await FileSystem.deleteAsync(brandIco.uri);
     console.debug("Deleted existing brand ico", brandIco.uri);
@@ -195,13 +196,14 @@ export async function copyBrandIco(idBrand: string, fromUri: string) {
     return;
   }
   try {
+    console.debug("Copying brand ico from", fromFile.uri, "to", brandIcoUri);
     await FileSystem.copyAsync({
       from: fromFile.uri,
-      to: brandIco.uri
+      to: brandIcoUri
     });
-    if ((await FileSystem.getInfoAsync(brandIco.uri)).exists) {
+    if ((await FileSystem.getInfoAsync(brandIcoUri)).exists) {
       imageStoreUpdated = true;
-      console.debug("Copied brand ico", fromUri, "to", brandIco.uri);
+      console.debug("Copied brand ico", fromUri, "to", brandIcoUri);
     }
     else {
       console.error("Error copying brand ico");

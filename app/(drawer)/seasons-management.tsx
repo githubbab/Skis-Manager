@@ -5,6 +5,7 @@ import Body from "@/components/Body";
 import Card from "@/components/Card";
 import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
+import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
 import SettingsContext from "@/context/SettingsContext";
@@ -13,10 +14,8 @@ import type { Seasons } from "@/hooks/dbSeasons";
 import { deleteSeason, getAllSeasons, insertSeason, updateSeason } from "@/hooks/dbSeasons";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useContext, useEffect, useRef, useState } from "react";
-import { Alert, FlatList, Text, TextInput, View } from "react-native";
-import { Pressable } from 'react-native';
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import React, { useContext, useEffect, useState } from "react";
+import { Alert, FlatList, Text, TextInput, Pressable } from "react-native";
 
 const SeasonsManagement = () => {
   const { colorsTheme } = useContext(ThemeContext);
@@ -41,9 +40,9 @@ const SeasonsManagement = () => {
   const loadData = async () => {
     const data: Seasons[] = await getAllSeasons(db);
     setSeasons(data);
-      if (data.length > 0) {
-        changeSeason(new Date(data[0].begin), data[0].name);
-      }
+    if (data.length > 0) {
+      changeSeason(new Date(data[0].begin), data[0].name);
+    }
     console.debug("Seasons loaded:", seasons);
   };
 
@@ -130,74 +129,38 @@ const SeasonsManagement = () => {
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem(item: Seasons) {
     return (
-      <ReanimatedSwipeable
-        ref={ref => {
-          if (ref) {
-            (item as any).swipeRef = ref as SwipeableMethods;
+      <RowItem
+        isActive={item.id === editing}
+        onSelect={() => {
+          if (editing === item.id) {
+            setEditing(null);
+          } else {
+            setEditing(item.id);
           }
         }}
-        onSwipeableOpen={() => {
-          // Auto-close after 3 seconds
-          setTimeout(() => {
-            if ((item as any).swipeRef) {
-              (item as any).swipeRef.close();
-            }
-          }, 2000);
-        }}
-        renderLeftActions={() => (
-          <Pressable
-            onPress={() => {
-              (item as any).swipeRef.close();
-              handleEdit(item);
-            }}
-            style={appStyles.swipePrimary}
-          >
-            <AppIcon name="pencil" color={colorsTheme.text} />
-            <Text style={{ color: colorsTheme.text }}>{t('modify')}</Text>
-          </Pressable>
-        )}
-        renderRightActions={() => {
-          return (
-            <Pressable
-              onPress={() => {
-                (item as any).swipeRef.close();
-                Alert.alert(
-                  t('confirm'),
-                  t('del_season'),
-                  [
-                    { text: t('cancel'), style: "cancel" },
-                    { text: t('delete'), style: "destructive", onPress: () => handleDelete(item.id) }
-                  ]
-                );
-              }}
-              style={appStyles.swipeAlert}
-            >
-              <AppIcon name={"bin"} color={colorsTheme.text} />
-              <Text style={{ color: colorsTheme.text }}>{t('delete')}</Text>
-            </Pressable>
+        onEdit={() => handleEdit(item)}
+        onDelete={() => {
+          Alert.alert(
+            t('confirm'),
+            t('del_season'),
+            [
+              { text: t('cancel'), style: "cancel" },
+              { text: t('delete'), style: "destructive", onPress: () => handleDelete(item.id) }
+            ]
           );
         }}
       >
-        <View style={[appStyles.renderItem, {
-          zIndex: 1,
-          borderRightColor: colorsTheme.alert,
-          borderRightWidth: 1,
-          justifyContent: 'center',
-          paddingHorizontal: 4
-        }]}>
-          <Row>
-            <Card>
-              <AppIcon name="play3" color={colorsTheme.text} size={20} />
-              <Text style={appStyles.textItalic}>
-                {localeDate(item.begin, { year: 'numeric', month: 'short', day: 'numeric' })}
-              </Text>
-            </Card>
-          </Row>
-          <Text style={appStyles.textBold}>{item.name}</Text>
+        <Row>
+          <Card>
+            <AppIcon name="play3" color={colorsTheme.text} size={20} />
+            <Text style={appStyles.textItalic}>
+              {localeDate(item.begin, { year: 'numeric', month: 'short', day: 'numeric' })}
+            </Text>
+          </Card>
+        </Row>
+        <Text style={appStyles.textBold}>{item.name}</Text>
 
-        </View>
-      </ReanimatedSwipeable>
-
+      </RowItem>
     )
   }
 
