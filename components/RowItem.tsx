@@ -1,6 +1,5 @@
 import { ReactNode, useState } from "react";
 import { TouchableOpacity, View } from "react-native";
-import AppIcon from "./AppIcon";
 import AppButton from "./AppButton";
 import Row from "./Row";
 

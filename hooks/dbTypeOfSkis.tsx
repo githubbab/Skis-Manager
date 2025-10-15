@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
-import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DatabaseManager';
-import { delToSIco, getToSIcoURI } from './FileSystemManager';
+import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DataManager';
+import { delToSIco, getToSIcoURI } from './DataManager';
 
 export type TOS = {
   id: string;
@@ -26,18 +26,18 @@ export function initTypeOfSkis(): TOS {
 export async function insertTypeOfSkis(db: SQLiteDatabase, tos: { name: string, waxNeed?: number, sharpNeed?: number }) {
   const id = createId();
   await execQuery(db, insertQuery(TABLES.TYPE_OF_SKIS, ["id", "name", "waxNeed", "sharpNeed"],
-    [id, tos.name, tos.waxNeed ?? null, tos.sharpNeed ?? null]));
+    [id, tos.name, tos.waxNeed ?? null, tos.sharpNeed ?? null]), id);
   return { id: id, name: tos.name, waxNeed: tos.waxNeed, sharpNeed: tos.sharpNeed } as TOS;
 }
 
 export async function updateTypeOfSkis(db: SQLiteDatabase, tos: TOS) {
   await execQuery(db, updateQuery(TABLES.TYPE_OF_SKIS, ["name", "waxNeed", "sharpNeed"],
-    [tos.name, tos.waxNeed ?? 0, tos.sharpNeed ?? 0], "id = ?", [tos.id]));
+    [tos.name, tos.waxNeed ?? 0, tos.sharpNeed ?? 0], "id = ?", [tos.id]), tos.id);
   return tos
 }
 
 export async function deleteTypeOfSkis(db: SQLiteDatabase, id: string) {
-  await execQuery(db, deleteQuery(TABLES.TYPE_OF_SKIS, "id = ?", [id]));
+  await execQuery(db, deleteQuery(TABLES.TYPE_OF_SKIS, "id = ?", [id]), id);
   await delToSIco(id);
 }
 

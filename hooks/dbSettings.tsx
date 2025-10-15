@@ -1,5 +1,5 @@
 import { SQLiteDatabase } from "expo-sqlite";
-import { execQuery, formatSQL, TABLES } from "./DatabaseManager";
+import { execQuery, formatSQL, TABLES } from "./DataManager";
 
 export type Settings = {
   name: string;
@@ -8,7 +8,7 @@ export type Settings = {
 
 export async function insertSettings(db: SQLiteDatabase, name: string, value: string) {
   const query = formatSQL('INSERT INTO settings (name, value) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET value = excluded.value', [name, value]);
-  await execQuery(db, query);
+  await execQuery(db, query, "settings-" + name);
 }
 
 export async function getSettings(db: SQLiteDatabase, name: string): Promise<Settings | null> {
@@ -26,5 +26,5 @@ export async function getAllSettings(db: SQLiteDatabase): Promise<Settings[]> {
 
 export async function deleteSettings(db: SQLiteDatabase, name: string) {
   const query = formatSQL('DELETE FROM settings WHERE name = ?', [name]);
-  await execQuery(db, query);
+  await execQuery(db, query, "settings-" + name);
 }

@@ -8,10 +8,11 @@ import Row from "@/components/Row";
 import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import type { Seasons } from "@/hooks/dbSeasons";
 import { deleteSeason, getAllSeasons, insertSeason, updateSeason } from "@/hooks/dbSeasons";
+import { Logger } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useState } from "react";
@@ -28,7 +29,7 @@ const SeasonsManagement = () => {
   const [dateTimePickerVisible, setDateTimePickerVisible] = useState(false);
   const db = useSQLiteContext();
 
-  const { localeDate, t, changeSeason } = useContext(SettingsContext);
+  const { localeDate, t, changeSeason, webDavSync } = useContext(AppContext);
 
   //                             ######                     
   // #       ####    ##   #####  #     #   ##   #####   ##  
@@ -43,7 +44,7 @@ const SeasonsManagement = () => {
     if (data.length > 0) {
       changeSeason(new Date(data[0].begin), data[0].name);
     }
-    console.debug("Seasons loaded:", seasons);
+    Logger.debug("Seasons loaded:", seasons);
   };
 
   //                      #######                                  
@@ -74,18 +75,19 @@ const SeasonsManagement = () => {
       Alert.alert("Erreur", "L'année de début doit être un nombre.");
       return;
     }
-    console.debug("Adding or updating season:", { begin: beginInt, name, editing });
+    Logger.debug("Adding or updating season:", { begin: beginInt, name, editing });
     if (editing === null) {
       await insertSeason(db, { begin: beginInt, name });
     } else {
       await updateSeason(db, { id: editing, begin: beginInt, name });
-      console.debug("Season updated:", { id: editing, begin: beginInt, name });
+      Logger.debug("Season updated:", { id: editing, begin: beginInt, name });
       setEditing(null);
     }
     setName("");
     setBegin("");
     setModalVisible(false);
     setDateTimePickerVisible(false);
+    webDavSync();
     loadData();
   };
 
@@ -112,6 +114,7 @@ const SeasonsManagement = () => {
   // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   const handleDelete = async (id: string) => {
     await deleteSeason(db, id);
+    webDavSync();
     setModalVisible(false);
     setEditing(null);
     setName("");
@@ -178,6 +181,8 @@ const SeasonsManagement = () => {
       <Tile flex={1}>
         <FlatList
           data={seasons}
+          onRefresh={loadData}
+          refreshing={false}
           keyExtractor={(item) => item.begin.toString()}
           renderItem={({ item }) => renderItem(item)}
         />

@@ -1,3 +1,4 @@
+import AppButton from "@/components/AppButton";
 import Body from "@/components/Body";
 import Row from "@/components/Row";
 import RowItem from "@/components/RowItem";
@@ -5,9 +6,10 @@ import Separator from "@/components/Separator";
 import Tile from '@/components/Tile';
 import TileIconTitle from '@/components/TileIconTitle';
 import AppStyles from "@/constants/AppStyles";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getSeasonOffPistes, OffPistes } from "@/hooks/dbOffPistes";
+import { Logger } from "@/hooks/ToolsBox";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useState } from "react";
@@ -20,7 +22,7 @@ export default function Offpistes() {
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
 
-  const { t } = useContext(SettingsContext)!;
+  const { t } = useContext(AppContext)!;
 
   const [listOffPistes, setListOffPistes] = useState<OffPistes[]>([]);
 
@@ -33,9 +35,9 @@ export default function Offpistes() {
   // ######  ####  #    # #####  ######  #    #   #   #    #
   const loadData = async () => {
     // Fetch off-pistes data here
-    console.debug("Loading off-pistes data from DB");
+    Logger.debug("Loading off-pistes data from DB");
     const data = await getSeasonOffPistes(db);
-    console.debug("Off-pistes data loaded:", data);
+    Logger.debug("Off-pistes data loaded:", data);
     setListOffPistes(data);
   };
 
@@ -67,6 +69,8 @@ export default function Offpistes() {
         <FlatList
           data={listOffPistes}
           keyExtractor={(item) => item.id}
+          onRefresh={loadData}
+          refreshing={false}
           renderItem={({ item }) => (
             <RowItem isActive={false} onSelect={() => { }}>
               <Row>

@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
-import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DatabaseManager';
+import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DataManager';
 
 export type TOO = {
   id: string;
@@ -22,17 +22,17 @@ export function initTypeOfOutings(): TOO {
 export async function insertTypeOfOutings(db: SQLiteDatabase, too: { name: string, canOffPiste: boolean }) {
   const id = createId();
   await execQuery(db, insertQuery(TABLES.TYPE_OF_OUTINGS, ["id", "name", "canOffPiste"],
-    [id, too.name, too.canOffPiste]));
+    [id, too.name, too.canOffPiste]), id);
   return { id: id, name: too.name, canOffPiste: too.canOffPiste } as TOO;
 }
 
 export async function updateTypeOfOutings(db: SQLiteDatabase, too: TOO) {
   await execQuery(db, updateQuery(TABLES.TYPE_OF_OUTINGS, ["name", "canOffPiste"],
-    [too.name, too.canOffPiste], "id = ?", [too.id]));
+    [too.name, too.canOffPiste], "id = ?", [too.id]), too.id);
 }
 
 export async function deleteTypeOfOutings(db: SQLiteDatabase, id: string) {
-  await execQuery(db, deleteQuery(TABLES.TYPE_OF_OUTINGS, "id = ?", [id]));
+  await execQuery(db, deleteQuery(TABLES.TYPE_OF_OUTINGS, "id = ?", [id]), id);
 }
 
 export async function getAllTypeOfOutings(db: SQLiteDatabase): Promise<TOO[]> {

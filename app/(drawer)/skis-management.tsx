@@ -11,13 +11,13 @@ import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
 import { ThemeContext } from "@/context/ThemeContext";
-import { getLastDBWrite } from "@/hooks/DatabaseManager";
+import { getLastDBWrite } from "@/hooks/DataManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
 import { Brands, getAllBrands } from "@/hooks/dbBrands";
 import { deleteSki, getAllSkis, initSkis, insertSki, Skis, updateSki } from "@/hooks/dbSkis";
 import { getAllTypeOfSkis, TOS } from "@/hooks/dbTypeOfSkis";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
-import { smDate } from "@/hooks/ToolsBox";
+import { Logger, smDate } from "@/hooks/ToolsBox";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -34,7 +34,7 @@ import {
   View
 } from 'react-native';
 import { showMessage } from "react-native-flash-message";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import RowItem from "@/components/RowItem";
 
 let dbState: string = "none";
@@ -72,7 +72,7 @@ export default function SkisManagement() {
   const inputSizeRef = useRef<TextInput>(null);
   const inputRadiusRef = useRef<TextInput>(null);
 
-  const { t, localeDate } = useContext(SettingsContext);
+  const { t, localeDate, webDavSync } = useContext(AppContext);
 
 
 
@@ -84,7 +84,7 @@ export default function SkisManagement() {
   // #      #    # #    # #    # #     # #    #   #   #    #
   // ######  ####  #    # #####  ######  #    #   #   #    #
   const loadData = async () => {
-    console.debug("refresh index - db load data")
+    Logger.debug("refresh index - db load data")
     if (dbState === "loading") return;
 
     try {
@@ -102,7 +102,7 @@ export default function SkisManagement() {
 
       dbState = "done";
     } catch (error) {
-      console.error(error);
+      Logger.error(error);
     }
   }
 
@@ -362,7 +362,7 @@ export default function SkisManagement() {
           {
             text: t('ok'),
             onPress: () => {
-              console.log(skis);
+              Logger.log(skis);
               if (skis.id) {
                 const updateSkis: Skis = {
                   ...skis,
@@ -370,8 +370,10 @@ export default function SkisManagement() {
                   listUsers: skis?.listUsers || [],
                   listBoots: skis?.listBoots || []
                 };
-                console.debug("Update skis", updateSkis);
-                updateSki(db, updateSkis).then(loadData)
+                Logger.debug("Update skis", updateSkis);
+                updateSki(db, updateSkis).then(
+                  () => { webDavSync(); loadData(); }
+                )
               }
             },
           }
@@ -401,7 +403,10 @@ export default function SkisManagement() {
             text: t('ok'),
             onPress: () => {
               if (skis?.id) {
-                deleteSki(db, skis.id).then(loadData)
+                deleteSki(db, skis.id).then(() => {
+                  webDavSync();
+                  loadData();
+                });
               }
             },
           }
@@ -435,8 +440,9 @@ export default function SkisManagement() {
       }).then(() => {
         setModalVisible(false);
         setEditMode(false);
-        loadData();
         setSkis2Write(initSkis(smDate()));
+        webDavSync();
+        loadData();
       });
     } else {
       if (!skis2Write.name || skis2Write.name.trim() === "") {
@@ -448,7 +454,7 @@ export default function SkisManagement() {
           icon: "warning",
         });
         inputNameRef.current?.focus();
-        console.warn("Ski name is required");
+        Logger.debug("Ski name is required");
         return;
       }
       if (!skis2Write.idTypeOfSkis || skis2Write.idTypeOfSkis === "") {
@@ -459,7 +465,7 @@ export default function SkisManagement() {
           position: "top",
           icon: "warning",
         });
-        console.warn("Ski style is required");
+        Logger.debug("Ski style is required");
         return;
       }
       if (!skis2Write.idBrand || skis2Write.idBrand === "") {
@@ -478,6 +484,7 @@ export default function SkisManagement() {
       }).then(() => {
         setModalVisible(false);
         setEditMode(false);
+        webDavSync();
         loadData();
       });
     }
@@ -629,7 +636,10 @@ export default function SkisManagement() {
       <Tile flex={1}>
         <TileIconTitle littleIconName={order_by === "order_by_begin" ? "calendar" : order_by === "order_by_maintains" ? "entretien" : "slope"} usersIconName={"skis"} textColor={colorsTheme.text}
           pastilleColor={colorsTheme.pastille} pastilleValue={listSkisFiltred.length.toString()} />
-        <FlatList data={listSkisFiltred || []}
+        <FlatList
+          data={listSkisFiltred || []}
+          onRefresh={loadData}
+          refreshing={false}
           style={{ width: "100%", padding: 4, flex: 1 }}
           renderItem={renderSkis}
           keyExtractor={(item, index) => "skis-" + item.id || "skis-" + index.toString()}
@@ -1136,7 +1146,12 @@ export default function SkisManagement() {
                   listUsers: skis2Write.listUsers || [],
                   listBoots: skis2Write.listBoots || [],
                   end: date.getTime()
-                }).then(loadData);
+                }).then(
+                  () => {
+                    webDavSync();
+                    loadData();
+                  }
+                );
               }
             }
           }

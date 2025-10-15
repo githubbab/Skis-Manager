@@ -1,4 +1,6 @@
-// Utility functions
+import * as Device from 'expo-device';
+
+let logID = Device.deviceName;
 
 // Function to convert various date formats to a timestamp
 export function smDate(value?: any): number {
@@ -31,3 +33,34 @@ export function smDate(value?: any): number {
   }
   return date;
 };
+
+// Simple logger that only logs in development mode
+class Logger {
+  static debug(...args: any[]) {
+    if (__DEV__) {
+      console.debug(`${logID}:`, ...args);
+    }
+  }
+  static log(...args: any[]) {
+    if (__DEV__) {
+      console.log(`${logID}:`, ...args);
+    }
+  }
+  static warn(...args: any[]) {
+    if (__DEV__) {
+      console.warn(`${logID}:`, ...args);
+    }
+  }
+  static error(...args: any[]) {
+    if (__DEV__) {
+      console.error(`${logID}:`, ...args);
+    }
+  }
+  static info(...args: any[]) {
+    if (__DEV__) {
+      console.info(`${logID}:`, ...args);
+    }
+  }
+}
+
+export { Logger };

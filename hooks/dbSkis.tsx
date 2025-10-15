@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
-import { createId, deleteQuery, diffAndGenerateQueries, execQuery, formatSQL, insertQuery, TABLES, updateQuery } from './DatabaseManager';
-import { getDistinctBrandIcoURIs, getDistinctToSIcoURIs } from './FileSystemManager';
+import { createId, deleteQuery, diffAndGenerateQueries, execQuery, formatSQL, insertQuery, TABLES, updateQuery } from './DataManager';
+import { getDistinctBrandIcoURIs, getDistinctToSIcoURIs } from './DataManager';
 import { getCurrentSeason, Seasons } from './dbSeasons';
 
 export type Skis = {
@@ -82,7 +82,7 @@ export async function insertSki(db: SQLiteDatabase, s: {
   for (const idBoots of s.listBoots) {
     query += insertQuery(TABLES.JOIN_SKIS_BOOTS, ["idSkis", "idBoots"], [id, idBoots]);
   }
-  await execQuery(db, query);
+  await execQuery(db, query, id);
   return {
     id: id, name: s.name, idBrand: s.idBrand, idTypeOfSkis: s.idTypeOfSkis, begin: s.begin, end: s.end, size: s.size,
     radius: s.radius, waist: s.waist, listBoots: s.listBoots, listUsers: s.listUsers
@@ -90,7 +90,6 @@ export async function insertSki(db: SQLiteDatabase, s: {
 }
 
 export async function updateSki(db: SQLiteDatabase, s: Skis) {
-  console.debug("editMode", s);
   const query = updateQuery(TABLES.SKIS, ["name", "idBrand", "idTypeOfSkis", "begin", "end", "size", "radius", "waist"],
     [s.name, s.idBrand ?? null, s.idTypeOfSkis, s.begin, s.end ?? null, s.size ?? null, s.radius ?? null, s.waist ?? null],
     "id = ?", [s.id]);
@@ -98,24 +97,21 @@ export async function updateSki(db: SQLiteDatabase, s: Skis) {
   const usersResult: string[] =
     (await db.getAllAsync(formatSQL(`SELECT idUser FROM ${TABLES.JOIN_SKIS_USERS} WHERE idSkis = ?`, [s.id])))
       .map((row: any) => row.idUser);
-  console.debug("usersResult", usersResult, s.listUsers);
   const bootsResult: string[] =
     (await db.getAllAsync(formatSQL(`SELECT idBoots FROM ${TABLES.JOIN_SKIS_BOOTS} WHERE idSkis = ?`, [s.id])))
       .map((row: any) => row.idBoots);
-  console.debug("bootsResult", bootsResult, s.listBoots);
-
   const usersQuery =
     diffAndGenerateQueries(usersResult, s.listUsers, TABLES.JOIN_SKIS_USERS, "idSkis", s.id, "idUser");
   const bootsQuery =
     diffAndGenerateQueries(bootsResult, s.listBoots, TABLES.JOIN_SKIS_BOOTS, "idSkis", s.id, "idBoots");
 
-  await execQuery(db, query + usersQuery + bootsQuery);
+  await execQuery(db, query + usersQuery + bootsQuery, s.id);
 }
 
 export async function deleteSki(db: SQLiteDatabase, id: string) {
   await execQuery(db, deleteQuery(TABLES.JOIN_SKIS_USERS, "idSkis = ?", [id]) +
     deleteQuery(TABLES.JOIN_SKIS_BOOTS, "idSkis = ?", [id]) +
-    deleteQuery(TABLES.SKIS, "id = ?", [id]));
+    deleteQuery(TABLES.SKIS, "id = ?", [id]), id);
 }
 
 export async function getAllSkis(db: SQLiteDatabase): Promise<Skis[]> {
@@ -157,8 +153,8 @@ export async function getAllSkis(db: SQLiteDatabase): Promise<Skis[]> {
     GROUP BY s.id, s.name, s.idBrand, s.idTypeOfSkis, 
       s.begin, s.end, s.size, s.radius, s.waist
       `);
-  const arrayIcoToSURI = await getDistinctToSIcoURIs(data);
-  const arrayIcoBrandURI = await getDistinctBrandIcoURIs(data);
+  const arrayIcoToSURI = getDistinctToSIcoURIs(data);
+  const arrayIcoBrandURI = getDistinctBrandIcoURIs(data);
   return data.map((ski: any) => ({
     ...ski,
     listUsers: ski.listUsers ? ski.listUsers.split(',') : [],
@@ -211,8 +207,8 @@ export async function getSeasonSkis(db: SQLiteDatabase, season?: Seasons): Promi
       s.begin, s.end, s.size, s.radius, s.waist
     ORDER BY nbOutings DESC, nbMaintains DESC, s.begin DESC
       `);
-  const arrayIcoToSURI = await getDistinctToSIcoURIs(data);
-  const arrayIcoBrandURI = await getDistinctBrandIcoURIs(data);
+  const arrayIcoToSURI = getDistinctToSIcoURIs(data);
+  const arrayIcoBrandURI = getDistinctBrandIcoURIs(data);
   return data.map((ski: any) => ({
     ...ski,
     listUsers: ski.listUsers ? ski.listUsers.split(',') : [],
@@ -264,8 +260,8 @@ export async function getTopSkis(db: SQLiteDatabase, season?: Seasons): Promise<
     GROUP BY s.id
     ORDER BY nbOutings DESC`
   );
-  const arrayIcoToSURI = await getDistinctToSIcoURIs(data);
-  const arrayIcoBrandURI = await getDistinctBrandIcoURIs(data);
+  const arrayIcoToSURI = getDistinctToSIcoURIs(data);
+  const arrayIcoBrandURI = getDistinctBrandIcoURIs(data);
   return data.map((ski: any) => ({
     ...ski,
     icoTypeOfSkisUri: arrayIcoToSURI[ski.idTypeOfSkis] || undefined,
@@ -303,8 +299,8 @@ export async function getSkis2Sharp(db: SQLiteDatabase): Promise<Skis[]> {
       HAVING nbMaintains >= 0
       ORDER BY nbMaintains DESC`
   );
-  const arrayIcoToSURI = await getDistinctToSIcoURIs(data);
-  const arrayIcoBrandURI = await getDistinctBrandIcoURIs(data);
+  const arrayIcoToSURI = getDistinctToSIcoURIs(data);
+  const arrayIcoBrandURI = getDistinctBrandIcoURIs(data);
   return data.map((ski: any) => ({
     ...ski,
     icoTypeOfSkisUri: arrayIcoToSURI[ski.idTypeOfSkis] || undefined,
@@ -343,8 +339,8 @@ export async function getSkis2Wax(db: SQLiteDatabase): Promise<Skis[]> {
       ORDER BY nbMaintains DESC`
   );
 
-  const arrayIcoToSURI = await getDistinctToSIcoURIs(data);
-  const arrayIcoBrandURI = await getDistinctBrandIcoURIs(data);
+  const arrayIcoToSURI = getDistinctToSIcoURIs(data);
+  const arrayIcoBrandURI = getDistinctBrandIcoURIs(data);
 
   return data.map((ski: any) => ({
     ...ski,

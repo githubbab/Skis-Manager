@@ -1,16 +1,40 @@
 import AppIcon from "@/components/AppIcon";
 import Row from "@/components/Row";
 import { appFontSize } from "@/constants/AppStyles";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
+import { Logger } from "@/hooks/ToolsBox";
 import { router, Tabs } from 'expo-router';
-import React, { useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Pressable, StyleSheet, Text } from "react-native";
 
 const TabLayout = () => {
   const { colorsTheme } = useContext(ThemeContext);
-  const { t, localeDate: localeDate, seasonDate, seasonName, viewOuting } = useContext(SettingsContext)!;
+  const { t, localeDate: localeDate, seasonDate, seasonName, viewOuting, viewFriends, lastWebDavSync } = useContext(AppContext)!;
 
+  const [seasonDateHuman, setSeasonDateHuman] = useState<string>(localeDate(seasonDate.getTime(), { day: '2-digit', month: 'short', year: 'numeric' }));
+  const [seasonNameHuman, setSeasonNameHuman] = useState<string>(seasonName);
+  const [dataLoading, setDataLoading] = useState<boolean>(false);
+
+  const loadData = async () => {
+    if (dataLoading) {
+      Logger.debug("TabLayout - loadData already in progress, skipping");
+      return;
+    }
+    Logger.debug("TabLayout - loadData", seasonDate, seasonName);
+    setDataLoading(true);
+    setSeasonNameHuman(seasonName);
+    setSeasonDateHuman(localeDate(seasonDate.getTime(), { day: '2-digit', month: 'short', year: 'numeric' }));
+    setDataLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [lastWebDavSync, seasonDate, seasonName]);
 
   const styles = StyleSheet.create({
     headerTitle: {
@@ -38,22 +62,25 @@ const TabLayout = () => {
   return (
     <Tabs
       screenOptions={{
+        tabBarStyle: {
+          height: 60,
+          paddingBottom: 0,
+          paddingTop: 4,
+          backgroundColor: colorsTheme.bar,
+        },
         tabBarIconStyle: { height: 34 },
-        tabBarStyle: { paddingBottom: -50 },
         tabBarLabelStyle: { display: 'none' }, // Hide tabBarLabel
         tabBarActiveTintColor: colorsTheme.primary,
         tabBarInactiveTintColor: colorsTheme.inactiveText,
-        tabBarActiveBackgroundColor: colorsTheme.bar,
-        tabBarInactiveBackgroundColor: colorsTheme.bar,
         header() {
           return (
             <Pressable onPress={() => router.navigate({ pathname: '/(drawer)/seasons-management' })}>
               <Row style={styles.header}>
-                <Text style={[styles.headerTitle, { marginHorizontal: 'auto' }]}>{seasonName}</Text>
+                <Text style={[styles.headerTitle, { marginHorizontal: 'auto' }]}>{seasonNameHuman}</Text>
                 <Row style={{ marginHorizontal: 'auto' }}>
                   <AppIcon name="calendar1" color={colorsTheme.inactiveText} size={18} />
                   <Text style={[styles.headerSubtitle, { marginHorizontal: 'auto' }]}>
-                    {localeDate(seasonDate.getTime(), { day: '2-digit', month: 'short', year: 'numeric' })}
+                    {seasonDateHuman}
                   </Text>
                 </Row>
               </Row>
@@ -67,6 +94,7 @@ const TabLayout = () => {
         name="index"
         options={{
           title: t('home'),
+          tabBarItemStyle: { flex: 2 },
           tabBarIcon: ({ color }) =>
             <AppIcon name="home" color={color} size={32} />,
         }}
@@ -76,6 +104,7 @@ const TabLayout = () => {
         options={{
           tabBarLabel: "",
           title: "",
+          tabBarItemStyle: { flex: 3 },
           tabBarIcon: ({ color }) =>
             <Row>
               <AppIcon name="sortie" color={color} size={32} />
@@ -89,8 +118,19 @@ const TabLayout = () => {
         options={{
           href: viewOuting ? undefined : null,
           title: t('tab_offpistes'),
-          tabBarIcon: ({ color }) =>
-            <AppIcon name="hors-piste" color={color} size={32} />,
+          tabBarItemStyle: { flex: 1 },
+          tabBarIcon: ({ color, size }) =>
+            <AppIcon name="hors-piste" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="friends"
+        options={{
+          href: viewFriends ? undefined : null,
+          title: "friends",
+          tabBarItemStyle: { flex: 1 },
+          tabBarIcon: ({ color, size }) =>
+            <AppIcon name="accessibility" color={color} size={size} />,
         }}
       />
     </Tabs>

@@ -7,11 +7,12 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getAllSeasons, Seasons } from "@/hooks/dbSeasons";
 import { getTopSkis, Skis } from "@/hooks/dbSkis";
 import { getTopUsers, Users } from "@/hooks/dbUsers";
+import { Logger } from "@/hooks/ToolsBox";
 import { Picker } from '@react-native-picker/picker';
 import { useSQLiteContext } from "expo-sqlite";
 import { useContext, useEffect, useState } from "react";
@@ -23,7 +24,7 @@ export default function Stats() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { localeDate, t, lang } = useContext(SettingsContext);
+  const { localeDate, t } = useContext(AppContext);
 
   const [seasons, setSeasons] = useState<Seasons[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<Seasons | null>(null);
@@ -31,17 +32,19 @@ export default function Stats() {
   const [topSkis, setTopSkis] = useState<Skis[]>([]);
   const [selectedSkis, setSelectedSkis] = useState<string>("");
 
-  useEffect(() => {
-    console.debug("Loading seasons");
-    (async () => {
-      const data = await getAllSeasons(db);
-      setSeasons(data);
-      if (data.length > 0) setSelectedSeason(data[0]);
-    })();
-  }, []);
+  async function loadData() {
+    Logger.debug("Loading seasons");
+    const data = await getAllSeasons(db);
+    setSeasons(data);
+    if (data.length > 0) setSelectedSeason(data[0]);
+  }
 
   useEffect(() => {
-    console.debug("Loading top users and skis for season", selectedSeason);
+    loadData();
+  }, []); 
+
+  useEffect(() => {
+    Logger.debug("Loading top users and skis for season", selectedSeason);
     if (selectedSeason) {
       (async () => {
         setTopUsers(await getTopUsers(db, selectedSeason));
@@ -100,10 +103,10 @@ export default function Stats() {
           </Text>
 
 
-            {item.listUserNames?.map((value: string, index: number) => {
-              return <Pastille key={"SKIS" + value + index} name={value} size={iconSize}
-                style={{ marginRight: -10, zIndex: index * -1 }} />;
-            })}
+          {item.listUserNames?.map((value: string, index: number) => {
+            return <Pastille key={"SKIS" + value + index} name={value} size={iconSize}
+              style={{ marginRight: -10, zIndex: index * -1 }} />;
+          })}
         </Row>
         <Row style={{ zIndex: 99 }}>
           <Card>
@@ -198,6 +201,8 @@ export default function Stats() {
           pastilleValue={topSkis.length.toString()} pastilleColor={colorsTheme.pastille} />
         {(topSkis) ?
           <FlatList data={topSkis}
+            onRefresh={loadData}
+            refreshing={false}
             keyExtractor={(item) => item.id}
             style={{ width: "100%", padding: 4 }}
             renderItem={renderSkis}

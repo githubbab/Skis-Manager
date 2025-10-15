@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
-import { createId, deleteQuery, diffAndGenerateQueries, execQuery, formatSQL, insertQuery, TABLES, updateQuery } from './DatabaseManager';
+import { createId, deleteQuery, diffAndGenerateQueries, execQuery, formatSQL, insertQuery, TABLES, updateQuery } from './DataManager';
 
 export type Outings = {
   id: string;
@@ -49,8 +49,7 @@ export async function insertOuting(db: SQLiteDatabase, o: {
       query += insertQuery(TABLES.JOIN_OUTINGS_OFFPISTES, ["idOuting", "idOffPiste", "count"], [id, idOffPiste, nb]);
     }
   }
-  console.debug("insertOuting query", query);
-  await execQuery(db, query);
+  await execQuery(db, query, id);
   return {
     id: id, date: o.date, idOutingType: o.idOutingType, idSkis: o.idSkis, idUser: o.idUser, idBoots: o.idBoots,
     idFriends: o.idFriends, listOfOffPistes: o.listOfOffPistes
@@ -76,13 +75,13 @@ export async function updateOuting(db: SQLiteDatabase, o: Outings) {
       query += insertQuery(TABLES.JOIN_OUTINGS_OFFPISTES, ["idOuting", "idOffPiste", "count"], [o.id, idOffPiste, count]);
     }
   }
-  await execQuery(db, query);
+  await execQuery(db, query, o.id);
 }
 
 export async function deleteOuting(db: SQLiteDatabase, id: string) {
   await execQuery(db, deleteQuery(TABLES.JOIN_OUTINGS_FRIENDS, "idOuting = ?", [id]) +
     deleteQuery(TABLES.JOIN_OUTINGS_OFFPISTES, "idOuting = ?", [id]) +
-    deleteQuery(TABLES.OUTINGS, "id = ?", [id]));
+    deleteQuery(TABLES.OUTINGS, "id = ?", [id]), id);
 }
 
 export async function getAllOutings(db: SQLiteDatabase, seasonDate: number): Promise<Outings[]> {

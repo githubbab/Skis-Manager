@@ -1,4 +1,5 @@
 import AppColors from "@/constants/AppColors";
+import { Logger } from "@/hooks/ToolsBox";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, ReactNode, useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
@@ -15,23 +16,20 @@ export const ThemeContext = createContext<ThemeContextType>({
   isSystemTheme: true,
   currentTheme: 'light',
   colorsTheme: AppColors['light'],
-  toggleTheme: () => {},
-  useSystemTheme: () => {}
+  toggleTheme: () => { },
+  useSystemTheme: () => { }
 });
 
-const ThemeProvider = ({children}: { children: ReactNode }) => {
+const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const colorScheme = useColorScheme() ?? 'light';
   const [theme, setTheme] = useState<"light" | "dark">(colorScheme);
   const [systemTheme, setSystemTheme] = useState<boolean>(false);
 
   useEffect(() => {
     const getTheme = async () => {
-      console.debug("Getting theme from AsyncStorage");
       try {
         const savedThemeObject = await AsyncStorage.getItem("theme");
-        console.log(savedThemeObject);
         const savedThemeObjectData = JSON.parse(savedThemeObject!);
-
         if (savedThemeObjectData) {
           setTheme(savedThemeObjectData.mode);
           setSystemTheme(savedThemeObjectData.system);
@@ -45,24 +43,14 @@ const ThemeProvider = ({children}: { children: ReactNode }) => {
           setTheme(colorScheme);
           setSystemTheme(true);
         }
+        Logger.debug("Getting theme from AsyncStorage", savedThemeObjectData);
+
       } catch (e) {
-        console.error(e);
+        Logger.error("Error getting theme from AsyncStorage", e);
       }
     }
     getTheme();
-  });
-
-/*   useEffect(() => {
-    if (colorScheme && systemTheme) {
-      const themeObject = {
-        mode: colorScheme,
-        system: true
-      }
-      AsyncStorage.setItem("theme", JSON.stringify(themeObject));
-      setTheme(colorScheme);
-      setSystemTheme(true)
-    }
-  }, [colorScheme, systemTheme]); */
+  }, []);
 
   const toggleTheme = (newTheme: "light" | "dark") => {
     const themeObject = {

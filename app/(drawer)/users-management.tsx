@@ -21,7 +21,7 @@ import { colorPickerStyle } from '@/constants/colorPickerStyle';
 import { smDate } from "@/hooks/ToolsBox";
 import type { ColorFormatsObject } from 'reanimated-color-picker';
 import ColorPicker, { HueCircular, Panel1, Swatches } from 'reanimated-color-picker';
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import RowItem from "@/components/RowItem";
 
 const customSwatches = ["#6CC5B0", "#F3722C", "#FF8AB7", "#3CA951", "#A463F2", "#4269D0"];
@@ -31,7 +31,7 @@ export default function UsersManagementScreen() {
   const { colorsTheme, currentTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { t } = useContext(SettingsContext);
+  const { t, webDavSync } = useContext(AppContext);
 
   const [users, setUsers] = useState<Users[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -118,6 +118,8 @@ export default function UsersManagementScreen() {
     setSelectedUser(initUser());
     setEditingUser(false);
     loadData();
+    inputRef.current?.blur();
+    webDavSync();
   }
 
   //                                           ######                       #####                                    
@@ -132,6 +134,7 @@ export default function UsersManagementScreen() {
     if (event.type === "set" && selectedUser) {
       const updatedUser = { ...selectedUser, end: smDate(date || new Date()) };
       await updateUser(db, updatedUser);
+      webDavSync();
       loadData();
     }
   }
@@ -156,7 +159,10 @@ export default function UsersManagementScreen() {
             onPress: () => {
               if (selectedUser) {
                 const updatedUser = { ...selectedUser, end: undefined };
-                updateUser(db, updatedUser).then(loadData)
+                updateUser(db, updatedUser).then(() => {
+                  loadData();
+                  webDavSync();
+                });
               }
             },
           }
@@ -309,6 +315,8 @@ export default function UsersManagementScreen() {
         <TileIconTitle littleIconName={order_by === "order_by_name" ? "pencil" : "slope"} usersIconName={"users"} textColor={colorsTheme.text} />
         <FlatList
           data={users}
+          onRefresh={loadData}
+          refreshing={false}
           keyExtractor={u => u.id}
           renderItem={({ item }) => renderItem(item)}
         />

@@ -8,9 +8,9 @@ import Row from "@/components/Row";
 import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { deleteTypeOfOutings, initTypeOfOutings, insertTypeOfOutings, TOO, updateTypeOfOutings } from "@/hooks/dbTypeOfOuting";
+import { deleteTypeOfOutings, getAllTypeOfOutings, initTypeOfOutings, insertTypeOfOutings, TOO, updateTypeOfOutings } from "@/hooks/dbTypeOfOuting";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Text, TextInput, View } from "react-native";
@@ -19,7 +19,7 @@ export default function TypeOfOutingsManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { t } = useContext(SettingsContext);
+  const { t, webDavSync } = useContext(AppContext);
 
   const [types, setTypes] = useState<TOO[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -48,14 +48,7 @@ export default function TypeOfOutingsManagementScreen() {
   // ######  ####  #    # #####  ######  #    #   #   #    #
   async function loadData() {
     // Ajoute itemCount si tu veux afficher le nombre d'utilisations
-    const res: TOO[] = await db.getAllAsync(`
-      SELECT o.id, o.name, o.canOffPiste,
-        COUNT(eo.id) as itemCount
-      FROM typeOfOutings o
-      LEFT JOIN eventsOutings eo ON o.id = eo.idOutingType
-      GROUP BY o.id
-      ORDER BY o.name;
-    `);
+    const res: TOO[] = await getAllTypeOfOutings(db);
     setTypes(res);
   }
 
@@ -104,6 +97,9 @@ export default function TypeOfOutingsManagementScreen() {
     setModalVisible(false);
     setEditingType(initTypeOfOutings());
     loadData();
+    setName("");
+    inputRef.current?.blur();
+    webDavSync();
   }
 
   //                                           ######                                   
@@ -124,6 +120,7 @@ export default function TypeOfOutingsManagementScreen() {
           onPress: async () => {
             await deleteTypeOfOutings(db, type.id);
             loadData();
+            webDavSync();
           },
         }
       ]
@@ -201,6 +198,8 @@ export default function TypeOfOutingsManagementScreen() {
       <Tile flex={1}>
         <FlatList
           data={types}
+          onRefresh={loadData}
+          refreshing={false}
           keyExtractor={t => t.id}
           renderItem={({ item }) => renderItem({ item })}
         />

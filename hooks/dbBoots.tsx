@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
-import { createId, deleteQuery, diffAndGenerateQueries, execQuery, formatSQL, insertQuery, TABLES, updateQuery } from './DatabaseManager';
-import { getDistinctBrandIcoURIs, icoUnknownBrand } from './FileSystemManager';
+import { createId, deleteQuery, diffAndGenerateQueries, execQuery, formatSQL, insertQuery, TABLES, updateQuery } from './DataManager';
+import { getDistinctBrandIcoURIs, icoUnknownBrand } from './DataManager';
 
 export type Boots = {
     id: string;
@@ -57,7 +57,7 @@ export async function insertBoots<Boots>(db: SQLiteDatabase, b: {
     for (const idUser of b.listUsers) {
         query += insertQuery(TABLES.JOIN_BOOTS_USERS, ["idBoots", "idUser"], [id, idUser]);
     }
-    await execQuery(db, query);
+    await execQuery(db, query, id);
     return { id: id, name: b.name, idBrand: b.idBrand, begin: b.begin, end: b.end, size: b.size, length: b.size, flex: b.flex } as Boots;
 }
 
@@ -74,14 +74,14 @@ export async function updateBoots(db: SQLiteDatabase, b: Boots) {
             .map((row: any) => row.idUser);
     const usersQuery =
         diffAndGenerateQueries(usersResult, b.listUsers, TABLES.JOIN_BOOTS_USERS, "idBoots", b.id, "idUser");
-    await execQuery(db, query + usersQuery);
+    await execQuery(db, query + usersQuery, b.id);
 }
 
 export async function deleteBoots(db: SQLiteDatabase, id: string) {
     if (!id || id === "not-an-id") {
         throw new Error("Boots ID is required for deletion");
     }
-    await execQuery(db, deleteQuery(TABLES.BOOTS, "id = ?", [id]) + deleteQuery(TABLES.JOIN_BOOTS_USERS, "idBoots = ?", [id]));
+    await execQuery(db, deleteQuery(TABLES.BOOTS, "id = ?", [id]) + deleteQuery(TABLES.JOIN_BOOTS_USERS, "idBoots = ?", [id]), id);
 }
 
 export async function getAllBoots(db: SQLiteDatabase, activeUntil?: number): Promise<Boots[]> {
@@ -113,7 +113,6 @@ export async function getAllBoots(db: SQLiteDatabase, activeUntil?: number): Pro
 }
 
 export async function getBoots4Skis(db: SQLiteDatabase, idSkis: string): Promise<Boots[]> {
-    console.debug("getBoots4Skis", idSkis);
     const data: Boots[] = await db.getAllAsync(`
         SELECT b.id, b.name, b.idBrand, b.size, b.length, b.flex, b.begin, b.end,
             br.name as brand,

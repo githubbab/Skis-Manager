@@ -2,7 +2,7 @@ import AppIcon from "@/components/AppIcon";
 import OpenMenu from "@/components/OpenMenu";
 import Row from "@/components/Row";
 import Separator from "@/components/Separator";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
@@ -10,14 +10,18 @@ import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
 import React, { useContext } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { listActionsStoreFiles, listImageStoreFiles, listRootStoreFiles } from "@/hooks/DataManager";
+import { Directory } from "expo-file-system";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
+import { getWebDavDevices } from "@/hooks/SyncWebDav";
+import { Logger } from "@/hooks/ToolsBox";
 
 export default function DrawerLayout() {
   const { currentTheme, colorsTheme } = useContext(ThemeContext);
   const db = useSQLiteContext();
-  const { t, localeDate: localeDate, viewOuting, viewFriends } = useContext(SettingsContext)!;
+  const { t, viewOuting, viewFriends, webDavClient, deviceID } = useContext(AppContext)!;
 
-  console.log("DrawerLayout: ", currentTheme);
   const styles = StyleSheet.create({
     drawerHeaderStyle: {
       backgroundColor: colorsTheme.bar,
@@ -64,6 +68,37 @@ export default function DrawerLayout() {
       alignItems: "center",
     },
   })
+
+  async function listlocalStoreFilesDebug() {
+    if (webDavClient) {
+      try {
+        const devices = await getWebDavDevices(webDavClient);
+        Logger.debug("############  list webdav devices ############", deviceID);
+        for (const device of devices) {
+          Logger.debug(` - ${device.id} @ ${device.lastModified.toISOString()}${device.id === deviceID ? " (this device)" : ""}`);
+        }
+        Logger.debug(" ##############################################");
+      } catch (error) {
+        Logger.error("Error getting WebDav devices: ", error);
+      }
+    }
+    Logger.debug("############  list local files ############");
+    Logger.debug(" => Actions Files");
+    for (const action of listActionsStoreFiles()) {
+      Logger.debug(`    - ${action.name} (${action instanceof Directory ? "directory" : `${action.size} bytes`}) @ ${new Date(action.info().modificationTime || 0).toISOString()}`);
+    }
+    Logger.debug(" ###########################################");
+    Logger.debug(" => Images Files");
+    for (const image of listImageStoreFiles()) {
+      Logger.debug(`    - ${image.name} (${image instanceof Directory ? "directory" : `${image.size} bytes`}) @ ${new Date(image.info().modificationTime || 0).toISOString()}`);
+    }
+    Logger.debug(" ###########################################");
+    Logger.debug(" => Root Files");
+    for (const rootFile of listRootStoreFiles()) {
+      Logger.debug(`    - ${rootFile.name} (${rootFile instanceof Directory ? "directory" : `${rootFile.size} bytes`}) @ ${new Date(rootFile.info().modificationTime || 0).toISOString()}`);
+    }
+    Logger.debug(" ###########################################");
+  }
 
   const CustomDrawerContent = (props: any) => {
     return (
@@ -270,6 +305,7 @@ export default function DrawerLayout() {
         headerStyle: styles.drawerHeaderStyle,
         headerTitleStyle: styles.drawerHeaderTitleStyle,
         headerTitle: "Skis Manager",
+        headerStatusBarHeight: 0,
         headerLeft: () => {
           return (<OpenMenu />)
         }
@@ -327,7 +363,9 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
-              <AppIcon name={"database"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
+              <Pressable onLongPress={listlocalStoreFilesDebug}>
+                <AppIcon name={"database"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
+              </Pressable>
             </View>
           )
         }

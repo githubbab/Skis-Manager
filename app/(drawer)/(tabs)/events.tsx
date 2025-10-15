@@ -10,9 +10,9 @@ import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { getLastDBWrite } from "@/hooks/DatabaseManager";
+import { getLastDBWrite } from "@/hooks/DataManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
 import { Friends, getAllFriends } from "@/hooks/dbFriends";
 import { deleteMaintain, getAllMaintains, initMaintain, insertMaintain, Maintains, updateMaintain } from "@/hooks/dbMaintains";
@@ -21,7 +21,7 @@ import { deleteOuting, getAllOutings, initOuting, insertOuting, Outings, updateO
 import { getSeasonSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
-import { smDate } from "@/hooks/ToolsBox";
+import { Logger, smDate } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -75,7 +75,7 @@ const Events = () => {
   const [maintainViewRepair, setMaintainViewRepair] = useState<boolean>(true);
   const [activeDelete, setActiveDelete] = useState<number>(0);
 
-  const { t, localeDate: localeDate, seasonDate, viewOuting, viewFriends } = useContext(SettingsContext)!;
+  const { t, localeDate: localeDate, seasonDate, viewOuting, viewFriends, webDavSync } = useContext(AppContext)!;
 
   const handleCancelFilters = () => {
     setViewUserFilter(false);
@@ -155,7 +155,7 @@ const Events = () => {
       setListFriends(await getAllFriends(db));
       setListOffPistes(await getAllOffPistes(db));
     } catch (error) {
-      console.error("Error loading data:", error);
+      Logger.error("Error loading data:", error);
     } finally {
       setDbState("done");
     }
@@ -185,7 +185,7 @@ const Events = () => {
     for (const off of listOfOffPistes) {
       const offPiste = listOffPistes.find(o => o.id === off.id);
       if (!offPiste) {
-        console.warn("OffPiste not found:", off.id);
+        Logger.debug("OffPiste not found:", off.id);
         continue;
       }
       extractedOffPistes.push({ ...offPiste, count: off.nb });
@@ -213,12 +213,14 @@ const Events = () => {
 
   useEffect(() => {
     if (effectActive) {
-      console.debug("useEffect active, skipping outing2write update");
+      Logger.debug("useEffect active, skipping outing2write update");
       return;
     }
     setEffectActive(true);
     if (outing2write.date) {
       setOutingViewUser(true);
+      const hours = new Date(outing2write.date).getHours();
+      setPartOfDay(hours < 10 ? "am" : hours < 14 ? "noon" : "pm");
     }
     else {
       setOutingViewUser(false);
@@ -295,7 +297,7 @@ const Events = () => {
 
   function changeDate(date: Date, type: "outing" | "maintain") {
     const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : 16));
-    console.debug("changeDate", date2Save);
+    Logger.debug("changeDate", date2Save, type, partOfDay);
 
     if (type === "outing") {
       if (listUsers.length === 1) {
@@ -315,17 +317,17 @@ const Events = () => {
         setOuting2Write({ ...outing2write, date: date2Save });
       }
     } else {
-      setMaintain2Write({ ...maintain2write, date: smDate(date2Save) });
+      setMaintain2Write({ ...maintain2write, date: date2Save });
     }
   }
 
   function onDateChange(event: any, selectedDate: Date | undefined) {
-    console.debug("onDateChange", event.type, selectedDate);
+    Logger.debug("onDateChange", event.type, selectedDate);
     if (event.type === "set" && selectedDate) {
       changeDate(selectedDate, dateTimePickerVisible as "outing" | "maintain");
     }
     else {
-      console.debug("Date selection cancelled");
+      Logger.debug("Date selection cancelled");
     }
     setDateTimePickerVisible("none");
   }
@@ -338,7 +340,7 @@ const Events = () => {
   // #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
   //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   const cancelAction = async () => {
-    console.debug("Cancelling action");
+    Logger.debug("Cancelling action");
     setMaintainsVisible(false);
     setMaintain2Write(initMaintain());
     setOutingVisible(false);
@@ -367,7 +369,7 @@ const Events = () => {
   // #    # #    #  #  #  #      #     # #    #   #   # #   ## #    #
   //  ####  #    #   ##   ###### #######  ####    #   # #    #  #### 
   const saveOuting = async () => {
-    console.debug("Saving outing", outing2write);
+    Logger.debug("Saving outing", outing2write);
     if (outing2write.id === "not-an-id") {
       await insertOuting(db, outing2write);
     } else {
@@ -375,10 +377,11 @@ const Events = () => {
     }
     setOutingVisible(false);
     setOuting2Write(initOuting());
+    webDavSync();
     await loadData(); // Reload data after saving
   }
   const handleDeleteOuting = (outing: Outings) => {
-    console.debug("Deleting outing", outing);
+    Logger.debug("Deleting outing", outing);
     Alert.alert(
       t('delete'),
       t("del_outing"),
@@ -388,7 +391,10 @@ const Events = () => {
           text: t('ok'),
           onPress: () => {
             if (outing?.id) {
-              deleteOuting(db, outing.id).then(loadData)
+              deleteOuting(db, outing.id).then(() => {
+                webDavSync();
+                loadData();
+              });
             }
           },
         }
@@ -406,7 +412,7 @@ const Events = () => {
   // #    # #    #  #  #  #      #     # #    # # #   ##   #   #    # # #   ##
   //  ####  #    #   ##   ###### #     # #    # # #    #   #   #    # # #    #
   const saveMaintain = async () => {
-    console.debug("Saving maintain", maintain2write);
+    Logger.debug("Saving maintain", maintain2write);
     if (maintain2write.id === "not-an-id") {
       await insertMaintain(db, maintain2write);
     } else {
@@ -415,6 +421,7 @@ const Events = () => {
     setMaintainsVisible(false);
     setMaintain2Write(initMaintain());
     await loadData(); // Reload data after saving
+    webDavSync();
   }
   //                                          #     #                                      
   // #####  ###### #      ###### ##### ###### ##   ##   ##   # #    # #####   ##   # #    #
@@ -424,7 +431,7 @@ const Events = () => {
   // #    # #      #      #        #   #      #     # #    # # #   ##   #   #    # # #   ##
   // #####  ###### ###### ######   #   ###### #     # #    # # #    #   #   #    # # #    #
   const handleDeleteMaintain = (maintain: Maintains) => {
-    console.debug("Deleting maintain", maintain);
+    Logger.debug("Deleting maintain", maintain);
     Alert.alert(
       t('delete'),
       t("del_maintain"),
@@ -434,7 +441,12 @@ const Events = () => {
           text: t('ok'),
           onPress: () => {
             if (maintain?.id) {
-              deleteMaintain(db, maintain.id).then(loadData)
+              deleteMaintain(db, maintain.id).then(
+                () => {
+                  webDavSync();
+                  loadData()
+                }
+              )
             }
           },
         }
@@ -454,8 +466,8 @@ const Events = () => {
   const renderOutingSkis: ListRenderItem<Skis> = ({ item }) => {
     return (
       <TouchableOpacity onPress={() => {
-        console.debug("renderOutingSkis:", item);
-        console.debug("majorOutingType:", item.majorTypeOfOuting);
+        Logger.debug("renderOutingSkis:", item);
+        Logger.debug("majorOutingType:", item.majorTypeOfOuting);
         if (outing2write.idSkis === item.id) {
           const skis = filterOutingSkis(outing2write.idUser || "");
           if (skis.length !== 1) {
@@ -582,18 +594,18 @@ const Events = () => {
     if (item.type === "outing") {
       const outingSkis: Skis | undefined = listSkis.find(s => s.id === item.data.idSkis);
       if (!outingSkis) {
-        console.warn("No skis found for outing:", item.id, item.idSkis);
+        Logger.debug("No skis found for outing:", item.id, item.idSkis);
         return null;
       }
       const outingBoots: Boots | undefined = listBoots.find(b => b.id === item.data.idBoots);
       if (!outingBoots) {
-        console.warn("No boots found for outing:", item.id, item.data.idBoots);
+        Logger.debug("No boots found for outing:", item.id, item.data.idBoots);
         return null;
       }
       const outingType: TOO | undefined = listOutingTypes.find(t => t.id === item.data.idOutingType);
       const outingUser: Users | undefined = listUsers.find(u => u.id === item.data.idUser);
       if (!outingUser) {
-        console.warn("No user found for outing:", item.id);
+        Logger.debug("No user found for outing:", item.id);
         return null;
       }
       const outingFriends: Friends[] = listFriends.filter(f => item.data.idFriends?.includes(f.id));
@@ -689,7 +701,7 @@ const Events = () => {
     if (item.type === "maintain") {
       const maintainSkis: Skis | undefined = listSkis.find(s => s.id === item.data.idSkis);
       if (!maintainSkis) {
-        console.warn("No skis found for maintain", item.data.idSkis);
+        Logger.debug("No skis found for maintain", item.data.idSkis);
         return null;
       }
       const description = () => {
@@ -903,6 +915,8 @@ const Events = () => {
         <FlatList
           data={list2View}
           renderItem={renderItem}
+          onRefresh={loadData}
+          refreshing={false}
           keyExtractor={(item) => item.data.id}
         />
 
@@ -1085,7 +1099,7 @@ const Events = () => {
                   data={listUsers}
                   renderItem={({ item }) => (
                     <TouchableOpacity onPress={() => {
-                      console.debug("Selected user:", item);
+                      Logger.debug("Selected user:", item);
                       const skis = filterOutingSkis(item.id);
                       if (skis.length === 1) {
                         const boots = filterOutingBoots(skis[0].id);

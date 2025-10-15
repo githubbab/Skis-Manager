@@ -9,13 +9,12 @@ import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { OffPistes, deleteOffPiste, getAllOffPistes, initOffPiste, insertOffPiste, updateOffPiste } from "@/hooks/dbOffPistes";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Alert, FlatList, Text, TextInput, View } from "react-native";
-import { Pressable } from 'react-native';
+import { Alert, FlatList, Text, TextInput } from "react-native";
 
 export default function OffpistesManagement() {
   const { colorsTheme } = useContext(ThemeContext);
@@ -28,7 +27,7 @@ export default function OffpistesManagement() {
   const [name, setName] = useState("");
   const inputRef = useRef<TextInput>(null);
 
-  const { t } = useContext(SettingsContext);
+  const { t, webDavSync } = useContext(AppContext);
 
   //                      #######                                  
   // #    #  ####  ###### #       ###### ###### ######  ####  #####
@@ -95,6 +94,9 @@ export default function OffpistesManagement() {
     }
     setModalVisible(false);
     setEditingOffpiste(initOffPiste());
+    setName("");
+    inputRef.current?.blur();
+    webDavSync();
     loadData();
   }
 
@@ -116,6 +118,7 @@ export default function OffpistesManagement() {
           onPress: async () => {
             await deleteOffPiste(db, offpiste.id);
             loadData();
+            webDavSync();
           },
         }
       ]
@@ -192,6 +195,8 @@ export default function OffpistesManagement() {
         <TileIconTitle littleIconName={"star-full"} usersIconName={"hors-piste"} textColor={colorsTheme.text} />
         <FlatList
           data={offpistes}
+          onRefresh={loadData}
+          refreshing={false}
           keyExtractor={o => o.id}
           renderItem={({ item }) => renderItem(item)}
         />

@@ -9,12 +9,12 @@ import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { Friends, deleteFriend, getFriendsWithOutingsCount, initFriend, insertFriend, updateFriend } from "@/hooks/dbFriends";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Alert, FlatList, Text, TextInput, View } from "react-native";
+import { Alert, FlatList, Text, TextInput } from "react-native";
 
 export default function FriendsManagement() {
   const { colorsTheme } = useContext(ThemeContext);
@@ -27,7 +27,7 @@ export default function FriendsManagement() {
   const [name, setName] = useState("");
   const inputRef = useRef<TextInput>(null);
 
-  const { t } = useContext(SettingsContext);
+  const { t, webDavSync } = useContext(AppContext);
 
   //                      #######                                  
   // #    #  ####  ###### #       ###### ###### ######  ####  #####
@@ -95,6 +95,9 @@ export default function FriendsManagement() {
     }
     setModalVisible(false);
     setEditingFriend(initFriend());
+    setName("");
+    inputRef.current?.blur();
+    webDavSync();
     loadData();
   }
 
@@ -116,6 +119,7 @@ export default function FriendsManagement() {
           onPress: async () => {
             await deleteFriend(db, friend.id);
             loadData();
+            webDavSync();
           },
         }
       ]
@@ -190,6 +194,8 @@ export default function FriendsManagement() {
         <TileIconTitle littleIconName={"star-full"} usersIconName={"accessibility"} textColor={colorsTheme.text} />
         <FlatList
           data={friends}
+          onRefresh={loadData}
+          refreshing={false}
           keyExtractor={f => f.id}
           renderItem={({ item }) => renderItem(item)}
         />

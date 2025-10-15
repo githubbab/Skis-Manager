@@ -9,15 +9,18 @@ import Row from "@/components/Row";
 import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
+import { getDeviceID } from "@/hooks/DataManager";
 import { Brands, deleteBrand, getAllBrands, initBrand, insertBrand, updateBrand } from "@/hooks/dbBrands";
-import { copyBrandIco, icoUnknownBrand } from "@/hooks/FileSystemManager";
+import { copyBrandIco, delBrandIco, getBrandIcoURI, icoUnknownBrand } from "@/hooks/DataManager";
 import * as DocumentPicker from 'expo-document-picker';
 import { ImageManipulator } from 'expo-image-manipulator';
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { File } from "expo-file-system";
+import { Logger } from "@/hooks/ToolsBox";
 
 
 export default function BrandsManagementScreen() {
@@ -33,8 +36,8 @@ export default function BrandsManagementScreen() {
   const [imageChanged, setImageChanged] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
-  const { t } = useContext(SettingsContext)!;
-
+  const { t, webDavSync } = useContext(AppContext)!;
+  const myId = getDeviceID();
   const iconSize = 48;
 
   //                      #######                                  
@@ -56,6 +59,7 @@ export default function BrandsManagementScreen() {
   // #      #    # #    # #    # #     # #    #   #   #    #
   // ######  ####  #    # #####  ######  #    #   #   #    #
   async function loadData() {
+    Logger.log(": Loading brands from DB");
     const res: Brands[] = await getAllBrands(db, "order_by_usage");
     setBrands(res);
   }
@@ -102,20 +106,26 @@ export default function BrandsManagementScreen() {
     if (!name.trim()) return;
     let brandId = editingBrand.id;
     if (brandId !== "not-an-id") {
-      await updateBrand(db, { id: editingBrand.id, name });
+      if (name !== editingBrand.name) {
+        await updateBrand(db, { id: editingBrand.id, name });
+      }
     } else {
       const res = await insertBrand(db, { name });
       brandId = res.id;
     }
     // Si une image a été sélectionnée, la sauvegarder dans le dossier local
-    if (brandImage && brandId && imageChanged) {
+    if (brandImage && brandId && imageChanged && brandImage.startsWith("file://")) {
       // Si l'image n'est pas déjà dans le bon dossier, la copier
-      console.log("Brand image:", brandImage, "Brand ID:", brandId);
+      Logger.log(": Brand image:", brandImage, "Brand ID:", brandId);
       copyBrandIco(brandId, brandImage);
+    } else if ((!brandImage || !brandImage?.startsWith("file://")) && brandId && imageChanged) {
+      // Si l'image a été supprimée, supprimer le fichier
+      delBrandIco(brandId);
     }
     setModalVisible(false);
     setEditingBrand(initBrand());
     setBrandImage(undefined);
+    webDavSync();
     loadData();
   }
   // Ouvre le sélecteur d'image, croppe en carré et redimensionne à 256x256
@@ -131,7 +141,7 @@ export default function BrandsManagementScreen() {
       const manipResult = await (await manipulator.renderAsync()).saveAsync();
       setBrandImage(manipResult.uri);
       setImageChanged(true);
-      console.log("Image sélectionnée :", manipResult.uri);
+      Logger.log(": Image sélectionnée :", manipResult.uri);
     }
   }
 
@@ -155,6 +165,7 @@ export default function BrandsManagementScreen() {
           onPress: async () => {
             await deleteBrand(db, brand.id);
             loadData();
+            webDavSync();
           },
         }
       ]
@@ -187,34 +198,44 @@ export default function BrandsManagementScreen() {
 
   function renderItem(item: Brands) {
     const nbActions = item.nbSkis + item.nbBoots;
+    if (!item.id.startsWith('init-')) {
+      Logger.log(": Brand", item.name, "icoUri:", item.icoUri, "nbActions:", nbActions);
+      const file = new File(item.icoUri);
+      if (!file.exists) {
+        Logger.log(":   File not found:", item.icoUri);
+      }
+      else {
+        Logger.log(":   File exists:", item.icoUri);
+      }
+    }
 
     return (
       <RowItem
-        isActive={ item.id === editingBrand.id }
+        isActive={item.id === editingBrand.id}
         onSelect={() => { if (item.id === editingBrand.id) setEditingBrand(initBrand()); else setEditingBrand(item); }}
         onEdit={() => openEditModal(item)}
         deleteMode={"delete"}
-        onDelete={item.id.startsWith('init-') ? undefined : () => handleDelete(item)  }
-        >
-          <Row>
-            <Image source={{ uri: item.icoUri }}
-              style={{ width: iconSize, height: iconSize, marginRight: 8, borderRadius: 8 }} />
-            <Text style={[appStyles.title, { flex: 1 }]}>{item.name}</Text>
-            {item.nbSkis > 0 && (
-              <Card>
-                <Text style={[appStyles.inactiveText]}>{item.nbSkis}</Text>
-                <AppIcon name="skis" color={colorsTheme.inactiveText} size={20} />
-              </Card>
-            )}
-            {item.nbBoots > 0 && (
-              <Card>
-                <Text style={[appStyles.inactiveText]}>{item.nbBoots}</Text>
-                <AppIcon name="ski-boot" color={colorsTheme.inactiveText} size={20} />
-              </Card>
-            )}
-            {(item.nbSkis + item.nbBoots === 0) &&
-              <Text style={[appStyles.inactiveText]}>{t('not_used')}</Text>}
-          </Row>
+        onDelete={item.id.startsWith('init-') ? undefined : () => handleDelete(item)}
+      >
+        <Row>
+          <Image source={{ uri: item.icoUri }}
+            style={{ width: iconSize, height: iconSize, marginRight: 8, borderRadius: 8 }} />
+          <Text style={[appStyles.title, { flex: 1 }]}>{item.name}</Text>
+          {item.nbSkis > 0 && (
+            <Card>
+              <Text style={[appStyles.inactiveText]}>{item.nbSkis}</Text>
+              <AppIcon name="skis" color={colorsTheme.inactiveText} size={20} />
+            </Card>
+          )}
+          {item.nbBoots > 0 && (
+            <Card>
+              <Text style={[appStyles.inactiveText]}>{item.nbBoots}</Text>
+              <AppIcon name="ski-boot" color={colorsTheme.inactiveText} size={20} />
+            </Card>
+          )}
+          {(item.nbSkis + item.nbBoots === 0) &&
+            <Text style={[appStyles.inactiveText]}>{t('not_used')}</Text>}
+        </Row>
       </RowItem>
     );
   }
@@ -235,6 +256,9 @@ export default function BrandsManagementScreen() {
           data={brands}
           keyExtractor={b => b.id}
           renderItem={({ item }) => renderItem(item)}
+          onRefresh={loadData}
+          refreshing={false}
+
         />
       </Tile>
       <AddButton onPress={openAddModal} disabled={false} />
@@ -255,9 +279,17 @@ export default function BrandsManagementScreen() {
           <TouchableOpacity onPress={pickImage} style={{ alignItems: 'center' }}>
             <Image source={{ uri: brandImage || editingBrand.icoUri || icoUnknownBrand }}
               style={{ width: 64, height: 64, borderRadius: 12, marginBottom: 8, borderWidth: 2, borderColor: colorsTheme.primary }} />
-            <Text style={{ color: colorsTheme.primary, fontSize: 12 }}>{t('choose_image') || 'Choisir une image'}</Text>
+            <Text style={{ color: colorsTheme.primary, fontSize: 12 }}>{t('choose_image')}</Text>
           </TouchableOpacity>
         </Row>
+        {editingBrand.id.startsWith('init-') && brandImage?.startsWith('file://') && (
+          <TouchableOpacity onPress={() => {
+            setBrandImage(getBrandIcoURI(editingBrand.id, true));
+            setImageChanged(true);
+          }} style={{ alignItems: 'center', marginBottom: 8 }}>
+            <Text style={{ color: colorsTheme.notification, fontSize: 12, fontWeight: 'bold' }}>{t('default_image')}</Text>
+          </TouchableOpacity>
+        )}
         <Row>
           <TextInput
             placeholder={t("name")}

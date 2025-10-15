@@ -9,18 +9,22 @@ import Row from "@/components/Row";
 import RowItem from "@/components/RowItem";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { deleteTypeOfSkis, getAllTypeOfSkis, initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import * as DocumentPicker from 'expo-document-picker';
+import { ImageManipulator } from 'expo-image-manipulator';
+import { copyToSIco, delToSIco, getToSIcoURI } from "@/hooks/DataManager";
+import { Logger } from "@/hooks/ToolsBox";
 
 export default function TypeOfSkisManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { t } = useContext(SettingsContext);
+  const { t, webDavSync } = useContext(AppContext);
 
   const [types, setTypes] = useState<TOS[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -29,6 +33,8 @@ export default function TypeOfSkisManagementScreen() {
   const [waxNeed, setWaxNeed] = useState<number>(0);
   const [sharpNeed, setSharpNeed] = useState<number>(0);
   const inputRef = useRef<TextInput>(null);
+  const [tosImage, setTosImage] = useState<string | undefined>(undefined);
+  const [imageChanged, setImageChanged] = useState(false);
 
   const iconSize = 48;
 
@@ -78,7 +84,7 @@ export default function TypeOfSkisManagementScreen() {
   // #    # #      #      #   ## #       #    # #   #   #     # #    # #    # #    # #     
   //  ####  #      ###### #    # ####### #####  #   #   #     #  ####  #####  #    # ######
   function openEditModal(tos: TOS) {
-    console.debug("Editing TOS:", tos);
+    Logger.debug("Editing TOS:", tos);
     setEditingTOS(tos);
     setName(tos.name);
     setWaxNeed(tos.waxNeed);
@@ -101,9 +107,19 @@ export default function TypeOfSkisManagementScreen() {
     } else {
       await insertTypeOfSkis(db, { name, waxNeed, sharpNeed });
     }
+    if (imageChanged && tosImage && tosImage.startsWith("file://")) {
+      copyToSIco(editingTOS.id, tosImage);
+    } else if (imageChanged && (!tosImage || !tosImage?.startsWith("file://"))) {
+      delToSIco(editingTOS.id);
+    }
     setModalVisible(false);
     setEditingTOS(initTypeOfSkis());
+    setImageChanged(false);
+    setTosImage(undefined);
     loadData();
+    setName("");
+    inputRef.current?.blur();
+    webDavSync();
   }
 
   //                                           ######                                   
@@ -115,8 +131,8 @@ export default function TypeOfSkisManagementScreen() {
   // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   function handleDelete(tos: TOS) {
     Alert.alert(
-      tos.itemCount>0? t('delete') : t('archive'),
-      tos.itemCount>0? t('del_tos') : t('archive_tos'),
+      tos.itemCount > 0 ? t('delete') : t('archive'),
+      tos.itemCount > 0 ? t('del_tos') : t('archive_tos'),
       [
         { text: t('cancel'), style: "cancel" },
         {
@@ -124,6 +140,7 @@ export default function TypeOfSkisManagementScreen() {
           onPress: async () => {
             await deleteTypeOfSkis(db, tos.id);
             loadData();
+            webDavSync();
           },
         }
       ]
@@ -141,9 +158,27 @@ export default function TypeOfSkisManagementScreen() {
     setModalVisible(false);
     setEditingTOS(initTypeOfSkis());
     setName("");
+    setImageChanged(false);
+    setTosImage(undefined);
     inputRef.current?.blur();
   }
 
+  // Ouvre le sélecteur d'image, croppe en carré et redimensionne à 256x256
+  async function pickImage() {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'image/*',
+      copyToCacheDirectory: true,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const img = result.assets[0];
+      // Redimensionne à 256x256
+      const manipulator = ImageManipulator.manipulate(img.uri).resize({ width: 256, height: 256 });
+      const manipResult = await (await manipulator.renderAsync()).saveAsync();
+      setTosImage(manipResult.uri);
+      setImageChanged(true);
+      Logger.log("Image sélectionnée :", manipResult.uri);
+    }
+  }
   //                                           ###                    
   // #####  ###### #    # #####  ###### #####   #  ##### ###### #    #
   // #    # #      ##   # #    # #      #    #  #    #   #      ##  ##
@@ -208,6 +243,8 @@ export default function TypeOfSkisManagementScreen() {
       <Tile flex={1}>
         <FlatList
           data={types}
+          onRefresh={loadData}
+          refreshing={false}
           keyExtractor={t => t.id}
           renderItem={({ item }) => renderItem({ item })}
         />
@@ -230,13 +267,26 @@ export default function TypeOfSkisManagementScreen() {
         </Row>
 
         <Row style={{ justifyContent: 'center', alignItems: 'center', marginVertical: 8 }}>
-          {editingTOS?.icoUri ? (
-            <Image source={{ uri: editingTOS?.icoUri }}
-              style={{ width: 64, height: 64, marginBottom: 8 }} />
-          ) : (
-            <Pastille name={editingTOS?.name || "?"} size={64} style={{ marginBottom: 8 }} />
-          )}
+          <TouchableOpacity onPress={pickImage} style={{ alignItems: 'center' }}>
+            {tosImage || editingTOS?.icoUri ? (
+              <Image source={{ uri: tosImage || editingTOS?.icoUri }}
+                style={{ width: 64, height: 64, marginBottom: 8 }} />
+            ) : (
+              <Pastille name={editingTOS?.name || "?"} size={64} style={{ marginBottom: 8 }} />
+            )}
+            <Text style={{ color: colorsTheme.primary, fontSize: 12 }}>{t('choose_image')}</Text>
+          </TouchableOpacity>
         </Row>
+        {
+          editingTOS.id.startsWith("init-") && editingTOS.icoUri?.startsWith("file://") && (
+            <TouchableOpacity onPress={() => {
+              setTosImage(getToSIcoURI(editingTOS.id, true));
+              setImageChanged(true);
+            }} style={{ alignItems: 'center', marginBottom: 8 }}>
+              <Text style={{ color: colorsTheme.primary, fontSize: 12 }}>{t('default_image')}</Text>
+            </TouchableOpacity>
+          )
+        }
         <Row>
           <TextInput
             placeholder={t("name")}

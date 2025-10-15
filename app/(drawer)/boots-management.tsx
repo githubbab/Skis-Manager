@@ -11,7 +11,7 @@ import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
 import { ThemeContext } from "@/context/ThemeContext";
-import { getLastDBWrite } from "@/hooks/DatabaseManager";
+import { getLastDBWrite } from "@/hooks/DataManager";
 import { Boots, deleteBoots, getAllBoots, initBoots, insertBoots, updateBoots } from "@/hooks/dbBoots";
 import { Brands, getAllBrands } from "@/hooks/dbBrands";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
@@ -21,8 +21,9 @@ import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useRef, useState } from "react";
 import { Alert, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
-import SettingsContext from "@/context/SettingsContext";
+import AppContext from "@/context/AppContext";
 import RowItem from "@/components/RowItem";
+import { Logger } from "@/hooks/ToolsBox";
 
 
 let dbState: string = "none";
@@ -54,7 +55,7 @@ export default function BootsManagement() {
   const [boots2Write, setBoots2Write] = useState<Boots>(initBoots());
   const [order_by, setOrderBy] = useState<"order_by_begin" | "order_by_outings">("order_by_begin");
 
-  const { t, localeDate } = useContext(SettingsContext);
+  const { t, localeDate, webDavSync } = useContext(AppContext);
 
   const listBootsFiltered = boots.filter(b => {
     if (viewArchived === "only" && !b.end) return false;
@@ -106,7 +107,7 @@ export default function BootsManagement() {
       setListBrands(listB);
       dbState = "done";
     } catch (error) {
-      console.error("Error fetching boots:", error);
+      Logger.error("Error fetching boots:", error);
     }
   }
 
@@ -118,7 +119,7 @@ export default function BootsManagement() {
   //     #    # #    # #   ## #    # #      #      #     # #      #      #        #   #      #     # #    # #    #   #  
   //     #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ###### ######   ####   ####    #  
   function handleDeleteBoot(item: Boots): void {
-    console.debug("handleDeleteBoot", item);
+    Logger.debug("handleDeleteBoot", item);
     if (item.end) {
       Alert.alert(
         t('restore'),
@@ -134,7 +135,9 @@ export default function BootsManagement() {
                 ...item, id: item.id,
                 listUsers: item.listUsers || [],
                 end: undefined
-              }).then(loadData);
+              }).then(
+                () => { webDavSync(); loadData(); }
+              );
               setBoots2Write(initBoots());
               setModalVisible(false);
             },
@@ -169,7 +172,9 @@ export default function BootsManagement() {
               text: t('ok'),
               onPress: () => {
                 if (!item.id) return;
-                deleteBoots(db, item.id).then(loadData);
+                deleteBoots(db, item.id).then(
+                  () => { webDavSync(); loadData(); }
+                );
                 setBoots2Write(initBoots());
                 setModalVisible(false);
               },
@@ -188,7 +193,7 @@ export default function BootsManagement() {
   //     #    # #    # #   ## #    # #      #      #       #    # #   #   #     # #    # #    #   #   #    #
   //     #    # #    # #    # #####  ###### ###### ####### #####  #   #   ######   ####   ####    #    #### 
   function handleEditBoot(item: Boots): void {
-    console.debug("handleEditBoot", item);
+    Logger.debug("handleEditBoot", item);
     setEditMode(true);
     setBoots2Write(item);
     setModalVisible(true);
@@ -384,6 +389,7 @@ export default function BootsManagement() {
       if (!boots2Write?.id) return;
       updateBoots(db, { ...boots2Write, id: boots2Write.id, listUsers: boots2Write.listUsers })
         .then(() => {
+          webDavSync();
           setModalVisible(false);
           setEditMode(false);
           setBoots2Write(initBoots());
@@ -396,6 +402,7 @@ export default function BootsManagement() {
         listUsers: boots2Write.listUsers
       })
         .then(() => {
+          webDavSync();
           setModalVisible(false);
           setBoots2Write(initBoots());
           loadData();
@@ -512,6 +519,8 @@ export default function BootsManagement() {
         <FlatList
           data={listBootsFiltered}
           renderItem={renderBoot}
+          onRefresh={loadData}
+          refreshing={false}
           style={{ marginTop: 8 }}
         />
       </Tile>
@@ -754,7 +763,9 @@ export default function BootsManagement() {
                   ...boots2Write, id: boots2Write.id,
                   listUsers: boots2Write.listUsers || [],
                   end: date.getTime()
-                }).then(loadData);
+                }).then(
+                  () => { webDavSync(); loadData(); }
+                );
                 setBoots2Write(initBoots());
                 setModalVisible(false);
 

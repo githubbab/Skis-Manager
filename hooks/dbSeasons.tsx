@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
-import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DatabaseManager';
+import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DataManager';
 
 export type Seasons = {
   id: string;
@@ -11,15 +11,15 @@ export type Seasons = {
 // -------------------- SEASONS --------------------
 export async function insertSeason(db: SQLiteDatabase, s: { begin: number, name: string }) {
   const id = createId();
-  await execQuery(db, insertQuery(TABLES.SEASONS, ["id", "begin", "name"], [id, s.begin, s.name]));
+  await execQuery(db, insertQuery(TABLES.SEASONS, ["id", "begin", "name"], [id, s.begin, s.name]), id);
   return { id, begin: s.begin, name: s.name } as Seasons;
 }
 export async function updateSeason(db: SQLiteDatabase, s: Seasons) {
-  await execQuery(db, updateQuery(TABLES.SEASONS, ["begin", "name"], [s.begin, s.name], "id = ?", [s.id]));
+  await execQuery(db, updateQuery(TABLES.SEASONS, ["begin", "name"], [s.begin, s.name], "id = ?", [s.id]), s.id);
 }
 
 export async function deleteSeason(db: SQLiteDatabase, id: string) {
-  await execQuery(db, deleteQuery(TABLES.SEASONS, "id = ?", [id]));
+  await execQuery(db, deleteQuery(TABLES.SEASONS, "id = ?", [id]), id);
 }
 
 export async function getAllSeasons(db: SQLiteDatabase): Promise<Seasons[]> {

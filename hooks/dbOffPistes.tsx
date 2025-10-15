@@ -1,49 +1,46 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
-import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DatabaseManager';
+import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DataManager';
 
 export type OffPistes = {
-    id: string;
-    name: string;
-    // Optional fields, will be filled when fetching
-    count: number;
+  id: string;
+  name: string;
+  // Optional fields, will be filled when fetching
+  count: number;
 };
 
 export function initOffPiste(): OffPistes {
-    return {
-        id: "not-an-id",
-        name: "",
-        count: 0,
-    };
+  return {
+    id: "not-an-id",
+    name: "",
+    count: 0,
+  };
 }
 
 // -------------------- OFF-PISTES --------------------
 export async function insertOffPiste(db: SQLiteDatabase, op: { name: string }) {
-    const id = createId();
-    await execQuery(db, insertQuery(TABLES.OFFPISTES, ["id", "name"], [id, op.name]));
-    return { id: id, name: op.name } as OffPistes;
+  const id = createId();
+  await execQuery(db, insertQuery(TABLES.OFFPISTES, ["id", "name"], [id, op.name]), id);
+  return { id: id, name: op.name } as OffPistes;
 }
 
 export async function updateOffPiste(db: SQLiteDatabase, op: OffPistes) {
-    if (!op.id || op.id === "not-an-id") {
-        console.error("Cannot update off-piste without id", op);
-        return;
-    }
-    if (!op.name) {
-        console.error("Cannot update off-piste without name", op);
-        return;
-    }
-    await execQuery(db, updateQuery(TABLES.OFFPISTES, ["name"], [op.name], "id = ?", [op.id]));
+  if (!op.id || op.id === "not-an-id") {
+    return;
+  }
+  if (!op.name) {
+    return;
+  }
+  await execQuery(db, updateQuery(TABLES.OFFPISTES, ["name"], [op.name], "id = ?", [op.id]), op.id);
 }
 
 export async function deleteOffPiste(db: SQLiteDatabase, id: string) {
-    if (!id || id === "not-an-id") {
-        console.error("Cannot delete off-piste without id", id);
-        return;
-    }
-    await execQuery(db, deleteQuery(TABLES.OFFPISTES, "id = ?", [id]));
+  if (!id || id === "not-an-id") {
+    return;
+  }
+  await execQuery(db, deleteQuery(TABLES.OFFPISTES, "id = ?", [id]), id);
 }
 export async function getAllOffPistes(db: SQLiteDatabase): Promise<OffPistes[]> {
-    const result: OffPistes[] = await db.getAllAsync(`
+  const result: OffPistes[] = await db.getAllAsync(`
         SELECT 
             op.id, op.name, 
             COALESCE(SUM(joop.count), 0) as count 
@@ -52,11 +49,11 @@ export async function getAllOffPistes(db: SQLiteDatabase): Promise<OffPistes[]> 
         GROUP BY op.id
         ORDER BY count DESC, op.name
     `);
-    return result;
+  return result;
 }
 
 export async function getSeasonOffPistes(db: SQLiteDatabase): Promise<OffPistes[]> {
-    const result: OffPistes[] = await db.getAllAsync(`
+  const result: OffPistes[] = await db.getAllAsync(`
       SELECT 
         op.id, 
         op.name, 
@@ -68,5 +65,5 @@ export async function getSeasonOffPistes(db: SQLiteDatabase): Promise<OffPistes[
       GROUP BY op.id
       ORDER BY count DESC, op.name
     `);
-    return result;
+  return result;
 }

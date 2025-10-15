@@ -9,7 +9,7 @@ export default function ModalEditor({ children, visible, center, onRequestClose 
             flex: 1,
             backgroundColor: colorsTheme.modalTransparent,
             alignItems: "center",
-            paddingVertical: "5%",
+            paddingVertical: "10%",
             justifyContent: center ? "center" : "flex-start",
         },
         modalContent: {
