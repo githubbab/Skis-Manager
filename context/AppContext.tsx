@@ -74,6 +74,10 @@ async function changeDBLanguage(db: any, lang: Lang) {
     UPDATE typeOfOutings SET name = '${translations[lang]['touring']}' WHERE id='init-touring';
     UPDATE typeOfOutings SET name = '${translations[lang]['race']}' WHERE id='init-race';
     UPDATE typeOfOutings SET name = '${translations[lang]['training']}' WHERE id='init-training';
+    UPDATE typeOfOutings SET name = '${translations[lang]['gs_training']}' WHERE id='init-training-gs';
+    UPDATE typeOfOutings SET name = '${translations[lang]['sl_training']}' WHERE id='init-training-sl';
+    UPDATE typeOfOutings SET name = '${translations[lang]['gs_race']}' WHERE id='init-race-gs';
+    UPDATE typeOfOutings SET name = '${translations[lang]['sl_race']}' WHERE id='init-race-sl';
     UPDATE typeOfSkis SET name = '${translations[lang]['slope']}' WHERE id='init-slope';
     UPDATE typeOfSkis SET name = '${translations[lang]['powder']}' WHERE id='init-powder';
     UPDATE typeOfSkis SET name = '${translations[lang]['touring']}' WHERE id='init-touring';

@@ -73,7 +73,6 @@ const Events = () => {
   const [maintainViewSharp, setMaintainViewSharp] = useState<boolean>(true);
   const [maintainViewWax, setMaintainViewWax] = useState<boolean>(true);
   const [maintainViewRepair, setMaintainViewRepair] = useState<boolean>(true);
-  const [activeDelete, setActiveDelete] = useState<number>(0);
 
   const { t, localeDate: localeDate, seasonDate, viewOuting, viewFriends, webDavSync } = useContext(AppContext)!;
 
@@ -1482,9 +1481,9 @@ const Events = () => {
         // #     # #    # #    # #    # #         #    #     # #     #
         // #     #  ####  #####  #    # ######    #    ####### #######
       }
-      <ModalEditor visible={typeOfOutingVisible} center={true} onRequestClose={() => setOutingVisible(false)}>
+      <ModalEditor visible={typeOfOutingVisible} center={true} onRequestClose={() => setTypeOfOutingVisible(false)}>
         <Row>
-          <Text style={appStyles.title}>{t("add_outing")}</Text>
+          <Text style={appStyles.title}>{t("modify_outing")}</Text>
         </Row>
         <Tile>
           <FlatList
@@ -1497,7 +1496,7 @@ const Events = () => {
                 else {
                   setOuting2Write({ ...outing2write, idOutingType: item.id });
                 }
-                setOutingVisible(false);
+                setTypeOfOutingVisible(false);
               }}>
                 <Row style={{ backgroundColor: outing2write.idOutingType === item.id ? colorsTheme.transparentGray : undefined }}>
                   <Text style={[appStyles.title, { flex: 1, marginLeft: 8 }]}>
@@ -1518,7 +1517,7 @@ const Events = () => {
             style={{ maxHeight: 300, width: '100%' }}
           />
         </Tile>
-        <AppButton onPress={() => setOutingVisible(false)} caption={t('cancel')} color={colorsTheme.transparentGray} style={{ marginTop: 16 }} />
+        <AppButton onPress={() => setTypeOfOutingVisible(false)} caption={t('cancel')} color={colorsTheme.transparentGray} style={{ marginTop: 16 }} />
       </ModalEditor>
       {
         // #     #                             #######               ######                       
