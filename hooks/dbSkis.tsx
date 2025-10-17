@@ -27,6 +27,8 @@ export type Skis = {
   lastOutingDate?: number;
   lastSharpDate?: number;
   lastWaxDate?: number;
+  nbOutingsSinceLastSharp?: number;
+  nbOutingsSinceLastWax?: number;
 };
 
 
@@ -57,6 +59,8 @@ export function initSkis(date: number): Skis {
     lastOutingDate: undefined,
     lastSharpDate: undefined,
     lastWaxDate: undefined,
+    nbOutingsSinceLastSharp: undefined,
+    nbOutingsSinceLastWax: undefined,
   };
 }
 
@@ -245,7 +249,17 @@ export async function getTopSkis(db: SQLiteDatabase, season?: Seasons): Promise<
          WHERE m.swr LIKE '%S%' AND m.idSkis = s.id) AS lastSharpDate,
       (SELECT MAX(m.date)
          FROM ${TABLES.MAINTAINS} m
-         WHERE m.swr LIKE '%W%' AND m.idSkis = s.id) AS lastWaxDate
+         WHERE m.swr LIKE '%W%' AND m.idSkis = s.id) AS lastWaxDate,
+      (SELECT COUNT(DISTINCT o.date / 86400000)
+          FROM ${TABLES.OUTINGS} o
+          WHERE o.idSkis = s.id AND o.date >= (SELECT MAX(m.date)
+                                                FROM ${TABLES.MAINTAINS} m
+                                                WHERE m.swr LIKE '%S%' AND m.idSkis = s.id)) AS nbOutingsSinceLastSharp,
+      (SELECT COUNT(DISTINCT o.date / 86400000)
+          FROM ${TABLES.OUTINGS} o
+          WHERE o.idSkis = s.id AND o.date >= (SELECT MAX(m.date)
+                                                FROM ${TABLES.MAINTAINS} m
+                                                WHERE m.swr LIKE '%W%' AND m.idSkis = s.id)) AS nbOutingsSinceLastWax
     FROM 
       ${TABLES.SKIS} s
       LEFT JOIN ${TABLES.JOIN_SKIS_USERS} jsu ON s.id = jsu.idSkis

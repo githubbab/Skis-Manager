@@ -284,7 +284,6 @@ export default function Index() {
       <RowItem onSelect={() => {
         if (selectedSkis.id !== item.id) {
           setSelectedSkis(item);
-
         }
         else {
           setSelectedSkis(initSkis(0));
@@ -301,7 +300,7 @@ export default function Index() {
           paddingRight: selectedSkis.id === item.id ? 3 : 4
         }}
       >
-        <Row>
+        <Row style={{ marginRight: 10 }}>
           {item.icoTypeOfSkisUri ?
             <Image source={{ uri: item.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
             <Pastille size={iconSize} name={item.typeOfSkis || ""} color={"#fbe2cb"} />
@@ -317,33 +316,94 @@ export default function Index() {
             return <Pastille key={"SKIS" + value + index} name={value} size={iconSize}
               style={{ marginRight: -10, zIndex: index * -1 }} />;
           })}
-          <Text numberOfLines={1}
-            style={{ color: colorsTheme.text, fontSize: 20, flex: 1, textAlign: 'right' }}>{item.nbOutings?.toString()}</Text>
-          <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 20 }} />
+          {selectedSkis.id === item.id ?
+            <> </> :
+            <>
+              <Text numberOfLines={1}
+                style={{ color: colorsTheme.text, fontSize: 20, flex: 1, textAlign: 'right' }}>{item.nbOutings?.toString()}</Text>
+              <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 20 }} />
+              {((item.nbOutingsSinceLastSharp || 0) + (item.nbOutingsSinceLastWax || 0)) === 0 ?
+              <AppIcon name={'checkmark'} color={colorsTheme.primaryGreen} styles={{ fontSize: 14, marginBottom: -6, marginLeft: -10, marginRight: -12 }} /> : 
+              toSharp.find(s => s.id === 'toSharp-' + item.id.replace('topSkis-', '')) || toWax.find(w => w.id === 'toWax-' + item.id.replace('topSkis-', '')) ? <AppIcon name={'notification'} color={colorsTheme.warning} styles={{ fontSize: 14, marginBottom: -6, marginLeft: -10, marginRight: -12 }} /> : null}
+            </>
+          }
         </Row>
         {selectedSkis.id === item.id && (
           <Row>
-            <AppIcon name={'calendar'} color={colorsTheme.text} />
-            <Card>
-              <AppIcon name={'sortie'} color={colorsTheme.text} size={18} />
-              <Text numberOfLines={1}
-                style={[appStyles.text, { fontSize: 18 }]}>
-                {item.lastOutingDate !== undefined ? localeDate(item.lastOutingDate, { month: 'short', day: 'numeric' }) : "N/A"}
-              </Text>
+            {/* <AppIcon name={'none'} color={colorsTheme.text} /> */}
+            <Card isFlex={1} >
+              <View style={{ marginHorizontal: 'auto' }}>
+                <Row style={{ marginHorizontal: 'auto' }}>
+                  <AppIcon name={'play3'} color={colorsTheme.text} size={18} />
+                  <Text numberOfLines={1}
+                    style={[appStyles.text, { fontSize: 18 }]}>
+                    {item.nbOutings?.toString()}
+                  </Text>
+                  <AppIcon name={'sortie'} color={colorsTheme.text} size={18} />
+                </Row>
+                {selectedSkis.id === item.id && (
+                  <Row style={{ marginHorizontal: 'auto' }}>
+                    <AppIcon name={'calendar'} color={colorsTheme.text} size={18} />
+                    <Text numberOfLines={1}
+                      style={[appStyles.text, { fontSize: 18 }]}>
+                      {item.lastOutingDate !== undefined ? localeDate(item.lastOutingDate, { month: 'short', day: 'numeric' }) : "N/A"}
+                    </Text>
+                  </Row>
+                )}
+              </View>
             </Card>
-            <Card>
-              <AppIcon name={'affuteuse'} color={colorsTheme.text} size={18} />
-              <Text numberOfLines={1}
-                style={[appStyles.text, { fontSize: 18 }]}>
-                {item.lastSharpDate !== undefined ? localeDate(item.lastSharpDate, { month: 'short', day: 'numeric' }) : "N/A"}
-              </Text>
+            <Card isFlex={1}>
+              <View style={{ marginHorizontal: 'auto' }}>
+                {item.nbOutingsSinceLastSharp === 0 ?
+                  <Text numberOfLines={1}
+                    style={[appStyles.text, { fontSize: 18, color: colorsTheme.primaryGreen, marginHorizontal: 'auto' }]}>
+                    {t('sharpened')}
+                  </Text> :
+                  <Row style={{ marginHorizontal: 'auto' }}>
+                    <AppIcon name={'affuteuse'} color={colorsTheme.text} size={18} />
+                    <AppIcon name={'arrow-left2'} color={colorsTheme.text} size={18} styles={{ marginRight: -8 }} />
+                    <AppIcon name={'arrow-right2'} color={colorsTheme.text} size={18} styles={{ marginLeft: -8 }} />
+                    <Text numberOfLines={1}
+                      style={[appStyles.text, { fontSize: 18, color: toSharp.find(s => s.id === 'toSharp-' + item.id.replace('topSkis-', '')) ? colorsTheme.warning : colorsTheme.text }]}>
+                      {item.nbOutingsSinceLastSharp?.toString()}
+                    </Text>
+                  </Row>
+                }
+                <Row style={{ marginHorizontal: 'auto' }}>
+                  <AppIcon name={'calendar'} color={colorsTheme.text} size={18} />
+                  <Text numberOfLines={1}
+                    style={[appStyles.text, { fontSize: 18 }]}>
+                    {item.lastSharpDate !== undefined ? localeDate(item.lastSharpDate, { month: 'short', day: 'numeric' }) : "N/A"}
+                  </Text>
+                </Row>
+              </View>
             </Card>
-            <Card>
-              <AppIcon name={'fartage'} color={colorsTheme.text} size={18} />
-              <Text numberOfLines={1}
-                style={[appStyles.text, { fontSize: 18 }]}>
-                {item.lastWaxDate !== undefined ? localeDate(item.lastWaxDate, { month: 'short', day: 'numeric' }) : "N/A"}
-              </Text>
+            <Card isFlex={1}>
+              <View style={{ marginHorizontal: 'auto' }}>
+                {item.nbOutingsSinceLastWax === 0 ?
+                  <Text numberOfLines={1}
+                    style={[appStyles.text, { fontSize: 18, color: colorsTheme.primaryGreen, marginHorizontal: 'auto' }]}>
+                    {t('waxed')}
+                  </Text> :
+                  <Row style={{ marginHorizontal: 'auto' }}>
+                    <AppIcon name={'fartage'} color={colorsTheme.text} size={18} />
+                    <AppIcon name={'arrow-left2'} color={colorsTheme.text} size={18} styles={{ marginRight: -8 }} />
+                    <AppIcon name={'arrow-right2'} color={colorsTheme.text} size={18} styles={{ marginLeft: -8 }} />
+                    <Text numberOfLines={1}
+                      style={[appStyles.text, { fontSize: 18, color: toWax.find(s => s.id === 'toWax-' + item.id.replace('topSkis-', '')) ? colorsTheme.warning : colorsTheme.text }]}>
+                      {item.nbOutingsSinceLastWax?.toString()}
+                    </Text>
+
+                  </Row>
+                }
+                <Row style={{ marginHorizontal: 'auto' }}>
+                  <AppIcon name={'calendar'} color={colorsTheme.text} size={18} />
+                  <Text numberOfLines={1}
+                    style={[appStyles.text, { fontSize: 18 }]}>
+                    {item.lastWaxDate !== undefined ? localeDate(item.lastWaxDate, { month: 'short', day: 'numeric' }) : "N/A"}
+                  </Text>
+                </Row>
+              </View>
             </Card>
           </Row>
         )}

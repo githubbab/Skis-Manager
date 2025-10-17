@@ -228,7 +228,7 @@ const Events = () => {
     if (outing2write.idUser) {
       setOutingViewSkis(true);
       const skis = filterOutingSkis(outing2write.idUser || "");
-      if (skis.length === 1) {
+      if (skis.length === 1 && !outing.idSkis) {
         outing = { ...outing, idSkis: skis[0].id };
       }
     }
@@ -238,7 +238,7 @@ const Events = () => {
     if (outing2write.idSkis) {
       setOutingViewBoots(true);
       const boots = filterOutingBoots(outing2write.idSkis || "");
-      if (boots.length === 1) {
+      if (boots.length === 1 && !outing.idBoots) {
         outing = { ...outing, idBoots: boots[0].id };
       }
     } else {
@@ -248,7 +248,7 @@ const Events = () => {
       if (viewOuting) {
         setOutingViewToOuting(true);
         const majorType = listSkis.find(ski => ski.id === outing2write.idSkis)?.majorTypeOfOuting;
-        if (majorType) {
+        if (majorType && !outing.idOutingType) {
           outing = { ...outing, idOutingType: majorType };
         }
         if (outing2write.idOutingType) {
@@ -295,7 +295,8 @@ const Events = () => {
   //  ####  #    # ######  #    #   #   ######  #####  #    # #    # #    #  ####  ######
 
   function changeDate(date: Date, type: "outing" | "maintain") {
-    const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : 16));
+    if (type === "maintain") setPartOfDay("pm");
+    const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : type === "outing" ? 16 : 18));
     Logger.debug("changeDate", date2Save, type, partOfDay);
 
     if (type === "outing") {

@@ -151,6 +151,7 @@ const translations = {
     sync_webdav_init_db_completed: "Initialisation de la base de données WebDav terminée.",
     share_db: "Récupérer la base actuelle",
     sharpening: "Affûtage",
+    sharpened: "Affûté(s)",
     since: "Depuis le",
     skating: 'Fond',
     ski_name: "Modèle/Description",
@@ -180,6 +181,7 @@ const translations = {
     url_error: "Veuillez entrer une URL valide (doit commencer par http:// ou https://) avec un nom d'utilisateur et un mot de passe",
     webdav_init_db: "Un fichier de base de données pour un autre appareil existe déjà sur le serveur WebDav. Veuillez vous assurer que vous souhaitez utiliser cette base de données. Si vous continuez, votre base de données locale actuelle sera remplacée par celle du serveur WebDav.",
     waxing: "Fartage",
+    waxed: "Farté(s)",
     yesterday: "Hier",
   },
   en: {
@@ -315,6 +317,7 @@ const translations = {
     rock: 'Rock',
     save: "Save",
     sharpening: "Sharpening",
+    sharpened: "Sharpened",
     season_name: "Season name",
     settings_dark: "Dark",
     settings_light: "Light",
@@ -362,6 +365,7 @@ const translations = {
     url_error: "Please enter a valid URL (must start with http:// or https://) with a username and a password",
     webdav_init_db: "A database file for another device already exists on the WebDav server. Please make sure you want to use this database. If you continue, your current local database will be replaced by the one from the WebDav server.",
     waxing: "Waxing",
+    waxed: "Waxed",
     yesterday: "Yesterday",
   }
 } as const;
