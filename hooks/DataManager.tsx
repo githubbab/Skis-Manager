@@ -19,7 +19,7 @@ export const icoUnknownBrand = imgStorePath + "brand-init-unknown.png";
 export const actionsStoreDir = new Directory(actionsStorePath);
 export const imgStoreDir = new Directory(imgStorePath);
 // Database version
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 // #     #                                                   
 // #     #   ##   #####  #   ##   #####  #      ######  #### 
@@ -81,6 +81,7 @@ const baseImages: { [key: string]: any } = {
   "tos-init-rock.png": require("@/assets/images/tos/init-rock.png"),
   "tos-init-skating.png": require("@/assets/images/tos/init-skating.png"),
   "tos-init-sl.png": require("@/assets/images/tos/init-sl.png"),
+  "tos-init-sg.png": require("@/assets/images/tos/init-sg.png"),
   "tos-init-slope.png": require("@/assets/images/tos/init-slope.png"),
   "tos-init-surf.png": require("@/assets/images/tos/init-surf.png"),
   "tos-init-touring.png": require("@/assets/images/tos/init-touring.png"),
@@ -417,13 +418,20 @@ export async function initDataManager(db: SQLiteDatabase): Promise<void> {
     return;
   }
 
-  /*   if (currentDbVersion === 1) {
-      Logger.debug("initDB: database is up to date (version 1)");
-      await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+  if (currentDbVersion === 1) {
+    Logger.debug("initDB: Upgrading to version 2");
+    await db.execAsync(`
+        INSERT OR IGNORE INTO typeOfSkis (id, name, waxNeed, sharpNeed) VALUES ('init-sg', 'Super-G', 6, 2);
+        INSERT OR IGNORE INTO typeOfOutings (id, name) VALUES ('init-training-sl', 'SL Training');
+        INSERT OR IGNORE INTO typeOfOutings (id, name) VALUES ('init-race-sl', 'SL Race');
+        INSERT OR IGNORE INTO typeOfOutings (id, name) VALUES ('init-training-sg', 'SG Training');
+        INSERT OR IGNORE INTO typeOfOutings (id, name) VALUES ('init-race-sg', 'SG Race');
+        INSERT OR IGNORE INTO typeOfOutings (id, name) VALUES ('init-training-gs', 'GS Training');
+        INSERT OR IGNORE INTO typeOfOutings (id, name) VALUES ('init-race-gs', 'GS Race');
+        INSERT OR IGNORE INTO settings (name, value) VALUES ('needTranslation', 'true');
       `);
-      currentDbVersion = 2;
-    } */
+    currentDbVersion = 2;
+  }
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 }
 

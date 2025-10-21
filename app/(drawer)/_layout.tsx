@@ -200,12 +200,12 @@ export default function DrawerLayout() {
           label={t('menu_stats')}
           labelStyle={styles.drawerTitle}
           icon={({ color, size }) => (<AppIcon name={"stats"} color={color} styles={{ fontSize: size }} />)}
-          focused={props.state.index === props.state.routes.findIndex((e: { name: string; }) => e.name === "stats")}
+          focused={props.state.index === props.state.routes.findIndex((e: { name: string; }) => e.name === "seasons-statistics")}
           inactiveTintColor={colorsTheme.text}
           activeTintColor={colorsTheme.primary}
           activeBackgroundColor={colorsTheme.activeBackground}
           onPress={() => {
-            router.push("/(drawer)/stats");
+            router.push("/(drawer)/seasons-statistics");
           }}
         />
         <Separator />
@@ -397,7 +397,7 @@ export default function DrawerLayout() {
           )
         }
       }} />
-      <Drawer.Screen name="stats" options={{
+      <Drawer.Screen name="seasons-statistics" options={{
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>

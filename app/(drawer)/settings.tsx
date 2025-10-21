@@ -4,20 +4,18 @@ import CheckButton from "@/components/CheckButton";
 import Row from "@/components/Row";
 import Separator from "@/components/Separator";
 import AppStyles from "@/constants/AppStyles";
-import { listLanguages } from "@/constants/Translations";
 import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { Picker } from "@react-native-picker/picker";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useState } from "react";
-import { Text, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 
 
 export default function Settings() {
   const { currentTheme, colorsTheme, toggleTheme, useSystemTheme, isSystemTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const  { lang, changeLang, viewOuting, toggleViewOuting, viewFriends, toggleViewFriends, t } = useContext(AppContext);
+  const { lang, changeLang, viewOuting, toggleViewOuting, viewFriends, toggleViewFriends, t } = useContext(AppContext);
   const [om, setOm] = useState(viewOuting);
   const [fm, setFm] = useState(viewFriends);
 
@@ -58,20 +56,16 @@ export default function Settings() {
         <AppIcon name={'flag'} color={colorsTheme.text} styles={styles.rightIco} />
 
         <View style={[styles.pickerView, { backgroundColor: colorsTheme.tileBG }]}>
-          <Picker selectedValue={lang} style={{ color: colorsTheme.text }}
-            onValueChange={(itemValue, itemIndex) => {
-              changeLang(itemValue === 'fr' ? 'fr' : 'en');
-            }}
-            dropdownIconColor={colorsTheme.text}
-            dropdownIconRippleColor={colorsTheme.text}
-            mode={'dropdown'}
-          >
-            {listLanguages().map((value, index) => (
-              <Picker.Item label={value} key={index} value={value}
-                style={{ color: colorsTheme.text, backgroundColor: colorsTheme.tileBG }} />
-            ))}
-
-          </Picker>
+          <Row>
+            <TouchableOpacity onPress={() => { if (lang !== "en") changeLang("en") }}
+              style={{ flex: 1, borderColor: colorsTheme.primary, borderWidth: lang === "en" ? 2 : 0, borderRadius: 8 }}>
+                <Image source={require('@/assets/images/en.png')} style={{ width: 32, height: 32, margin: "auto" }} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { if (lang !== "fr") changeLang("fr") }}
+              style={{ flex: 1, borderColor: colorsTheme.primary, borderWidth: lang === "fr" ? 2 : 0, borderRadius: 8 }}>
+              <Image source={require('@/assets/images/fr.png')} style={{ width: 32, height: 32, margin: "auto" }} />
+            </TouchableOpacity>
+          </Row>
         </View>
       </Row>
     </Body>

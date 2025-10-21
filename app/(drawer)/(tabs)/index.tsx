@@ -316,8 +316,7 @@ export default function Index() {
             return <Pastille key={"SKIS" + value + index} name={value} size={iconSize}
               style={{ marginRight: -10, zIndex: index * -1 }} />;
           })}
-          {selectedSkis.id === item.id ?
-            <> </> :
+          {selectedSkis.id !== item.id &&
             <>
               <Text numberOfLines={1}
                 style={{ color: colorsTheme.text, fontSize: 20, flex: 1, textAlign: 'right' }}>{item.nbOutings?.toString()}</Text>

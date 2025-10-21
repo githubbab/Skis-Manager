@@ -1,7 +1,7 @@
 import translations, { Lang, TranslationKey } from "@/constants/Translations";
-import { endConcatQueries, execQuery, getDeviceID, startConcatQueries } from "@/hooks/DataManager";
+import { cancelConcatQueries, endConcatQueries, execQuery, getDeviceID, startConcatQueries } from "@/hooks/DataManager";
 import { getCurrentSeason } from "@/hooks/dbSeasons";
-import { getAllSettings, insertSettings, Settings } from "@/hooks/dbSettings";
+import { deleteSettings, getAllSettings, insertSettings, Settings } from "@/hooks/dbSettings";
 import { createWebDavClient, syncData } from "@/hooks/SyncWebDav";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSQLiteContext } from "expo-sqlite";
@@ -76,13 +76,16 @@ async function changeDBLanguage(db: any, lang: Lang) {
     UPDATE typeOfOutings SET name = '${translations[lang]['training']}' WHERE id='init-training';
     UPDATE typeOfOutings SET name = '${translations[lang]['gs_training']}' WHERE id='init-training-gs';
     UPDATE typeOfOutings SET name = '${translations[lang]['sl_training']}' WHERE id='init-training-sl';
+    UPDATE typeOfOutings SET name = '${translations[lang]['sg_training']}' WHERE id='init-training-sg';
     UPDATE typeOfOutings SET name = '${translations[lang]['gs_race']}' WHERE id='init-race-gs';
     UPDATE typeOfOutings SET name = '${translations[lang]['sl_race']}' WHERE id='init-race-sl';
+    UPDATE typeOfOutings SET name = '${translations[lang]['sg_race']}' WHERE id='init-race-sg';
     UPDATE typeOfSkis SET name = '${translations[lang]['slope']}' WHERE id='init-slope';
     UPDATE typeOfSkis SET name = '${translations[lang]['powder']}' WHERE id='init-powder';
     UPDATE typeOfSkis SET name = '${translations[lang]['touring']}' WHERE id='init-touring';
     UPDATE typeOfSkis SET name = '${translations[lang]['sl']}' WHERE id='init-sl';
     UPDATE typeOfSkis SET name = '${translations[lang]['gs']}' WHERE id='init-gs';
+    UPDATE typeOfSkis SET name = '${translations[lang]['sg']}' WHERE id='init-sg';
     UPDATE typeOfSkis SET name = '${translations[lang]['surf']}' WHERE id='init-surf';
     UPDATE typeOfSkis SET name = '${translations[lang]['skating']}' WHERE id='init-skating';
     UPDATE typeOfSkis SET name = '${translations[lang]['rock']}' WHERE id='init-rock';`,
@@ -371,6 +374,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
     Logger.debug("Initializing AppContext");
     const settings: Settings[] = await getAllSettings(db);
     let needTranslation = true;
+    let needTranslationForce = false;
     let syncEnabled = false;
     let webDavUrl = "";
     let webDavUser = "";
@@ -390,6 +394,13 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
           Logger.debug("Found viewFriends setting:", setting.value);
           setViewFriends(setting.value === "true");
           break;
+        case "needTranslation":
+          Logger.debug("Found needTranslation setting:", setting.value);
+          needTranslationForce = setting.value === "true";
+          await db.execAsync(`DELETE FROM settings WHERE name='needTranslation';`);
+          break;
+        default:
+          break;
       }
     }
     const storedSyncEnabled = await AsyncStorage.getItem("webDavSyncEnabled");
@@ -402,7 +413,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
     Logger.debug("Using WebDav settings:", syncEnabled ? "enabled" : "disabled", webDavUrl, webDavUser, webDavPassword ? "****" : "(no password)");
     setWebDavSyncEnabled(syncEnabled);
     setWebDavSyncParams({ url: webDavUrl, user: webDavUser, password: webDavPassword });
-    if (needTranslation && lang !== 'en') {
+    if ((needTranslation && lang !== 'en') || needTranslationForce) {
       changeDBLanguage(db, lang);
     }
     const actualSeason = await getCurrentSeason(db);

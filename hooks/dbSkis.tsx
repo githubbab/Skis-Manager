@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you 
 import { createId, deleteQuery, diffAndGenerateQueries, execQuery, formatSQL, insertQuery, TABLES, updateQuery } from './DataManager';
 import { getDistinctBrandIcoURIs, getDistinctToSIcoURIs } from './DataManager';
 import { getCurrentSeason, Seasons } from './dbSeasons';
+import { Logger } from './ToolsBox';
 
 export type Skis = {
   id: string;
@@ -223,8 +224,59 @@ export async function getSeasonSkis(db: SQLiteDatabase, season?: Seasons): Promi
   } as Skis));
 }
 
-export async function getTopSkis(db: SQLiteDatabase, season?: Seasons): Promise<Skis[]> {
-  const currentSeason = season ? season : await getCurrentSeason(db);
+export async function getTopSkis4Stats(db: SQLiteDatabase, season: Seasons): Promise<Skis[]> {
+  try {
+    const data: Skis[] = await db.getAllAsync(
+      `SELECT 
+      CONCAT('topSkis-',s.id) as id, 
+      s.name as name, 
+      s.idBrand as idBrand, 
+      b.name as brand,
+      s.idTypeOfSkis as idTypeOfSkis,
+      tos.name as typeOfSkis,
+      s.begin as begin,
+      s.end as end,
+      s.size as size,
+      s.radius as radius,
+      s.waist as waist,
+      COUNT(DISTINCT em.id) AS nbMaintains,
+      COUNT(DISTINCT o.date / 86400000) AS nbOutings,
+      GROUP_CONCAT(DISTINCT jsu.idUser) AS listUsers,
+      GROUP_CONCAT(DISTINCT jsb.idBoots) AS listBoots,
+      GROUP_CONCAT(DISTINCT u.name) AS listUserNames
+    FROM 
+      ${TABLES.SKIS} s
+      LEFT JOIN ${TABLES.JOIN_SKIS_USERS} jsu ON s.id = jsu.idSkis
+      LEFT JOIN ${TABLES.JOIN_SKIS_BOOTS} jsb ON s.id = jsb.idSkis
+      LEFT JOIN ${TABLES.OUTINGS} o ON s.id = o.idSkis
+      LEFT JOIN ${TABLES.MAINTAINS} em ON ((s.id = em.idSkis) AND (em.date >= ${season.begin} AND (em.date < ${season.end ?? 4102444800000})))
+      LEFT JOIN ${TABLES.BRANDS} b ON s.idBrand = b.id
+      LEFT JOIN ${TABLES.TYPE_OF_SKIS} tos ON s.idTypeOfSkis = tos.id
+      JOIN ${TABLES.USERS} u ON u.id = jsu.idUser
+    WHERE 
+      o.date >= ${season.begin} AND (o.date < ${season.end ?? 4102444800000}) 
+    GROUP BY s.id
+    ORDER BY nbOutings DESC`
+    );
+    const arrayIcoToSURI = getDistinctToSIcoURIs(data);
+    const arrayIcoBrandURI = getDistinctBrandIcoURIs(data);
+    const result = data.map((ski: any) => ({
+      ...ski,
+      icoTypeOfSkisUri: arrayIcoToSURI[ski.idTypeOfSkis] || undefined,
+      icoBrandUri: arrayIcoBrandURI[ski.idBrand] || "init-unknown",
+      listUsers: ski.listUsers ? ski.listUsers.split(',') : [],
+      listBoots: ski.listBoots ? ski.listBoots.split(',') : [],
+      listUserNames: ski.listUserNames ? ski.listUserNames.split(',') : [],
+    } as Skis));
+    return result;
+  } catch (error) {
+    Logger.error("Error in getTopSkis4Stats", error);
+    return [];
+  }
+}
+
+export async function getTopSkis(db: SQLiteDatabase): Promise<Skis[]> {
+  const currentSeason = await getCurrentSeason(db);
   const data: Skis[] = await db.getAllAsync(
     `SELECT 
       CONCAT('topSkis-',s.id) as id, 
@@ -279,7 +331,7 @@ export async function getTopSkis(db: SQLiteDatabase, season?: Seasons): Promise<
   return data.map((ski: any) => ({
     ...ski,
     icoTypeOfSkisUri: arrayIcoToSURI[ski.idTypeOfSkis] || undefined,
-    icoBrandUri: arrayIcoBrandURI[ski.idBrand],
+    icoBrandUri: arrayIcoBrandURI[ski.idBrand] || "init-unknown",
     listUsers: ski.listUsers ? ski.listUsers.split(',') : [],
     listBoots: ski.listBoots ? ski.listBoots.split(',') : [],
     listUserNames: ski.listUserNames ? ski.listUserNames.split(',') : [],
