@@ -202,6 +202,7 @@ const Events = () => {
   //  #####   ####  ###### #        ####   ####   ####   ####  ####### #      #      ######  ####    #  
   useFocusEffect(
     useCallback(() => {
+      Logger.debug("useFocusEffect - checking for data updates");
       if (dbState === "loading") return;
       const lastWrite = getLastDBWrite();
       if (lastWrite > lastCheck) {

@@ -11,14 +11,13 @@ import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
 import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { getDeviceID } from "@/hooks/DataManager";
-import { Brands, deleteBrand, getAllBrands, initBrand, insertBrand, updateBrand } from "@/hooks/dbBrands";
 import { copyBrandIco, delBrandIco, getBrandIcoURI, icoUnknownBrand } from "@/hooks/DataManager";
+import { Brands, deleteBrand, getAllBrands, initBrand, insertBrand, updateBrand } from "@/hooks/dbBrands";
 import * as DocumentPicker from 'expo-document-picker';
 import { ImageManipulator } from 'expo-image-manipulator';
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity } from "react-native";
 import { File } from "expo-file-system";
 import { Logger } from "@/hooks/ToolsBox";
 
@@ -37,7 +36,6 @@ export default function BrandsManagementScreen() {
   const inputRef = useRef<TextInput>(null);
 
   const { t, webDavSync } = useContext(AppContext)!;
-  const myId = getDeviceID();
   const iconSize = 48;
 
   //                      #######                                  
@@ -153,8 +151,6 @@ export default function BrandsManagementScreen() {
   // #    # #    # #   ## #    # #      #      #     # #      #      #        #   #     
   // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   function handleDelete(brand: Brands) {
-    const totalUse = (brand.nbSkis || 0) + (brand.nbBoots || 0);
-
     Alert.alert(
       t('delete'),
       t('del_brand') || 'Supprimer cette marque ?',

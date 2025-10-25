@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { TouchableOpacity, View } from "react-native";
 import AppButton from "./AppButton";
 import Row from "./Row";

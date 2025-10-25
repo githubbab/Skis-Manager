@@ -1,6 +1,15 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
-import { createId, deleteQuery, diffAndGenerateQueries, execQuery, formatSQL, insertQuery, TABLES, updateQuery } from './DataManager';
-import { getDistinctBrandIcoURIs, getDistinctToSIcoURIs } from './DataManager';
+import { 
+  createId, 
+  deleteQuery, 
+  diffAndGenerateQueries, 
+  execQuery, 
+  formatSQL, 
+  insertQuery, 
+  TABLES, 
+  updateQuery, 
+  getDistinctBrandIcoURIs, 
+  getDistinctToSIcoURIs } from './DataManager';
 import { getCurrentSeason, Seasons } from './dbSeasons';
 import { Logger } from './ToolsBox';
 

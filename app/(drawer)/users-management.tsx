@@ -28,7 +28,7 @@ const customSwatches = ["#6CC5B0", "#F3722C", "#FF8AB7", "#3CA951", "#A463F2", "
 
 
 export default function UsersManagementScreen() {
-  const { colorsTheme, currentTheme } = useContext(ThemeContext);
+  const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
   const { t, webDavSync } = useContext(AppContext);
@@ -314,7 +314,7 @@ export default function UsersManagementScreen() {
       <Tile flex={1} >
         <TileIconTitle littleIconName={order_by === "order_by_name" ? "pencil" : "slope"} usersIconName={"users"} textColor={colorsTheme.text} />
         <FlatList
-          data={users}
+          data={sortedUsers}
           onRefresh={loadData}
           refreshing={false}
           keyExtractor={u => u.id}

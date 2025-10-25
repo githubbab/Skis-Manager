@@ -134,9 +134,9 @@ export default function SkisManagement() {
     (but === "boots") ? setBootsVisible(true) : setBootsVisible(false);
     (but === "endDate") ? setEndDatePickerVisible(true) : setEndDatePickerVisible(false);
     (but === "beginDate") ? setBeginDatePickerVisible(true) : setBeginDatePickerVisible(false);
-    (but !== "name") && inputNameRef.current?.blur();
-    (but !== "radius") && inputRadiusRef.current?.blur();
-    (but !== "size") && inputSizeRef.current?.blur();
+    if (but !== "name" && inputNameRef.current) inputNameRef.current.blur();
+    if (but !== "radius" && inputRadiusRef.current) inputRadiusRef.current.blur();
+    if (but !== "size" && inputSizeRef.current) inputSizeRef.current.blur();
   }
 
   //                                          #######                                    

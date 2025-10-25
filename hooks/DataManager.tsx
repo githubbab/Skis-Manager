@@ -37,9 +37,6 @@ let dbUpdated = false;
 // Device ID
 let deviceID: string = "not-an-id";
 let lastId: string = "not-an-id";
-// For batching queries
-const concatQueries: string[] = [];
-let concatQueriesActive = false;
 
 // #######                                   
 //    #      ##   #####  #      ######  #### 
@@ -199,64 +196,21 @@ export async function clearDatabase(db: SQLiteDatabase) {
 // #        ##   #      #      #   # # #    # #      #####    #  
 // #       #  #  #      #    # #    #  #    # #      #   #    #  
 // ###### #    # ######  ####   #### #  ####  ###### #    #   #  
-export async function execQuery(db: SQLiteDatabase, query: string, id: string) {
+export async function execQuery(db: SQLiteDatabase, query: string, id?: string) {
 
   try {
     await db.execAsync(query);
     lastDBWrite = Date.now();
     dbUpdated = true;
-    if (concatQueriesActive) {
-      concatQueries.push(query);
-      return;
+    if (id) {
+      writeActions("query_" + id + "_" + lastDBWrite.toString() + "_" + deviceID + ".sql", query);
     }
-    writeActions("query_" + id + "_" + lastDBWrite.toString() + "_" + deviceID + ".sql", query);
   } catch (err) {
     const errNumber = (err as any)?.code ?? -1;
     const message = err ? err.toString() : "Unknown error";
     Logger.error(message);
     await asyncAlert("alert err n°" + errNumber, message);
   }
-}
-
-//                                   #####                                     #####                                      
-//  ####  #####   ##   #####  ##### #     #  ####  #    #  ####    ##   ##### #     # #    # ###### #####  # ######  #### 
-// #        #    #  #  #    #   #   #       #    # ##   # #    #  #  #    #   #     # #    # #      #    # # #      #     
-//  ####    #   #    # #    #   #   #       #    # # #  # #      #    #   #   #     # #    # #####  #    # # #####   #### 
-//      #   #   ###### #####    #   #       #    # #  # # #      ######   #   #   # # #    # #      #####  # #           #
-// #    #   #   #    # #   #    #   #     # #    # #   ## #    # #    #   #   #    #  #    # #      #   #  # #      #    #
-//  ####    #   #    # #    #   #    #####   ####  #    #  ####  #    #   #    #### #  ####  ###### #    # # ######  #### 
-export function startConcatQueries() {
-  concatQueriesActive = true;
-  concatQueries.length = 0;
-}
-
-//                       #####                                     #####                                      
-// ###### #    # #####  #     #  ####  #    #  ####    ##   ##### #     # #    # ###### #####  # ######  #### 
-// #      ##   # #    # #       #    # ##   # #    #  #  #    #   #     # #    # #      #    # # #      #     
-// #####  # #  # #    # #       #    # # #  # #      #    #   #   #     # #    # #####  #    # # #####   #### 
-// #      #  # # #    # #       #    # #  # # #      ######   #   #   # # #    # #      #####  # #           #
-// #      #   ## #    # #     # #    # #   ## #    # #    #   #   #    #  #    # #      #   #  # #      #    #
-// ###### #    # #####   #####   ####  #    #  ####  #    #   #    #### #  ####  ###### #    # # ######  #### 
-export async function endConcatQueries(id: string) {
-  concatQueriesActive = false;
-  if (concatQueries.length > 0) {
-    const fullQuery = concatQueries.join("\n");
-    concatQueries.length = 0;
-    writeActions("query_" + id + "_" + Date.now().toString() + "_" + deviceID + ".sql", fullQuery);
-  }
-  concatQueries.length = 0;
-}
-
-//                                            #####                                     #####                                      
-//  ####    ##   #    #  ####  ###### #      #     #  ####  #    #  ####    ##   ##### #     # #    # ###### #####  # ######  #### 
-// #    #  #  #  ##   # #    # #      #      #       #    # ##   # #    #  #  #    #   #     # #    # #      #    # # #      #     
-// #      #    # # #  # #      #####  #      #       #    # # #  # #      #    #   #   #     # #    # #####  #    # # #####   #### 
-// #      ###### #  # # #      #      #      #       #    # #  # # #      ######   #   #   # # #    # #      #####  # #           #
-// #    # #    # #   ## #    # #      #      #     # #    # #   ## #    # #    #   #   #    #  #    # #      #   #  # #      #    #
-//  ####  #    # #    #  ####  ###### ######  #####   ####  #    #  ####  #    #   #    #### #  ####  ###### #    # # ######  #### 
-export function cancelConcatQueries() {
-  concatQueriesActive = false;
-  concatQueries.length = 0;
 }
 
 //                                      #####                            
@@ -400,7 +354,6 @@ export async function initDataManager(db: SQLiteDatabase): Promise<void> {
     Logger.debug("Create imgStore", imgStoreDir.uri);
   } else {
     Logger.debug("Find imgStore", imgStoreDir.uri);
-    const imgFileList = imgStoreDir.list();
   }
   //
   // Initialize database

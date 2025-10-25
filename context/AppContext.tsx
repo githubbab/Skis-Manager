@@ -1,7 +1,7 @@
 import translations, { Lang, TranslationKey } from "@/constants/Translations";
-import { cancelConcatQueries, endConcatQueries, execQuery, getDeviceID, startConcatQueries } from "@/hooks/DataManager";
+import {  execQuery, getDeviceID } from "@/hooks/DataManager";
 import { getCurrentSeason } from "@/hooks/dbSeasons";
-import { deleteSettings, getAllSettings, insertSettings, Settings } from "@/hooks/dbSettings";
+import { getAllSettings, insertSettings, Settings } from "@/hooks/dbSettings";
 import { createWebDavClient, syncData } from "@/hooks/SyncWebDav";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSQLiteContext } from "expo-sqlite";
@@ -274,7 +274,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   //      ####  #    # #    # #    #  ####  ######  ## ##  ###### #####  ######  #    #   ##    #####    #   #    #  #### 
   const changeWebDavSync = async (sync: boolean, params?: WebDavParams): Promise<void> => {
     Logger.debug("Changing WebDav sync settings:", sync, params);
-    startConcatQueries();
     if (params) {
       setWebDavSyncParams(params);
       await AsyncStorage.setItem("webDavUrl", params.url);
@@ -296,7 +295,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
       setWebDavSyncEnabled(false);
       await AsyncStorage.setItem("webDavSyncEnabled", "false");
     }
-    endConcatQueries("webDavSettings");
   }
 
   //                          ######                 #####                     
@@ -339,7 +337,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   //     # #   ## #   #   #  #  # #      #    # #     # #    #  #  #  #     # #      # #      #   ##   #   #     # #   ## #    # #     #   #   #   ## #    #
   //     # #    # #   #    ## ##  ###### #####  ######  #    #   ##    #####  ###### # ###### #    #   #   #     # #    # #####   #####    #   #    #  #### 
   const initWebDavClientAndSync = async (webDavUrl: string, webDavUser: string, webDavPassword: string) => {
-    Logger.debug("initWebDavClientAndSync: WebDav sync is enabled, creating client...");
+    Logger.debug("initWebDavClientAndSync: WebDav sync is enabled, activate writeAction and creating client...");
     const res = await createWebDavClient({ url: webDavUrl, user: webDavUser, password: webDavPassword });
     if (typeof res === "string") {
       Logger.debug("initWebDavClientAndSync: Error creating WebDav client: ", res);

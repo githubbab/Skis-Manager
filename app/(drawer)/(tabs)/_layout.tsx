@@ -16,24 +16,17 @@ const TabLayout = () => {
   const [seasonNameHuman, setSeasonNameHuman] = useState<string>(seasonName);
   const [dataLoading, setDataLoading] = useState<boolean>(false);
 
-  const loadData = async () => {
-    if (dataLoading) {
-      Logger.debug("TabLayout - loadData already in progress, skipping");
-      return;
-    }
-    Logger.debug("TabLayout - loadData", seasonDate, seasonName);
-    setDataLoading(true);
-    setSeasonNameHuman(seasonName);
-    setSeasonDateHuman(localeDate(seasonDate.getTime(), { day: '2-digit', month: 'short', year: 'numeric' }));
-    setDataLoading(false);
-  };
+
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    loadData();
+    const loadData = async () => {
+      Logger.debug("TabLayout - loadData", seasonDate, seasonName);
+      setDataLoading(true);
+      setSeasonNameHuman(seasonName);
+      setSeasonDateHuman(localeDate(seasonDate.getTime(), { day: '2-digit', month: 'short', year: 'numeric' }));
+      setDataLoading(false);
+    };
+    if (!dataLoading) loadData();
   }, [lastWebDavSync, seasonDate, seasonName]);
 
   const styles = StyleSheet.create({

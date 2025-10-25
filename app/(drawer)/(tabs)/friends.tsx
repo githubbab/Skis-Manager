@@ -18,7 +18,7 @@ import AppIcon from "@/components/AppIcon";
 import ModalEditor from "@/components/ModalEditor";
 import AppButton from "@/components/AppButton";
 
-export default function tabFriends() {
+export default function TabFriends() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();

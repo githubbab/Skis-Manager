@@ -8,7 +8,7 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
 import { ThemeContext } from "@/context/ThemeContext";
-import { clearDatabase, endConcatQueries, getDeviceID, startConcatQueries, TABLES } from "@/hooks/DataManager";
+import { clearDatabase, getDeviceID, TABLES , clearStore } from "@/hooks/DataManager";
 import { Boots, insertBoots } from "@/hooks/dbBoots";
 import { insertMaintain } from "@/hooks/dbMaintains";
 import { insertOuting } from "@/hooks/dbOutings";
@@ -16,8 +16,7 @@ import { insertSeason } from "@/hooks/dbSeasons";
 import { insertSki, Skis } from "@/hooks/dbSkis";
 import { initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
 import { insertUser, Users } from "@/hooks/dbUsers";
-import { clearStore } from "@/hooks/DataManager";
-import { delRemoteDevice, importRemoteFile, getWebDavDevices, WebDavDevice, createWebDavClient } from "@/hooks/SyncWebDav";
+import { delRemoteDevice, importRemoteFile, getWebDavDevices, WebDavDevice, createWebDavClient, putWebDavDeviceLastSync, importAllRemoteImages } from "@/hooks/SyncWebDav";
 import { Logger, smDate } from "@/hooks/ToolsBox";
 import { reloadAppAsync } from "expo";
 import * as DocumentPicker from 'expo-document-picker';
@@ -27,7 +26,6 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useContext, useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { showMessage } from "react-native-flash-message";
-import { FlatList } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import AppContext from "@/context/AppContext";
 import { WebDAVClient } from "webdav";
@@ -68,7 +66,6 @@ async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQ
   })
   await clearDatabase(db);
   await clearStore();
-  startConcatQueries();
   message += ` done\nRestore database(typeOfSkis)...`;
   showMessage({
     message: message,
@@ -283,7 +280,6 @@ async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQ
     type: "default",
     autoHide: false,
   })
-  await endConcatQueries("restoreSuivisSkisDB");
   await sqLiteDatabase.closeAsync()
   await reloadAppAsync()
 }
@@ -543,25 +539,59 @@ export default function BackupSyncSettings() {
   //          #   #   #  # # #      #   #   #      #    # #    #   #   #      #  #  # #      #    # #     # ###### #    #
   //     #    #   #   #   ## #    # #    #  #      #    # #    #   #   #      #  #  # #      #    # #     # #    #  #  # 
   //      ####    #   #    #  ####  #     # ###### #    #  ####    #   ######  ## ##  ###### #####  ######  #    #   ##  
-  async function syncRemoteWebDav() {
+  async function syncRemoteWebDav(devices: WebDavDevice[], client: WebDAVClient) {
     showMessage({
       message: t('sync_webdav_init_db_in_progress'),
       type: "default",
       autoHide: false,
     })
-    setInactivated(true);
-    await clearDatabase(db);
-    await clearStore();
-    await changeWebDavSync(true, { url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
-    await fetchSyncInfo();
-    showMessage({
-      message: t('sync_webdav_init_db_completed'),
-      type: "success",
-      autoHide: true,
-      duration: 3000
-    })
-    setInactivated(false);
-    await reloadAppAsync();
+    if (!client) {
+      showMessage({
+        message: t('sync_webdav_error'),
+        type: "danger",
+        autoHide: true,
+        duration: 5000
+      })
+      Logger.error("syncRemoteWebDav: No WebDAV client");
+      return;
+    }
+    // Get newest remote database and replace local database
+    const newestDevice = devices.reduce((prev, current) => (prev.lastModified > current.lastModified) ? prev : current);
+    Logger.debug("syncRemoteWebDav: Newest device:", newestDevice);
+    // Download remote database
+    const tempDBFile = new File(Paths.cache.uri + "webdav_temp.db");
+    if (tempDBFile.exists) {
+      tempDBFile.delete();
+    }
+    await importRemoteFile(client, `/databases/skis-manager-${newestDevice.id}.db`, tempDBFile.uri);
+    if (!tempDBFile.exists) {
+      showMessage({
+        message: t('sync_webdav_error'),
+        type: "danger",
+        autoHide: true,
+        duration: 5000
+      })
+      Logger.error("syncRemoteWebDav: Error downloading remote database");
+      return;
+    }
+    // Replace local database
+    copyDBFile(tempDBFile.uri, "file://" + db.databasePath);
+    await importAllRemoteImages(client);
+    await putWebDavDeviceLastSync({ webDavClient: client, deviceId: myID });
+    changeWebDavSync(true, { url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+    Alert.alert(
+      t('sync_webdav'),
+      t('webdav_init_db_completed_restart'),
+      [
+        {
+          text: t('ok'),
+          onPress: async () => {
+            await reloadAppAsync();
+          }
+        }
+      ],
+      { cancelable: false }
+    );
   }
 
   //                                                    #####                      #     #               ######               
@@ -582,43 +612,36 @@ export default function BackupSyncSettings() {
           return;
         }
         const devices = await getWebDavDevices(res);
-        if (!devices.find((item) => item.id === myID)) {
-          if (devices.length > 0) {
-            Alert.alert(
-              t('sync_webdav'),
-              t('webdav_init_db'),
-              [
-                {
-                  text: t('cancel'),
-                  onPress: () => {
-                    setInactivated(false);
-                    return;
-                  },
-                  style: 'cancel'
+        if (devices.length > 0) {
+          Alert.alert(
+            t('sync_webdav'),
+            t('webdav_init_db'),
+            [
+              {
+                text: t('cancel'),
+                onPress: () => {
+                  setInactivated(false);
+                  return;
                 },
-                {
-                  text: t('ok'),
-                  onPress: syncRemoteWebDav
+                style: 'cancel'
+              },
+              {
+                text: t('ok'),
+                onPress: () => {
+                  syncRemoteWebDav(devices, res)
                 }
-              ],
-              { cancelable: false }
-            );
-          }
-          else {
-            setInactivated(true);
-            changeWebDavSync(true, { url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
-            await webDavSync();
-            await fetchSyncInfo();
-            setInactivated(false);
-          }
+              }
+            ],
+            { cancelable: false }
+          );
         }
         else {
-
           changeWebDavSync(true, { url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
           await webDavSync();
           await fetchSyncInfo();
           setInactivated(false);
         }
+
       } else {
         alert(t('url_error'));
         setInactivated(false);
@@ -636,8 +659,8 @@ export default function BackupSyncSettings() {
   //         #    # ######   #    ####  #    # #    #
   return (
     <Body >
+      {inactivated && <View style={styles.inactivate} />}
       <ScrollView>
-        {inactivated && <View style={styles.inactivate} />}
         <Text style={appStyles.title}>{t('backup_sync')}</Text>
         <AppButton onPress={() => {
           if (webDavSyncEnabled) {

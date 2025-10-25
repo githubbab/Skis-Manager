@@ -1,6 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
-import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DataManager';
-import { delToSIco, getToSIcoURI } from './DataManager';
+import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery, delToSIco, getToSIcoURI } from './DataManager';
 
 export type TOS = {
   id: string;

@@ -1,6 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
-import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DataManager';
-import { delBrandIco, getBrandIcoURI, icoUnknownBrand } from "./DataManager";
+import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery, delBrandIco, getBrandIcoURI, icoUnknownBrand } from "./DataManager";
 
 
 
@@ -20,7 +19,7 @@ export function initBrand(): Brands {
     icoUri: icoUnknownBrand, // Fallback image
     nbSkis: 0,
     nbBoots: 0,
-  };  
+  };
 }
 
 // -------------------- BRANDS --------------------

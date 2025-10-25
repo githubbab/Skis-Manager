@@ -7,19 +7,16 @@ import { ThemeContext } from "@/context/ThemeContext";
 import { router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
-import { useSQLiteContext } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
 import React, { useContext } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { listActionsStoreFiles, listImageStoreFiles, listRootStoreFiles } from "@/hooks/DataManager";
 import { Directory } from "expo-file-system";
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 import { getWebDavDevices } from "@/hooks/SyncWebDav";
 import { Logger } from "@/hooks/ToolsBox";
 
 export default function DrawerLayout() {
   const { currentTheme, colorsTheme } = useContext(ThemeContext);
-  const db = useSQLiteContext();
   const { t, viewOuting, viewFriends, webDavClient, deviceID } = useContext(AppContext)!;
 
   const styles = StyleSheet.create({

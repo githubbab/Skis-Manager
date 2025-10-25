@@ -21,19 +21,19 @@ import { initOuting, insertOuting, Outings } from "@/hooks/dbOutings";
 import { getSeasonSkis, getSkis2Sharp, getSkis2Wax, getTopSkis, initSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, getTopUsers, Users } from "@/hooks/dbUsers";
-import { getWebDavDevices } from "@/hooks/SyncWebDav";
 import { Logger, smDate } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useContext, useEffect, useState } from "react";
-import { FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { TextInput } from "react-native";
+import React, { useCallback, useContext, useEffect, useState } from "react";
+import { FlatList, Image, ListRenderItem, Text, TouchableOpacity, View, TextInput } from 'react-native';
 
 
 
 
 
 const iconSize: number = 32;
+const waitSyncTime = 5 * 60 * 1000; // 5 minutes
 
 const getCountColor = (count: number) => {
   const safeColor = Math.max(0, Math.min(255, 137 - count * 10));
@@ -81,8 +81,9 @@ export default function Index() {
   const [outingViewOffPiste, setOutingViewOffPiste] = useState<boolean>(false);
   const [outingViewFriends, setOutingViewFriends] = useState<boolean>(false);
   const [effectActive, setEffectActive] = useState<boolean>(false);
+  const [lastSyncDate, setLastSyncDate] = useState<number>(Date.now());
 
-  const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, lastWebDavSync, webDavSyncMulti } = useContext(AppContext)!;
+  const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, webDavSyncMulti } = useContext(AppContext)!;
 
   const filterOutingSkis = (idUser: string) => listSkis.filter(ski => ski.listUsers?.includes(idUser)).sort((a, b) => {
     const aNb = a.nbOutings || 0;
@@ -116,6 +117,10 @@ export default function Index() {
     if (dbState === "loading") {
       Logger.debug("index - loadData already in progress, skipping");
       return;
+    }
+    if (webDavSyncEnabled && (Date.now() > lastSyncDate + waitSyncTime)) {
+      setLastSyncDate(Date.now());
+      await webDavSync();
     }
 
     Logger.debug("index - loadData");
@@ -155,16 +160,11 @@ export default function Index() {
   // #     #      # #      #       #    # #      #    #      # #       #      #      #      #        #  
   // #     # #    # #      #       #    # #    # #    # #    # #       #      #      #      #    #   #  
   //  #####   ####  ###### #        ####   ####   ####   ####  ####### #      #      ######  ####    #  
-  useEffect(() => {
-    Logger.debug("index - component mounted");
-    loadData();
-  }, [])
-
-  useEffect(() => {
-    Logger.debug("index - webDavSyncEnabled changed");
-    if (!webDavSyncEnabled) return;
-    loadData()
-  }, [webDavSyncEnabled, lastWebDavSync])
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   useEffect(() => {
     Logger.debug("index - outing2write changed");
@@ -242,13 +242,6 @@ export default function Index() {
     setEffectActive(false);
   }, [outing2write])
 
-  async function syncAndLoad() {
-    if (webDavSyncEnabled) {
-      await webDavSync();
-      await loadData();
-    }
-  }
-
   //                                            #####                               
   // #####  ###### #    # #####  ###### #####  #     # #    # # ###### #####   #### 
   // #    # #      ##   # #    # #      #    # #       #   #  # #      #    # #     
@@ -322,8 +315,8 @@ export default function Index() {
                 style={{ color: colorsTheme.text, fontSize: 20, flex: 1, textAlign: 'right' }}>{item.nbOutings?.toString()}</Text>
               <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 20 }} />
               {((item.nbOutingsSinceLastSharp || 0) + (item.nbOutingsSinceLastWax || 0)) === 0 ?
-              <AppIcon name={'checkmark'} color={colorsTheme.primaryGreen} styles={{ fontSize: 14, marginBottom: -6, marginLeft: -10, marginRight: -12 }} /> : 
-              toSharp.find(s => s.id === 'toSharp-' + item.id.replace('topSkis-', '')) || toWax.find(w => w.id === 'toWax-' + item.id.replace('topSkis-', '')) ? <AppIcon name={'notification'} color={colorsTheme.warning} styles={{ fontSize: 14, marginBottom: -6, marginLeft: -10, marginRight: -12 }} /> : null}
+                <AppIcon name={'checkmark'} color={colorsTheme.primaryGreen} styles={{ fontSize: 14, marginBottom: -6, marginLeft: -10, marginRight: -12 }} /> :
+                toSharp.find(s => s.id === 'toSharp-' + item.id.replace('topSkis-', '')) || toWax.find(w => w.id === 'toWax-' + item.id.replace('topSkis-', '')) ? <AppIcon name={'notification'} color={colorsTheme.warning} styles={{ fontSize: 14, marginBottom: -6, marginLeft: -10, marginRight: -12 }} /> : null}
             </>
           }
         </Row>
@@ -762,7 +755,7 @@ export default function Index() {
             keyExtractor={(item) => item.id}
             style={{ width: "100%", padding: 0 }}
             renderItem={renderSkis}
-            onRefresh={syncAndLoad}
+            onRefresh={loadData}
             refreshing={false}
           /> : <></>
         }
@@ -806,7 +799,7 @@ export default function Index() {
           <AppIcon name={"entretien"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={40} />
         </AppButton>
         {webDavSyncMulti &&
-          <TouchableOpacity onPress={syncAndLoad}
+          <TouchableOpacity onPress={loadData}
             style={{
               position: 'absolute', left: '50%', top: "50%", transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
               backgroundColor: colorsTheme.warning, borderRadius: 50, height: 68, width: 68,
@@ -1353,30 +1346,3 @@ export default function Index() {
 
   );
 }
-
-//  ####  ##### #   # #      ######  #### 
-// #        #    # #  #      #      #     
-//  ####    #     #   #      #####   #### 
-//      #   #     #   #      #           #
-// #    #   #     #   #      #      #    #
-//  ####    #     #   ###### ######  #### 
-const styles = StyleSheet.create({
-  addIcon: {
-    fontSize: 72,
-    textAlign: 'center',
-    zIndex: 3,
-  },
-  inactivate: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    top: 0,
-    margin: -8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 0,
-    zIndex: 2,
-    backgroundColor: 'rgba(45,45,45,0.5)',
-  },
-})

@@ -2,8 +2,7 @@ import { Buffer } from "buffer";
 import { SQLiteDatabase } from "expo-sqlite";
 import { showMessage } from "react-native-flash-message";
 import { AuthType, createClient, FileStat, WebDAVClient } from "webdav";
-import { cancelConcatQueries, execQuery, startConcatQueries } from "./DataManager";
-import { imgStoreDir, actionsStoreDir } from "./DataManager";
+import { clearActionsStore, execQuery , imgStoreDir, actionsStoreDir } from "./DataManager";
 import { File } from "expo-file-system";
 import { Logger } from "./ToolsBox";
 
@@ -140,6 +139,18 @@ export async function importRemoteFile(client: any, remotePath: string, localPat
   localFile.write(buffer);
 }
 
+export async function importAllRemoteImages(client: any): Promise<void> {
+  Logger.debug("Importing all remote images from WebDav server");
+  const remoteImages: FileStat[] = (await getRemoteDirectoryContents(client, "/images/")).filter((item) => item.type === "file");
+
+  for (const image of remoteImages) {
+    const localPath = `${imgStoreDir.uri}/${image.basename}`;
+    Logger.debug("Importing remote image: ", image.basename, " to ", localPath);
+
+    await importRemoteFile(client, "/images/" + image.basename, localPath);
+  }
+}
+
 //                     ######                                    ######                                                    #####                                                
 //  ####  ###### ##### #     # ###### #    #  ####  ##### ###### #     # # #####  ######  ####  #####  ####  #####  #   # #     #  ####  #    # ##### ###### #    # #####  #### 
 // #    # #        #   #     # #      ##  ## #    #   #   #      #     # # #    # #      #    #   #   #    # #    #  # #  #       #    # ##   #   #   #      ##   #   #   #     
@@ -202,53 +213,57 @@ export async function syncData(params: { db: SQLiteDatabase, myID: string, webDa
   }
 
   // regular expression to extract timestamp from action file names
-  const regexp = /^.[a-z]+-([0-9]*)-.+$/;
+  const fileActionsRegexp = /^(del|copy|query)_([^_]+)_([0-9]{10,})_([a-zA-Z0-9]{4})\.(sql|file)$/;
   // get remote devices
   const remoteDevices = await getWebDavDevices(webDavClient);
   // check if local data has changed since last sync
   const localimages: File[] = imgStoreDir.list().filter((item) => item instanceof File);
   const localActions: File[] = actionsStoreDir.list().filter((item) => item instanceof File);
-  const remoteImages: FileStat[] = (await getRemoteDirectoryContents(webDavClient, "/images/")).filter((item) => item.type === "file");
   const remoteActions: FileStat[] = (await getRemoteDirectoryContents(webDavClient, "/actions/")).filter((item) => item.type === "file");
-  const localImagesNotInRemote = localimages.filter((item) => !remoteImages.map((ri) => ri.basename).includes(item.name));
-  if (localImagesNotInRemote.length > 0) {
-    Logger.debug("syncData: Found local images not in remote: ", localImagesNotInRemote.map((li) => li.name));
-  }
-  const localActionsNotInRemote = localActions.filter((item) => !remoteActions.map((ri) => ri.basename).includes(item.name));
-  if (localActionsNotInRemote.length > 0) {
-    Logger.debug("syncData: Found local actions not in remote: ", localActionsNotInRemote.map((la) => la.name));
-  }
 
-
-  // if no other remote devices, upload local data and exit
   if (remoteDevices.length === 0 || (remoteDevices.length === 1 && remoteDevices[0].id === myID)) {
-    Logger.debug("syncData: No other devices found on WebDav, skipping sync and uploading local data");
-    try {
-      // upload database if it has changed or if any query actions are present
-      if (localActionsNotInRemote.find((action) => action.name.startsWith("query_"))) {
-        await putRemoteFile(webDavClient, `/databases/skis-manager-${myID}.db`, new File("file://" + db.databasePath));
-        Logger.debug("syncData: Database copied to WebDav server");
-        modified = true;
+    // no other devices, just copy datbase if local actions
+    if (remoteActions.length > 0) {
+      Logger.debug("syncData: No other devices found on WebDav, deleting remote actions");
+      for (const action of remoteActions) {
+        await webDavClient.deleteFile(`/actions/${action.basename}`);
       }
-      if (localImagesNotInRemote.length > 0) {
-        Logger.debug("syncData: Uploading new images to WebDav server");
-        for (const image of localImagesNotInRemote) {
-          await putRemoteFile(webDavClient, `/images/${image.name}`, image);
-          modified = true;
-        }
-      }
-      if (localActionsNotInRemote.length > 0) {
-        Logger.debug("syncData: Uploading new actions to WebDav server");
-        for (const action of localActionsNotInRemote) {
-          await putRemoteFile(webDavClient, `/actions/${action.name}`, action);
-          modified = true;
-        }
-      }
-      await putWebDavDeviceLastSync({ webDavClient, deviceId: myID });
-    } catch (error) {
-      Logger.error("syncData: Error uploading local data: ", error);
-      return { synced: "error", multi: false, error: error instanceof Error ? error.message : String(error) };
     }
+    if (localActions.length === 0) {
+      Logger.debug("syncData: No other devices found on WebDav, and no local actions - nothing to sync");
+      return { synced: "unchanged", multi: false };
+    }
+    Logger.debug("syncData: No other devices found on WebDav, checking local actions to upload");
+    for (const action of localActions) {
+      const match = action.name.match(fileActionsRegexp);
+      if (!match) {
+        Logger.debug("syncData: Skipping invalid action file: ", action.name);
+        continue;
+      }
+      const [, actionType, , , ,] = match;
+      if (actionType === "query") {
+        Logger.debug("syncData: No other devices found on WebDav, but local query action present - will upload database");
+        copyDB = true;
+      } else {
+        const content = await action.text();
+        const localImage4Action = localimages.find((li) => li.name === content);
+        if (localImage4Action && localImage4Action.exists) {
+          if (actionType === "copy") {
+            Logger.debug("syncData: No other devices found on WebDav, but local image copy action present - will upload image: ", localImage4Action.name);
+            await putRemoteFile(webDavClient, `/images/${localImage4Action.name}`, localImage4Action);
+          } else if (actionType === "del") {
+            Logger.debug("syncData: No other devices found on WebDav, but local image delete action present - will delete image: ", localImage4Action.name);
+            await webDavClient.deleteFile(`/images/${localImage4Action.name}`);
+          }
+        }
+      }
+    }
+    if (copyDB) {
+      await putRemoteFile(webDavClient, `/databases/skis-manager-${myID}.db`, new File("file://" + db.databasePath));
+      Logger.debug("syncData: Database copied to WebDav server");
+    }
+
+    await putWebDavDeviceLastSync({ webDavClient, deviceId: myID });
     if (!background) {
       showMessage({
         message: "Data synchronized with WebDav",
@@ -256,28 +271,30 @@ export async function syncData(params: { db: SQLiteDatabase, myID: string, webDa
         duration: 4000,
       });
     }
-    return { synced: modified ? "changed" : "unchanged", multi: false };
+    return { synced: copyDB ? "changed" : "unchanged", multi: false };
   }
-  // if other remote devices are present, check for changes
-  const remoteImagesNotInLocal = remoteImages.filter((item) => !localimages.map((li) => li.name).includes(item.basename));
-  if (remoteImagesNotInLocal.length > 0) {
-    Logger.debug("syncData: Found remote images not in local: ", remoteImagesNotInLocal.map((ri) => ri.basename));
+
+  Logger.debug("syncData: Other devices found on WebDav, checking for changes");
+
+  // get date of last sync
+  const lastSyncDate = remoteDevices.find((dev) => dev.id === myID)?.lastModified ?? new Date();
+  const oldestDevice = remoteDevices.reduce((oldest, dev) => dev.lastModified < oldest.lastModified ? dev : oldest, remoteDevices[0]);
+  Logger.debug("syncData: Last sync date: ", lastSyncDate);
+
+  // delete remote actions older than oldest device last sync
+  for (const action of remoteActions) {
+    if (new Date(action.lastmod) <= oldestDevice.lastModified) {
+      Logger.debug("syncData: Remote action older than oldest device last sync, deleting remote action: ", action.basename);
+      await webDavClient.deleteFile(`/actions/${action.basename}`);
+      remoteActions.splice(remoteActions.indexOf(action), 1);
+    }
   }
-  const remoteActionsNotInLocal = remoteActions.filter((item) => !localActions.map((li) => li.name).includes(item.basename));
-  if (remoteActionsNotInLocal.length > 0) {
-    Logger.debug("syncData: Found remote actions not in local: ", remoteActionsNotInLocal.map((ra) => ra.basename));
-  }
-  // check if local database has changed since last sync
-  if (localImagesNotInRemote.length === 0 && localActionsNotInRemote.length === 0 && remoteImagesNotInLocal.length === 0 && remoteActionsNotInLocal.length === 0) {
-    Logger.debug("syncData: No changes detected between local and remote stores, skipping sync");
-    await putWebDavDeviceLastSync({ webDavClient, deviceId: myID });
-    return { synced: "unchanged", multi: true };
-  }
-  // if changes are detected, sort actions in chronological order
+
+  // Mise en place des actions à exécuter, triées par date
   const actionOrders: { remote: boolean, date: number, actionType: string, actionId: string, deviceId: string, name: string }[] = [];
-  const valideFilesRegexp = /^(del|copy|query)_([^_]+)_([0-9]{10,})_([a-zA-Z0-9]{4})\.(sql|file)$/;
-  for (const action of localActionsNotInRemote) {
-    const match = action.name.match(valideFilesRegexp);
+  // Collecte des actions locales
+  for (const action of localActions) {
+    const match = action.name.match(fileActionsRegexp);
     if (!match) {
       Logger.debug("syncData: Skipping invalid action file: ", action.name);
       continue;
@@ -285,164 +302,114 @@ export async function syncData(params: { db: SQLiteDatabase, myID: string, webDa
     const [, actionType, actionId, timestamp, deviceId,] = match;
     actionOrders.push({ remote: false, date: Number(timestamp), actionType, actionId, deviceId, name: action.name });
   }
-  for (const action of remoteActionsNotInLocal) {
-    const match = action.basename.match(valideFilesRegexp);
+  // Collecte des actions distantes
+  for (const action of remoteActions) {
+    const match = action.basename.match(fileActionsRegexp);
     if (!match) {
       Logger.debug("syncData: Skipping invalid action file: ", action.basename);
       continue;
     }
     const [, actionType, actionId, timestamp, deviceId,] = match;
+    if (deviceId === myID) {
+      Logger.debug("syncData: Skipping remote action from this device: ", action.basename);
+      continue;
+    }
+    if (new Date(timestamp) <= lastSyncDate) {
+      Logger.debug("syncData: Skipping remote action older than last sync date: ", action.basename);
+      continue;
+    }
     actionOrders.push({ remote: true, date: Number(timestamp), actionType, actionId, deviceId, name: action.basename });
   }
-  actionOrders.sort((a, b) => a.date - b.date);
-  // remove duplicate actions (same actionId) keeping the last one
-  const actionOrdersReduced: typeof actionOrders = [];
-  for (const action of actionOrders) {
-    const index = actionOrdersReduced.findIndex((a) => a.actionId === action.actionId);
-    if (index !== -1) {
-      actionOrdersReduced.splice(index, 1);
-    }
-    actionOrdersReduced.push(action);
+  // Si aucune action à exécuter, on sort
+  if (actionOrders.length === 0) {
+    Logger.debug("syncData: No actions found to synchronize");
+    return { synced: "unchanged", multi: true };
   }
-  Logger.debug(`syncData: ${actionOrders.length} actions found, ${actionOrdersReduced.length} unique actions to process`);
-  // execute actions in order
-  startConcatQueries();
-  for (const actionOrder of actionOrdersReduced) {
-    Logger.debug(`syncData: Processing action: ${actionOrder.remote ? "R" : "L"}: ${actionOrder.name} @ ${new Date(actionOrder.date).toISOString()}`);
-    // If remote action, fetch content and execute
-    if (actionOrder.remote) {
-      const content = await webDavClient.getFileContents(`/actions/${actionOrder.name}`, { format: "text" }) as string;
-      // if query, execute it
-      if (actionOrder.actionType === "query") {
-        try {
-          await execQuery(db, content, "webdav-sync");
-          await importRemoteFile(webDavClient, `/actions/${actionOrder.name}`, actionsStoreDir.uri + actionOrder.name);
+  // Récupération de la liste des images distantes pour les actions de type "copy"
+  const remoteImages: FileStat[] = (await getRemoteDirectoryContents(webDavClient, "/images/")).filter((item) => item.type === "file");
+  // Tri des actions par date
+  actionOrders.sort((a, b) => a.date - b.date);
+  for (const action of actionOrders) {
+    Logger.debug(`syncData: Action found: ${action.remote ? "R" : "L"}: ${action.name} @ ${new Date(action.date).toISOString()}`);
+    if (action.remote) {
+      // Execute remote action
+      const content = await webDavClient.getFileContents(`/actions/${action.name}`, { format: "text" }) as string;
+      if (action.actionType === "query") {
+        Logger.debug("syncData: Executing remote query action: ", action.name);
+        await execQuery(db, content);
+      } else if (action.actionType === "copy") {
+        if (remoteImages.find((ri) => ri.basename === content)) {
+          // importer l'image distante
+          Logger.debug("syncData: Executing remote image import action: ", action.name);
+          await importRemoteFile(webDavClient, `/images/${content}`, imgStoreDir.uri + "/" + content);
           modified = true;
-          copyDB = true;
-        } catch (error) {
-          Logger.error("syncData: Error executing remote query action: ", actionOrder.name, error);
-          if (!background) {
-            showMessage({
-              message: "Error executing remote query action: " + actionOrder.name,
-              description: error instanceof Error ? error.message : String(error),
-              type: "danger",
-              duration: 10000,
-            });
-          }
-          cancelConcatQueries();
-          return { synced: "error", multi: true, error: error instanceof Error ? error.message : String(error) };
+        }
+        else {
+          // image distante non trouvée, elle a du être supprimé après l'action
+          Logger.debug("syncData: Remote image for copy action not found: ", content);
+        }
+      } else if (action.actionType === "del") {
+        const localImage2Del = localimages.find((li) => li.name === content);
+        if (localImage2Del && localImage2Del.exists) {
+          Logger.debug("syncData: Executing remote image delete action: ", action.name);
+          localImage2Del.delete();
+          modified = true;
+        }
+        else {
+          // image locale non trouvée, elle a du être supprimée après l'action
+          Logger.debug("syncData: Local image for delete action not found: ", content);
         }
       }
       else {
-        // if image action, execute it
-        try {
-          // if delete action, delete local image if exists
-          if (actionOrder.actionType === "del") {
-            // delete local image if exists
-            if (localimages.map((li) => li.name).includes(content)) {
-              const localImage2Del = localimages.find((li) => li.name === content);
-              if (localImage2Del && localImage2Del.exists) {
-                localImage2Del.delete();
-                modified = true;
-              }
-            }
-            // remove from localImagesNotInRemote if present
-            if (localImagesNotInRemote.map((li) => li.name).includes(content)) {
-              localImagesNotInRemote.splice(localImagesNotInRemote.findIndex((li) => li.name === content), 1);
-            }
-          }
-          else {
-            const file2copy = new File(imgStoreDir.uri + actionOrder.name);
-            if (remoteImages.map((ri) => ri.basename).includes(content)) {
-              const localImage2Copy = localimages.find((li) => li.name === content);
-              if (localImage2Copy && localImage2Copy.exists) {
-                if (localImage2Copy.size === (remoteImages.find((ri) => ri.basename === content)?.size || 0)) {
-                  continue;
-                }
-              }
-              const remoteImage2Copy = remoteImages.find((ri) => ri.basename === content);
-              if (remoteImage2Copy) {
-                await importRemoteFile(webDavClient, `/images/${remoteImage2Copy.basename}`, imgStoreDir.uri + remoteImage2Copy.basename);
-                modified = true;
-              }
-            }
-          }
-        } catch (error) {
-          Logger.error("syncData: Error executing remote image action: ", actionOrder.name, error);
-          if (!background) {
-            showMessage({
-              message: "Error executing remote image action: " + actionOrder.name,
-              description: error instanceof Error ? error.message : String(error),
-              type: "danger",
-              duration: 10000,
-            });
-          }
-          cancelConcatQueries();
-          return { synced: "error", multi: true, error: error instanceof Error ? error.message : String(error) };
+        Logger.error("syncData: Unknown remote action type: ", action.actionType);
+      }
+    } else {
+      // Put local action on WebDav
+      const actionFile = localActions.find((la) => la.name === action.name);
+      if (!actionFile || !actionFile.exists) {
+        Logger.error("syncData: Local action file not found: ", action.name);
+        continue;
+      }
+      if (action.actionType === "query") {
+        copyDB = true;
+        Logger.debug("syncData: Uploading local query action to WebDav: ", action.name);
+        await putRemoteFile(webDavClient, `/actions/${action.name}`, actionFile);
+        modified = true;
+      } else if (action.actionType === "copy") {
+        const content = await actionFile.text();
+        const localImage2Copy = localimages.find((li) => li.name === content);
+        if (localImage2Copy && localImage2Copy.exists) {
+          Logger.debug("syncData: Uploading local image copy action to WebDav: ", action.name);
+          await putRemoteFile(webDavClient, `/images/${localImage2Copy.name}`, localImage2Copy);
+          await putRemoteFile(webDavClient, `/actions/${action.name}`, actionFile);
+          modified = true;
+        }
+        else {
+          Logger.debug("syncData: Local image for copy action not found: ", content);
         }
       }
-    }
-    else {
-      // if local action, upload it
-      const actionFile = new File(actionsStoreDir.uri + actionOrder.name);
-      try {
-        await putRemoteFile(webDavClient, `/actions/${actionFile.name}`, actionFile);
-        modified = true;
-        if (actionOrder.actionType === "del") {
-          const content = await actionFile.text();
-          if (remoteImages.map((ri) => ri.basename).includes(content)) {
-            await webDavClient.deleteFile(`/images/${content}`);
-            modified = true;
-          }
-          if (remoteImagesNotInLocal.map((ra) => ra.basename).includes(content)) {
-            remoteImagesNotInLocal.splice(remoteImagesNotInLocal.findIndex((ra) => ra.basename === content), 1);
-            modified = true;
-          }
+      else if (action.actionType === "del") {
+        const file2del = await actionFile.text();
+        Logger.debug("syncData: Uploading local image delete action to WebDav: ", action.name);
+        if (remoteImages.find((ri) => ri.basename === file2del)) {
+          Logger.debug("syncData: Remote image found for delete action: ", file2del);
+          await putRemoteFile(webDavClient, `/actions/${action.name}`, actionFile);
+          modified = true;
         }
-        else if (actionOrder.actionType === "copy") {
-          const content = await actionFile.text();
-          const localImage2Copy = localimages.find((li) => li.name === content);
-          if (localImage2Copy) {
-            await putRemoteFile(webDavClient, `/images/${content}`, localImage2Copy);
-            modified = true;
-          }
+        else {
+          Logger.debug("syncData: Remote image for delete action not found: ", file2del);
         }
-        else if (actionOrder.actionType === "query") {
-          copyDB = true;
-        }
-      } catch (error) {
-        Logger.error("syncData: Error uploading local action file: ", actionFile.name, error);
-        if (!background) {
-          showMessage({
-            message: "Error uploading local action file: " + actionFile.name,
-            description: error instanceof Error ? error.message : String(error),
-            type: "danger",
-            duration: 10000,
-          });
-        }
-        cancelConcatQueries();
-        return { synced: "error", multi: true, error: error instanceof Error ? error.message : String(error) };
+      }
+      else {
+        Logger.error("syncData: Unknown local action type: ", action.actionType);
       }
     }
   }
-  cancelConcatQueries();
+  await clearActionsStore();
   if (copyDB) {
-    try {
-      await putRemoteFile(webDavClient, `/databases/skis-manager-${myID}.db`, new File("file://" + db.databasePath));
-      Logger.debug("syncData: Database copied to WebDav server");
-      modified = true;
-    } catch (error) {
-      Logger.error("syncData: Error uploading database file: ", error);
-      if (!background) {
-        showMessage({
-          message: "Error uploading database file",
-          description: error instanceof Error ? error.message : String(error),
-          type: "danger",
-          duration: 10000,
-        });
-      }
-      return { synced: "error", multi: true, error: error instanceof Error ? error.message : String(error) };
-    }
+    await putRemoteFile(webDavClient, `/databases/skis-manager-${myID}.db`, new File("file://" + db.databasePath));
+    Logger.debug("syncData: Database copied to WebDav server");
+    modified = true;
   }
   await putWebDavDeviceLastSync({ webDavClient, deviceId: myID });
   if (!background) {
@@ -454,6 +421,3 @@ export async function syncData(params: { db: SQLiteDatabase, myID: string, webDa
   }
   return { synced: modified ? "changed" : "unchanged", multi: true };
 }
-
-
-

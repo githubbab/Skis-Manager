@@ -1,4 +1,3 @@
-import AppButton from "@/components/AppButton";
 import Body from "@/components/Body";
 import Row from "@/components/Row";
 import RowItem from "@/components/RowItem";
@@ -13,8 +12,7 @@ import { Logger } from "@/hooks/ToolsBox";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useState } from "react";
-import { Text } from 'react-native';
-import { FlatList } from "react-native";
+import { Text , FlatList } from 'react-native';
 
 
 export default function Offpistes() {

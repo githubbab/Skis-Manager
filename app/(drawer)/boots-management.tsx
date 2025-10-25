@@ -19,7 +19,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useRef, useState } from "react";
-import { Alert, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
 import { showMessage } from "react-native-flash-message";
 import AppContext from "@/context/AppContext";
 import RowItem from "@/components/RowItem";
