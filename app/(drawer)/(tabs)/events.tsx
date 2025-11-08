@@ -74,7 +74,7 @@ const Events = () => {
   const [maintainViewWax, setMaintainViewWax] = useState<boolean>(true);
   const [maintainViewRepair, setMaintainViewRepair] = useState<boolean>(true);
 
-  const { t, localeDate: localeDate, seasonDate, viewOuting, viewFriends, webDavSync } = useContext(AppContext)!;
+  const { t, localeDate: localeDate, seasonDate, viewOuting, viewFriends, webDavSync, lastWebDavSync } = useContext(AppContext)!;
 
   const handleCancelFilters = () => {
     setViewUserFilter(false);
@@ -210,6 +210,14 @@ const Events = () => {
       }
     }, [])
   )
+
+  // Refresh data after sync
+  useEffect(() => {
+    Logger.debug("events - lastWebDavSync changed, reloading data");
+    if (lastWebDavSync > 0) {
+      loadData();
+    }
+  }, [lastWebDavSync]);
 
   useEffect(() => {
     if (effectActive) {

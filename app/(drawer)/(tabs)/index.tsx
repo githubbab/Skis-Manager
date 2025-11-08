@@ -83,7 +83,7 @@ export default function Index() {
   const [effectActive, setEffectActive] = useState<boolean>(false);
   const [lastSyncDate, setLastSyncDate] = useState<number>(Date.now());
 
-  const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, webDavSyncMulti } = useContext(AppContext)!;
+  const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, lastWebDavSync } = useContext(AppContext)!;
 
   const filterOutingSkis = (idUser: string) => listSkis.filter(ski => ski.listUsers?.includes(idUser)).sort((a, b) => {
     const aNb = a.nbOutings || 0;
@@ -165,6 +165,14 @@ export default function Index() {
       loadData();
     }, [])
   );
+
+  // Refresh data after sync
+  useEffect(() => {
+    Logger.debug("index - lastWebDavSync changed, reloading data");
+    if (lastWebDavSync > 0) {
+      loadData();
+    }
+  }, [lastWebDavSync]);
 
   useEffect(() => {
     Logger.debug("index - outing2write changed");
@@ -323,7 +331,7 @@ export default function Index() {
         {selectedSkis.id === item.id && (
           <Row>
             {/* <AppIcon name={'none'} color={colorsTheme.text} /> */}
-            <Card isFlex={1} >
+            <Card flex={1} >
               <View style={{ marginHorizontal: 'auto' }}>
                 <Row style={{ marginHorizontal: 'auto' }}>
                   <AppIcon name={'play3'} color={colorsTheme.text} size={18} />
@@ -344,7 +352,7 @@ export default function Index() {
                 )}
               </View>
             </Card>
-            <Card isFlex={1}>
+            <Card flex={1}>
               <View style={{ marginHorizontal: 'auto' }}>
                 {item.nbOutingsSinceLastSharp === 0 ?
                   <Text numberOfLines={1}
@@ -370,7 +378,7 @@ export default function Index() {
                 </Row>
               </View>
             </Card>
-            <Card isFlex={1}>
+            <Card flex={1}>
               <View style={{ marginHorizontal: 'auto' }}>
                 {item.nbOutingsSinceLastWax === 0 ?
                   <Text numberOfLines={1}
@@ -798,17 +806,6 @@ export default function Index() {
         }} color={colorsTheme.activeButton} icon={"plus"} caption={""} style={{ height: 68 }}>
           <AppIcon name={"entretien"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={40} />
         </AppButton>
-        {webDavSyncMulti &&
-          <TouchableOpacity onPress={loadData}
-            style={{
-              position: 'absolute', left: '50%', top: "50%", transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
-              backgroundColor: colorsTheme.warning, borderRadius: 50, height: 68, width: 68,
-              borderColor: colorsTheme.background, borderWidth: 6,
-              alignItems: 'center', justifyContent: 'center', zIndex: 10
-            }}>
-            <AppIcon name={"loop2"} color={colorsTheme.text} size={30} />
-          </TouchableOpacity>
-        }
       </Row>
 
       {

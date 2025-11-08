@@ -21,7 +21,7 @@ import { Logger, smDate } from "@/hooks/ToolsBox";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useCallback, useContext, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -72,7 +72,7 @@ export default function SkisManagement() {
   const inputSizeRef = useRef<TextInput>(null);
   const inputRadiusRef = useRef<TextInput>(null);
 
-  const { t, localeDate, webDavSync } = useContext(AppContext);
+  const { t, localeDate, webDavSync, lastWebDavSync } = useContext(AppContext);
 
 
 
@@ -119,6 +119,14 @@ export default function SkisManagement() {
       loadData().then(() => lastCheck = getLastDBWrite())
     }, [loadData])
   )
+
+  // Refresh data after sync
+  useEffect(() => {
+    Logger.debug("skis-management - lastWebDavSync changed, reloading data");
+    if (lastWebDavSync > 0) {
+      loadData();
+    }
+  }, [lastWebDavSync]);
 
   //                           #                 
   // #    # # #####  ######   # #   #      #     

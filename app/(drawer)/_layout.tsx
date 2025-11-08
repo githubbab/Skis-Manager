@@ -12,12 +12,12 @@ import React, { useContext } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { listActionsStoreFiles, listImageStoreFiles, listRootStoreFiles } from "@/hooks/DataManager";
 import { Directory } from "expo-file-system";
-import { getWebDavDevices } from "@/hooks/SyncWebDav";
+import { getDeviceList } from "@/hooks/syncByState";
 import { Logger } from "@/hooks/ToolsBox";
 
 export default function DrawerLayout() {
   const { currentTheme, colorsTheme } = useContext(ThemeContext);
-  const { t, viewOuting, viewFriends, webDavClient, deviceID } = useContext(AppContext)!;
+  const { t, viewOuting, viewFriends, webDavClient, deviceID, webDavSyncEnabled, webDavSyncStatus, webDavSync } = useContext(AppContext)!;
 
   const styles = StyleSheet.create({
     drawerHeaderStyle: {
@@ -64,15 +64,45 @@ export default function DrawerLayout() {
       justifyContent: "flex-end",
       alignItems: "center",
     },
+    syncButton: {
+      padding: 8,
+      marginRight: 8,
+    },
   })
+
+  // Get sync icon color based on status
+  const getSyncIconColor = () => {
+    if (!webDavSyncEnabled) return colorsTheme.inactiveText;
+    switch (webDavSyncStatus) {
+      case 'syncing': return colorsTheme.primary;
+      case 'synced': return '#4CAF50'; // Green
+      case 'error': return '#F44336'; // Red
+      case 'wait': return colorsTheme.inactiveText;
+      default: return colorsTheme.inactiveText;
+    }
+  };
+
+  // Get sync icon name based on status
+  const getSyncIconName = () => {
+    if (webDavSyncStatus === 'syncing') return 'loop';
+    return 'cloud';
+  };
+
+  // Handle sync button press
+  const handleSyncPress = () => {
+    if (webDavSyncEnabled && webDavSyncStatus !== 'syncing') {
+      Logger.info("Manual sync triggered from drawer header");
+      webDavSync(true); // Force sync
+    }
+  };
 
   async function listlocalStoreFilesDebug() {
     if (webDavClient) {
       try {
-        const devices = await getWebDavDevices(webDavClient);
+        const devices = await getDeviceList(webDavClient);
         Logger.debug("############  list webdav devices ############", deviceID);
         for (const device of devices) {
-          Logger.debug(` - ${device.id} @ ${device.lastModified.toISOString()}${device.id === deviceID ? " (this device)" : ""}`);
+          Logger.debug(` - ${device.id} @ ${new Date(device.lastModified).toISOString()}${device.id === deviceID ? " (this device)" : ""}`);
         }
         Logger.debug(" ##############################################");
       } catch (error) {
@@ -305,6 +335,25 @@ export default function DrawerLayout() {
         headerStatusBarHeight: 0,
         headerLeft: () => {
           return (<OpenMenu />)
+        },
+        headerRight: () => {
+          return (
+            <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
+            </View>
+          )
         }
       }
       }
@@ -315,6 +364,19 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <AppIcon name={"skis"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
@@ -324,6 +386,19 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <AppIcon name={"ski-boot"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
@@ -333,6 +408,19 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <AppIcon name={"users"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
@@ -342,6 +430,19 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <AppIcon name={"hors-piste"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
@@ -351,6 +452,19 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <AppIcon name={"accessibility"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
@@ -360,6 +474,19 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <Pressable onLongPress={listlocalStoreFilesDebug}>
                 <AppIcon name={"database"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
               </Pressable>
@@ -371,6 +498,19 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <AppIcon name={"slope"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
@@ -380,6 +520,19 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <AppIcon name={"quill"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
@@ -389,7 +542,42 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <AppIcon name={"trademark"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
+            </View>
+          )
+        }
+      }} />
+      <Drawer.Screen name="seasons-management" options={{
+        headerRight: () => {
+          return (
+            <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
+              <AppIcon name={"calendar"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
         }
@@ -398,6 +586,19 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <AppIcon name={"stats"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )
@@ -407,6 +608,19 @@ export default function DrawerLayout() {
         headerRight: () => {
           return (
             <View style={styles.drawerRow}>
+              {webDavSyncEnabled && (
+                <Pressable 
+                  style={styles.syncButton}
+                  onPress={handleSyncPress}
+                  disabled={webDavSyncStatus === 'syncing'}
+                >
+                  <AppIcon 
+                    name={getSyncIconName()} 
+                    color={getSyncIconColor()} 
+                    styles={{ fontSize: 24 }} 
+                  />
+                </Pressable>
+              )}
               <AppIcon name={"settings"} color={colorsTheme.text} styles={styles.drawerHeaderIcoTitleLight} />
             </View>
           )

@@ -2,36 +2,63 @@ import * as Device from 'expo-device';
 
 let logID = Device.deviceName;
 
-// Function to convert various date formats to a timestamp
-export function smDate(value?: any): number {
-  const now = new Date(Date.now());
-  let date = now.getTime();
-  if (value) {
-    if (value instanceof Date) {
-      date = value.getTime();
-    }
-    if (typeof value === "string") {
-      const re = RegExp(/^(19[0-9]{2}|20[0-9]{2}|2100)(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$/);
-      if (re.test(value)) {
-        const yyyy = Number(value.slice(0, 4))
-        const mm = Number(value.slice(4, 6))
-        const dd = Number(value.slice(6, 8))
-        date = new Date(yyyy, mm, dd).getTime() + (now.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime());
-      }
-      try {
-        date = new Date(value).getTime();
-      } catch { }
-    }
-    if (typeof value === "number") {
-      if (value.toString().length === 8) {
-        const yyyy: number = Math.floor(value / 10000);
-        const mm: number = Math.floor((value - yyyy * 10000) / 100);
-        const dd: number = (value - yyyy * 10000 - mm * 100);
-        date = new Date(yyyy, mm, dd).getTime() + (now.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime());
-      }
-    }
+type DateInput = Date | string | number | undefined;
+
+/**
+ * Convert various date formats to a timestamp (milliseconds)
+ * Supported formats:
+ * - Date object
+ * - String YYYYMMDD (e.g., "20241225")
+ * - ISO date string (e.g., "2024-12-25")
+ * - Number YYYYMMDD (e.g., 20241225)
+ * - Timestamp in milliseconds
+ * - undefined → returns Date.now()
+ */
+export function smDate(value?: DateInput): number {
+  // No value provided → return current timestamp
+  if (value === undefined || value === null) {
+    return Date.now();
   }
-  return date;
+  
+  // Date object → convert to timestamp
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+  
+  // String format YYYYMMDD (e.g., "20241225")
+  if (typeof value === 'string' && /^\d{8}$/.test(value)) {
+    const year = parseInt(value.slice(0, 4), 10);
+    const month = parseInt(value.slice(4, 6), 10) - 1; // JS months are 0-indexed
+    const day = parseInt(value.slice(6, 8), 10);
+    return new Date(year, month, day).getTime();
+  }
+  
+  // ISO string or other parseable format
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+    Logger.warn(`Invalid date string: "${value}"`);
+    return Date.now();
+  }
+  
+  // Number format YYYYMMDD (e.g., 20241225)
+  if (typeof value === 'number' && value >= 19000101 && value <= 21001231) {
+    const year = Math.floor(value / 10000);
+    const month = Math.floor((value % 10000) / 100) - 1;
+    const day = value % 100;
+    return new Date(year, month, day).getTime();
+  }
+  
+  // Timestamp in milliseconds (large number)
+  if (typeof value === 'number') {
+    return value;
+  }
+  
+  // Fallback
+  Logger.warn(`Unexpected date value type: ${typeof value}`, value);
+  return Date.now();
 };
 
 // Simple logger that only logs in development mode

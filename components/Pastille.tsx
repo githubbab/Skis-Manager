@@ -9,13 +9,34 @@ type PastilleProps = {
 }
 
 function stringToColor(str: string): string {
+  // Generate hash from string
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return "#" + ((hash >> 24) & 0xFF).toString(16).padStart(2, '0') +
-    ((hash >> 16) & 0xFF).toString(16).padStart(2, '0') +
-    ((hash >> 8) & 0xFF).toString(16).padStart(2, '0');
+  
+  // Convert hash to HSL for better control over color appearance
+  // Hue: 0-360 (full color spectrum)
+  const hue = Math.abs(hash % 360);
+  
+  // Saturation: 55-70% (vibrant but not oversaturated)
+  const saturation = 55 + (Math.abs(hash) % 16);
+  
+  // Lightness: 45-60% (ensures good contrast with white text)
+  const lightness = 45 + (Math.abs(hash >> 8) % 16);
+  
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+}
+
+function getContrastTextColor(backgroundColor: string): string {
+  // Extract HSL values from the background color
+  const hslMatch = backgroundColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+  if (!hslMatch) return 'white'; // Fallback
+  
+  const lightness = parseInt(hslMatch[3]);
+  
+  // Use white text for darker backgrounds (< 55%), black for lighter ones
+  return lightness < 55 ? 'white' : 'black';
 }
 
 function getInitials(name: string): string {
@@ -39,6 +60,10 @@ const Pastille = ({name, size=24, color, textColor, style}: PastilleProps) => {
       stringToColor(initial+initial+initial+initial):
       stringToColor(name)
     );
+  
+  // Auto-calculate text color if not provided
+  const finalTextColor = textColor ?? (color ? 'white' : getContrastTextColor(bgColor));
+  
   const styles = StyleSheet.create ({
     pastille: {
       width: size,
@@ -55,7 +80,7 @@ const Pastille = ({name, size=24, color, textColor, style}: PastilleProps) => {
     text: {
       fontSize: initial.length <= 2 ? size / 2 : size / 2.2,
       fontWeight: 'bold',
-      color: textColor ?? 'white',
+      color: finalTextColor,
       position: 'absolute',
       top: '50%',
       left: '50%',

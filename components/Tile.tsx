@@ -1,9 +1,15 @@
 import { ThemeContext } from "@/context/ThemeContext";
 import { ReactNode, useContext } from "react";
-import { View } from "react-native";
+import { View, ViewStyle } from "react-native";
 
-export default function Tile({children, isRow = false, flex=undefined, style,}:
-                     {children: ReactNode; style?: any; isRow?: boolean, flex?: number }) {
+type TileProps = {
+  children: ReactNode;
+  style?: ViewStyle;
+  isRow?: boolean;
+  flex?: number;
+}
+
+export default function Tile({ children, isRow = false, flex, style }: TileProps) {
   const {colorsTheme} = useContext(ThemeContext);
   return (
     <View
@@ -16,8 +22,7 @@ export default function Tile({children, isRow = false, flex=undefined, style,}:
         marginTop: 4,
         flex: flex,
         backgroundColor: colorsTheme.tileBG,
-        ...style,
-      }]}
+      }, style]}
     >
       {children}
     </View>

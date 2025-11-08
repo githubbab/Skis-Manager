@@ -49,7 +49,6 @@ const TabLayout = () => {
       justifyContent: 'center',
       alignItems: 'center',
     },
-
   })
 
   return (
@@ -86,7 +85,7 @@ const TabLayout = () => {
       <Tabs.Screen
         name="index"
         options={{
-          title: t('home'),
+          title: "home",
           tabBarItemStyle: { flex: 2 },
           tabBarIcon: ({ color }) =>
             <AppIcon name="home" color={color} size={32} />,
@@ -110,7 +109,7 @@ const TabLayout = () => {
         name="offpistes"
         options={{
           href: viewOuting ? undefined : null,
-          title: t('tab_offpistes'),
+          title: "offpistes",
           tabBarItemStyle: { flex: 1 },
           tabBarIcon: ({ color, size }) =>
             <AppIcon name="hors-piste" color={color} size={size} />,

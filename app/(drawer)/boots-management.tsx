@@ -18,7 +18,7 @@ import { getAllUsers, Users } from "@/hooks/dbUsers";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useCallback, useContext, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
 import { showMessage } from "react-native-flash-message";
 import AppContext from "@/context/AppContext";
@@ -55,7 +55,7 @@ export default function BootsManagement() {
   const [boots2Write, setBoots2Write] = useState<Boots>(initBoots());
   const [order_by, setOrderBy] = useState<"order_by_begin" | "order_by_outings">("order_by_begin");
 
-  const { t, localeDate, webDavSync } = useContext(AppContext);
+  const { t, localeDate, webDavSync, lastWebDavSync } = useContext(AppContext);
 
   const listBootsFiltered = boots.filter(b => {
     if (viewArchived === "only" && !b.end) return false;
@@ -86,6 +86,14 @@ export default function BootsManagement() {
       loadData().then(() => lastCheck = getLastDBWrite())
     }, [loadData])
   )
+
+  // Refresh data after sync
+  useEffect(() => {
+    Logger.debug("boots-management - lastWebDavSync changed, reloading data");
+    if (lastWebDavSync > 0) {
+      loadData();
+    }
+  }, [lastWebDavSync]);
 
   //                                 ######                     
   //     #       ####    ##   #####  #     #   ##   #####   ##  

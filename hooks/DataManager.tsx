@@ -19,7 +19,7 @@ export const icoUnknownBrand = imgStorePath + "brand-init-unknown.png";
 export const actionsStoreDir = new Directory(actionsStorePath);
 export const imgStoreDir = new Directory(imgStorePath);
 // Database version
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 // #     #                                                   
 // #     #   ##   #####  #   ##   #####  #      ######  #### 
@@ -139,6 +139,26 @@ export function createId() {
   return newId;
 }
 
+//                         #####                           #                    
+// #  ####  #####   ##   #     # #      ######  ####  #   ##   #####  #      ######
+// # #        #    #  #  #     # #      #      #        #  #   #    # #      #     
+// #  ####    #   #    # ######  #      #####   ####      #    #####  #      ##### 
+// #      #   #   ###### #     # #      #           #     #    #    # #      #     
+// # #    #   #   #    # #     # #      #      #    #     #    #    # #      #     
+// #  ####    #   #    # #     # ###### ######  ####      #    #####  ###### ######
+function isTableSyncable(table: string): boolean {
+  const syncableTables = [
+    // Main tables
+    TABLES.SKIS, TABLES.USERS, TABLES.BOOTS, TABLES.BRANDS,
+    TABLES.FRIENDS, TABLES.OFFPISTES, TABLES.OUTINGS, TABLES.MAINTAINS,
+    TABLES.TYPE_OF_OUTINGS, TABLES.TYPE_OF_SKIS, TABLES.SEASONS,
+    // Join tables
+    TABLES.JOIN_SKIS_USERS, TABLES.JOIN_BOOTS_USERS, TABLES.JOIN_SKIS_BOOTS,
+    TABLES.JOIN_OUTINGS_FRIENDS, TABLES.JOIN_OUTINGS_OFFPISTES
+  ];
+  return syncableTables.includes(table);
+}
+
 //                     ######                                ### ###### 
 //  ####  ###### ##### #     # ###### #    # #  ####  ######  #  #     #
 // #    # #        #   #     # #      #    # # #    # #       #  #     #
@@ -220,7 +240,12 @@ export async function execQuery(db: SQLiteDatabase, query: string, id?: string) 
 // # #  # #      # #      #####    #   #   # # #    # #      #####    #  
 // # #   ## #    # #      #   #    #   #    #  #    # #      #   #    #  
 // # #    #  ####  ###### #    #   #    #### #  ####  ###### #    #   #  
-export function insertQuery(table: string, columns: string[], values: any[]): string {
+export function insertQuery(table: string, columns: string[], values: any[], withSync: boolean = true): string {
+  // Add sync fields if table supports them and withSync is true
+  if (withSync && isTableSyncable(table)) {
+    columns = [...columns, 'lastModified', 'modifiedBy'];
+    values = [...values, Date.now(), deviceID];
+  }
   const placeholders = columns.map(() => "?").join(", ");
   return formatSQL(
     `INSERT INTO ${table} (${columns.join(", ")})
@@ -236,7 +261,12 @@ export function insertQuery(table: string, columns: string[], values: any[]): st
 // #    # #####  #    # ######   #   #      #   # # #    # #      #####    #  
 // #    # #      #    # #    #   #   #      #    #  #    # #      #   #    #  
 //  ####  #      #####  #    #   #   ######  #### #  ####  ###### #    #   #  
-export function updateQuery(table: string, columns: string[], values: any[], where: string, whereValues: any[]): string {
+export function updateQuery(table: string, columns: string[], values: any[], where: string, whereValues: any[], withSync: boolean = true): string {
+  // Add sync fields if table supports them and withSync is true
+  if (withSync && isTableSyncable(table)) {
+    columns = [...columns, 'lastModified', 'modifiedBy'];
+    values = [...values, Date.now(), deviceID];
+  }
   const setClause = columns.map(col => `${col} = ?`).join(", ");
   const allValues = [...values, ...whereValues];
   return formatSQL(
@@ -385,6 +415,86 @@ export async function initDataManager(db: SQLiteDatabase): Promise<void> {
       `);
     currentDbVersion = 2;
   }
+
+  if (currentDbVersion === 2) {
+    Logger.debug("initDB: Upgrading to version 3 - Adding sync metadata fields");
+    const now = Date.now();
+    await db.execAsync(`
+        -- Add sync fields to all main tables
+        ALTER TABLE ${TABLES.SKIS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.SKIS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.USERS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.USERS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.BOOTS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.BOOTS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.BRANDS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.BRANDS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.FRIENDS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.FRIENDS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.OFFPISTES} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.OFFPISTES} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.OUTINGS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.OUTINGS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.MAINTAINS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.MAINTAINS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.TYPE_OF_OUTINGS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.TYPE_OF_OUTINGS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.TYPE_OF_SKIS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.TYPE_OF_SKIS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.SEASONS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.SEASONS} ADD COLUMN modifiedBy TEXT;
+
+        -- Add sync fields to join tables
+        ALTER TABLE ${TABLES.JOIN_SKIS_USERS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.JOIN_SKIS_USERS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.JOIN_BOOTS_USERS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.JOIN_BOOTS_USERS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.JOIN_SKIS_BOOTS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.JOIN_SKIS_BOOTS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.JOIN_OUTINGS_FRIENDS} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.JOIN_OUTINGS_FRIENDS} ADD COLUMN modifiedBy TEXT;
+        ALTER TABLE ${TABLES.JOIN_OUTINGS_OFFPISTES} ADD COLUMN lastModified INTEGER;
+        ALTER TABLE ${TABLES.JOIN_OUTINGS_OFFPISTES} ADD COLUMN modifiedBy TEXT;
+
+        -- Create sync metadata table
+        CREATE TABLE IF NOT EXISTS syncMetadata (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        );
+
+        -- Create table for file sync metadata
+        CREATE TABLE IF NOT EXISTS syncFiles (
+          filename TEXT PRIMARY KEY,
+          lastModified INTEGER,
+          modifiedBy TEXT,
+          deleted INTEGER DEFAULT 0
+        );
+
+        -- Initialize existing data with current timestamp and device ID
+        UPDATE ${TABLES.SKIS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.USERS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.BOOTS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.BRANDS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.FRIENDS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.OFFPISTES} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.OUTINGS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.MAINTAINS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.TYPE_OF_OUTINGS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.TYPE_OF_SKIS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.SEASONS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.JOIN_SKIS_USERS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.JOIN_BOOTS_USERS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.JOIN_SKIS_BOOTS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.JOIN_OUTINGS_FRIENDS} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+        UPDATE ${TABLES.JOIN_OUTINGS_OFFPISTES} SET lastModified = ${now}, modifiedBy = '${deviceID}' WHERE lastModified IS NULL;
+
+        -- Initialize sync metadata
+        INSERT OR REPLACE INTO syncMetadata (key, value) VALUES ('lastSyncTimestamp', '0');
+        INSERT OR REPLACE INTO syncMetadata (key, value) VALUES ('syncVersion', '1');
+      `);
+    currentDbVersion = 3;
+  }
+
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 }
 

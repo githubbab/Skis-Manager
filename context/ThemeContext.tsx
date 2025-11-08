@@ -24,17 +24,19 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const colorScheme = useColorScheme() ?? 'light';
   const [theme, setTheme] = useState<"light" | "dark">(colorScheme);
   const [systemTheme, setSystemTheme] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Initial load from AsyncStorage
   useEffect(() => {
     const getTheme = async () => {
       try {
         const savedThemeObject = await AsyncStorage.getItem("theme");
-        const savedThemeObjectData = JSON.parse(savedThemeObject!);
+        const savedThemeObjectData = savedThemeObject ? JSON.parse(savedThemeObject) : null;
+        
         if (savedThemeObjectData) {
           setTheme(savedThemeObjectData.mode);
           setSystemTheme(savedThemeObjectData.system);
-        }
-        else {
+        } else {
           const themeObject = {
             mode: colorScheme,
             system: true
@@ -47,33 +49,44 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
       } catch (e) {
         Logger.error("Error getting theme from AsyncStorage", e);
+      } finally {
+        setIsLoading(false);
       }
     }
     getTheme();
   }, []);
 
-  const toggleTheme = (newTheme: "light" | "dark") => {
-    const themeObject = {
-      mode: newTheme,
-      system: false
+  // Listen to system theme changes when in system mode
+  useEffect(() => {
+    if (systemTheme) {
+      Logger.debug("System theme changed to:", colorScheme);
+      setTheme(colorScheme);
     }
-    AsyncStorage.setItem("theme", JSON.stringify(themeObject));
-    setTheme(newTheme);
-    setSystemTheme(false)
+  }, [colorScheme, systemTheme]);
+
+  // Helper function to save theme
+  const saveTheme = async (mode: "light" | "dark", system: boolean) => {
+    const themeObject = { mode, system };
+    await AsyncStorage.setItem("theme", JSON.stringify(themeObject));
+    setTheme(mode);
+    setSystemTheme(system);
+    Logger.debug("Theme saved:", themeObject);
+  };
+
+  const toggleTheme = (newTheme: "light" | "dark") => {
+    saveTheme(newTheme, false);
   }
 
   const useSystemTheme = () => {
     if (colorScheme) {
-      const themeObject = {
-        mode: colorScheme,
-        system: true
-      }
-      AsyncStorage.setItem("theme", JSON.stringify(themeObject));
-      setTheme(colorScheme);
-      setSystemTheme(true);
+      saveTheme(colorScheme, true);
     }
   }
 
+  // Don't render children until theme is loaded to avoid flash
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <ThemeContext.Provider value={{

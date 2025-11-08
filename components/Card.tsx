@@ -2,7 +2,13 @@ import Row from "@/components/Row";
 import { ThemeContext } from "@/context/ThemeContext";
 import { ReactNode, useContext } from "react";
 
-export default function Card({borderColor, isFlex, children}: { borderColor?: string; isFlex?: number; children: ReactNode }) {
+type CardProps = {
+  borderColor?: string;
+  flex?: number;
+  children: ReactNode;
+}
+
+export default function Card({ borderColor, flex, children }: CardProps) {
   const { colorsTheme } = useContext(ThemeContext);
 
   return (
@@ -14,7 +20,7 @@ export default function Card({borderColor, isFlex, children}: { borderColor?: st
         paddingHorizontal: 7,
         borderWidth: 1,
         borderColor: borderColor || colorsTheme.border,
-        flex: isFlex,
+        flex: flex,
       }
     }>
       {children}

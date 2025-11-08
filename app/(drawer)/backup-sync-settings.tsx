@@ -16,7 +16,8 @@ import { insertSeason } from "@/hooks/dbSeasons";
 import { insertSki, Skis } from "@/hooks/dbSkis";
 import { initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
 import { insertUser, Users } from "@/hooks/dbUsers";
-import { delRemoteDevice, importRemoteFile, getWebDavDevices, WebDavDevice, createWebDavClient, putWebDavDeviceLastSync, importAllRemoteImages } from "@/hooks/SyncWebDav";
+import { createWebDavClient, importAllRemoteImages } from "@/hooks/SyncWebDav";
+import { getDeviceList, deleteDeviceFiles, DeviceInfo } from "@/hooks/syncByState";
 import { Logger, smDate } from "@/hooks/ToolsBox";
 import { reloadAppAsync } from "expo";
 import * as DocumentPicker from 'expo-document-picker';
@@ -300,7 +301,7 @@ export default function BackupSyncSettings() {
   const [webDavUserState, setWebDavUser] = useState(webDavSyncParams.user);
   const [webDavPasswordState, setWebDavPassword] = useState(webDavSyncParams.password);
   const [inactivated, setInactivated] = useState(false);
-  const [syncDevices, setSyncDevices] = useState<WebDavDevice[]>([]);
+  const [syncDevices, setSyncDevices] = useState<DeviceInfo[]>([]);
   const myID = getDeviceID();
 
   //                                            #####                      ###                     
@@ -312,7 +313,7 @@ export default function BackupSyncSettings() {
   //         #      ######   #    ####  #    #  #####    #   #    #  ####  ### #    # #       #### 
   const fetchSyncInfo = async () => {
     if (!webDavClient) return;
-    const devices = await getWebDavDevices(webDavClient);
+    const devices = await getDeviceList(webDavClient);
     setSyncDevices(devices);
   }
 
@@ -532,68 +533,6 @@ export default function BackupSyncSettings() {
     await Sharing.shareAsync("file://" + db.databasePath)
   }
 
-  //                                ######                                    #     #               ######               
-  //      ####  #   # #    #  ####  #     # ###### #    #  ####  ##### ###### #  #  # ###### #####  #     #   ##   #    #
-  //     #       # #  ##   # #    # #     # #      ##  ## #    #   #   #      #  #  # #      #    # #     #  #  #  #    #
-  //      ####    #   # #  # #      ######  #####  # ## # #    #   #   #####  #  #  # #####  #####  #     # #    # #    #
-  //          #   #   #  # # #      #   #   #      #    # #    #   #   #      #  #  # #      #    # #     # ###### #    #
-  //     #    #   #   #   ## #    # #    #  #      #    # #    #   #   #      #  #  # #      #    # #     # #    #  #  # 
-  //      ####    #   #    #  ####  #     # ###### #    #  ####    #   ######  ## ##  ###### #####  ######  #    #   ##  
-  async function syncRemoteWebDav(devices: WebDavDevice[], client: WebDAVClient) {
-    showMessage({
-      message: t('sync_webdav_init_db_in_progress'),
-      type: "default",
-      autoHide: false,
-    })
-    if (!client) {
-      showMessage({
-        message: t('sync_webdav_error'),
-        type: "danger",
-        autoHide: true,
-        duration: 5000
-      })
-      Logger.error("syncRemoteWebDav: No WebDAV client");
-      return;
-    }
-    // Get newest remote database and replace local database
-    const newestDevice = devices.reduce((prev, current) => (prev.lastModified > current.lastModified) ? prev : current);
-    Logger.debug("syncRemoteWebDav: Newest device:", newestDevice);
-    // Download remote database
-    const tempDBFile = new File(Paths.cache.uri + "webdav_temp.db");
-    if (tempDBFile.exists) {
-      tempDBFile.delete();
-    }
-    await importRemoteFile(client, `/databases/skis-manager-${newestDevice.id}.db`, tempDBFile.uri);
-    if (!tempDBFile.exists) {
-      showMessage({
-        message: t('sync_webdav_error'),
-        type: "danger",
-        autoHide: true,
-        duration: 5000
-      })
-      Logger.error("syncRemoteWebDav: Error downloading remote database");
-      return;
-    }
-    // Replace local database
-    copyDBFile(tempDBFile.uri, "file://" + db.databasePath);
-    await importAllRemoteImages(client);
-    await putWebDavDeviceLastSync({ webDavClient: client, deviceId: myID });
-    changeWebDavSync(true, { url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
-    Alert.alert(
-      t('sync_webdav'),
-      t('webdav_init_db_completed_restart'),
-      [
-        {
-          text: t('ok'),
-          onPress: async () => {
-            await reloadAppAsync();
-          }
-        }
-      ],
-      { cancelable: false }
-    );
-  }
-
   //                                                    #####                      #     #               ######               
   //         #    #   ##   #    # #####  #      ###### #     # #   # #    #  ####  #  #  # ###### #####  #     #   ##   #    #
   //         #    #  #  #  ##   # #    # #      #      #        # #  ##   # #    # #  #  # #      #    # #     #  #  #  #    #
@@ -611,11 +550,15 @@ export default function BackupSyncSettings() {
           setInactivated(false);
           return;
         }
-        const devices = await getWebDavDevices(res);
+        
+        // Check if other devices exist
+        const devices = await getDeviceList(res);
+          
         if (devices.length > 0) {
+          // Other devices exist - ask user if they want to import their data
           Alert.alert(
             t('sync_webdav'),
-            t('webdav_init_db'),
+            `${devices.length} appareil(s) trouvé(s). Voulez-vous importer leurs données ?`,
             [
               {
                 text: t('cancel'),
@@ -627,15 +570,46 @@ export default function BackupSyncSettings() {
               },
               {
                 text: t('ok'),
-                onPress: () => {
-                  syncRemoteWebDav(devices, res)
+                onPress: async () => {
+                  changeWebDavSync(true, { url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
+                  
+                  showMessage({
+                    message: 'Synchronisation en cours...',
+                    type: "default",
+                    autoHide: false,
+                  });
+                  
+                  await webDavSync(true); // Force initial sync - wait for completion
+                  
+                  showMessage({
+                    message: 'Téléchargement des images...',
+                    type: "default",
+                    autoHide: false,
+                  });
+                  
+                  await importAllRemoteImages(res);
+                  await fetchSyncInfo();
+                  
+                  Alert.alert(
+                    t('sync_webdav'),
+                    'Synchronisation initiale terminée. Les données et images ont été fusionnées.',
+                    [
+                      {
+                        text: t('ok'),
+                        onPress: async () => {
+                          await reloadAppAsync();
+                        }
+                      }
+                    ],
+                    { cancelable: false }
+                  );
                 }
               }
             ],
             { cancelable: false }
           );
-        }
-        else {
+        } else {
+          // No other devices - just enable sync
           changeWebDavSync(true, { url: webDavUrlState, user: webDavUserState, password: webDavPasswordState });
           await webDavSync();
           await fetchSyncInfo();
@@ -778,18 +752,25 @@ export default function BackupSyncSettings() {
                           [
                             { text: t('cancel'), style: 'cancel' },
                             {
-                              text: t('delete'), style: 'destructive', onPress: () => {
-                                delRemoteDevice(item.id, webDavClient!).then(() => {
-                                  fetchSyncInfo();
-                                }).catch((error) => {
+                              text: t('delete'), style: 'destructive', onPress: async () => {
+                                try {
+                                  await deleteDeviceFiles(webDavClient!, item.id);
+                                  await fetchSyncInfo();
+                                  
+                                  showMessage({
+                                    message: "Device deleted successfully",
+                                    type: "success",
+                                    duration: 3000,
+                                  });
+                                } catch (error) {
                                   Logger.error("Error deleting remote device:", error);
                                   showMessage({
                                     message: `Error deleting remote device: ${error}`,
                                     type: "danger",
                                     autoHide: true,
                                     duration: 5000
-                                  })
-                                });
+                                  });
+                                }
                               }
                             }
                           ]

@@ -4,19 +4,26 @@ import { ReactNode, useContext } from "react";
 import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from "react-native";
 import AppIcon, { AppIconName } from "./AppIcon";
 
-export default function AppButton({ onPress, color, textColor, style, caption, icon, disabled, flex=false, children }: {
-  onPress: () => void,
-  color?: string,
-  textColor?: string,
-  style?: ViewStyle,
-  disabled?: boolean,
-  children?: ReactNode,
-  caption?: string,
-  icon?: AppIconName,
-  flex?: number | boolean,
-}) {
-  const { colorsTheme } = useContext(ThemeContext);
+type AppButtonProps = {
+  onPress: () => void;
+  color?: string;
+  textColor?: string;
+  style?: ViewStyle;
+  disabled?: boolean;
+  children?: ReactNode;
+  caption?: string;
+  icon?: AppIconName;
+  flex?: number | boolean;
+}
 
+const getFlexValue = (flex?: number | boolean): number => {
+  if (typeof flex === 'number') return flex;
+  if (flex === true) return 1;
+  return 0;
+};
+
+export default function AppButton({ onPress, color, textColor, style, caption, icon, disabled, flex = false, children }: AppButtonProps) {
+  const { colorsTheme } = useContext(ThemeContext);
 
   const styles = StyleSheet.create({
     button: {
@@ -27,7 +34,7 @@ export default function AppButton({ onPress, color, textColor, style, caption, i
       padding: 8,
       borderRadius: 10,
       marginVertical: 4,
-      flex: flex ? (typeof flex === "number" ? flex : 1) : 0,
+      flex: getFlexValue(flex),
     },
     buttonBody: {
       flexDirection: "row",

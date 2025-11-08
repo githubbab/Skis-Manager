@@ -2,7 +2,14 @@ import {StyleSheet, TouchableOpacity, Image, ViewStyle} from "react-native";
 import {useContext} from "react";
 import {ThemeContext} from "@/context/ThemeContext";
 
-export default function AddButton({ onPress, disabled, size=72, style}: { onPress?: () => void, disabled?: boolean, size?: number, style?: ViewStyle }) {
+type AddButtonProps = {
+  onPress?: () => void;
+  disabled?: boolean;
+  size?: number;
+  style?: ViewStyle;
+}
+
+export default function AddButton({ onPress, disabled, size=72, style }: AddButtonProps) {
   const {colorsTheme} = useContext(ThemeContext);
 
   const styles = StyleSheet.create({

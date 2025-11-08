@@ -2,7 +2,8 @@ import translations, { Lang, TranslationKey } from "@/constants/Translations";
 import {  execQuery, getDeviceID } from "@/hooks/DataManager";
 import { getCurrentSeason } from "@/hooks/dbSeasons";
 import { getAllSettings, insertSettings, Settings } from "@/hooks/dbSettings";
-import { createWebDavClient, syncData } from "@/hooks/SyncWebDav";
+import { createWebDavClient } from "@/hooks/SyncWebDav";
+import { syncByState, SyncStatus } from "@/hooks/syncByState";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSQLiteContext } from "expo-sqlite";
 import { createContext, ReactNode, useEffect, useState } from "react";
@@ -47,7 +48,6 @@ interface AppContextType {
   webDavClient: WebDAVClient | null;
   changeWebDavSync: (sync: boolean, params?: WebDavParams) => Promise<void>;
   webDavSyncStatus: WebDavSyncStatus;
-  webDavSyncMulti: boolean;
   webDavSyncError: string;
   changeWebDavSyncStatus: (status: WebDavSyncStatus, error?: string) => void;
   lastWebDavSync: number;
@@ -67,29 +67,50 @@ interface AppContextType {
 
 async function changeDBLanguage(db: any, lang: Lang) {
   await insertSettings(db, "language", lang);
-  await execQuery(db, `
-    UPDATE settings SET value='${translations[lang]['define_season']}' WHERE name='seasonName';
-    UPDATE typeOfOutings SET name = '${translations[lang]['slope']}' WHERE id='init-slope';
-    UPDATE typeOfOutings SET name = '${translations[lang]['offpiste']}' WHERE id='init-offpiste';
-    UPDATE typeOfOutings SET name = '${translations[lang]['touring']}' WHERE id='init-touring';
-    UPDATE typeOfOutings SET name = '${translations[lang]['race']}' WHERE id='init-race';
-    UPDATE typeOfOutings SET name = '${translations[lang]['training']}' WHERE id='init-training';
-    UPDATE typeOfOutings SET name = '${translations[lang]['gs_training']}' WHERE id='init-training-gs';
-    UPDATE typeOfOutings SET name = '${translations[lang]['sl_training']}' WHERE id='init-training-sl';
-    UPDATE typeOfOutings SET name = '${translations[lang]['sg_training']}' WHERE id='init-training-sg';
-    UPDATE typeOfOutings SET name = '${translations[lang]['gs_race']}' WHERE id='init-race-gs';
-    UPDATE typeOfOutings SET name = '${translations[lang]['sl_race']}' WHERE id='init-race-sl';
-    UPDATE typeOfOutings SET name = '${translations[lang]['sg_race']}' WHERE id='init-race-sg';
-    UPDATE typeOfSkis SET name = '${translations[lang]['slope']}' WHERE id='init-slope';
-    UPDATE typeOfSkis SET name = '${translations[lang]['powder']}' WHERE id='init-powder';
-    UPDATE typeOfSkis SET name = '${translations[lang]['touring']}' WHERE id='init-touring';
-    UPDATE typeOfSkis SET name = '${translations[lang]['sl']}' WHERE id='init-sl';
-    UPDATE typeOfSkis SET name = '${translations[lang]['gs']}' WHERE id='init-gs';
-    UPDATE typeOfSkis SET name = '${translations[lang]['sg']}' WHERE id='init-sg';
-    UPDATE typeOfSkis SET name = '${translations[lang]['surf']}' WHERE id='init-surf';
-    UPDATE typeOfSkis SET name = '${translations[lang]['skating']}' WHERE id='init-skating';
-    UPDATE typeOfSkis SET name = '${translations[lang]['rock']}' WHERE id='init-rock';`,
-    "changeDBLanguage");
+  
+  // Update settings with prepared statement
+  await db.runAsync(
+    'UPDATE settings SET value = ? WHERE name = ?',
+    [translations[lang]['define_season'], 'seasonName']
+  );
+  
+  // Update typeOfOutings with prepared statements
+  const tooUpdates = [
+    [translations[lang]['slope'], 'init-slope'],
+    [translations[lang]['offpiste'], 'init-offpiste'],
+    [translations[lang]['touring'], 'init-touring'],
+    [translations[lang]['race'], 'init-race'],
+    [translations[lang]['training'], 'init-training'],
+    [translations[lang]['gs_training'], 'init-training-gs'],
+    [translations[lang]['sl_training'], 'init-training-sl'],
+    [translations[lang]['sg_training'], 'init-training-sg'],
+    [translations[lang]['gs_race'], 'init-race-gs'],
+    [translations[lang]['sl_race'], 'init-race-sl'],
+    [translations[lang]['sg_race'], 'init-race-sg'],
+  ];
+  
+  for (const [name, id] of tooUpdates) {
+    await db.runAsync('UPDATE typeOfOutings SET name = ? WHERE id = ?', [name, id]);
+  }
+  
+  // Update typeOfSkis with prepared statements
+  const tosUpdates = [
+    [translations[lang]['slope'], 'init-slope'],
+    [translations[lang]['powder'], 'init-powder'],
+    [translations[lang]['touring'], 'init-touring'],
+    [translations[lang]['sl'], 'init-sl'],
+    [translations[lang]['gs'], 'init-gs'],
+    [translations[lang]['sg'], 'init-sg'],
+    [translations[lang]['surf'], 'init-surf'],
+    [translations[lang]['skating'], 'init-skating'],
+    [translations[lang]['rock'], 'init-rock'],
+  ];
+  
+  for (const [name, id] of tosUpdates) {
+    await db.runAsync('UPDATE typeOfSkis SET name = ? WHERE id = ?', [name, id]);
+  }
+  
+  Logger.debug("Database language changed to:", lang);
 }
 
 //    #                   #####                                         
@@ -120,7 +141,6 @@ const AppContext = createContext<AppContextType>({
   webDavClient: null,
   changeWebDavSync: async () => {},
   webDavSyncStatus: "disabled",
-  webDavSyncMulti: false,
   webDavSyncError: "",
   changeWebDavSyncStatus: () => { },
   lastWebDavSync: 0,
@@ -164,7 +184,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [webDavSyncError, setWebDavSyncError] = useState<string>("");
   const [lastWebDavSync, setLastWebDavSync] = useState<number>(0);
   const [webDavClient, setWebDavClient] = useState<WebDAVClient | null>(null);
-  const [webDavSyncMulti, setWebDavSyncMulti] = useState<boolean>(false);
 
 
   //     #     #               #######                                         
@@ -274,26 +293,66 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   //      ####  #    # #    # #    #  ####  ######  ## ##  ###### #####  ######  #    #   ##    #####    #   #    #  #### 
   const changeWebDavSync = async (sync: boolean, params?: WebDavParams): Promise<void> => {
     Logger.debug("Changing WebDav sync settings:", sync, params);
-    if (params) {
+    
+    try {
+      // Désactivation de la sync
+      if (!sync) {
+        changeWebDavSyncStatus("disabled");
+        setWebDavSyncEnabled(false);
+        await AsyncStorage.setItem("webDavSyncEnabled", "false");
+        Logger.info("WebDav sync disabled");
+        return;
+      }
+      
+      // Activation de la sync - validation des paramètres
+      if (!params || !params.url || !params.user || !params.password) {
+        const missingFields = [];
+        if (!params?.url) missingFields.push("URL");
+        if (!params?.user) missingFields.push(t("sync_webdav_user"));
+        if (!params?.password) missingFields.push(t("sync_webdav_password"));
+        
+        const errorMsg = `${t("sync_webdav_error")}: ${missingFields.join(", ")}`;
+        changeWebDavSyncStatus("error", errorMsg);
+        setWebDavSyncEnabled(false);
+        await AsyncStorage.setItem("webDavSyncEnabled", "false");
+        Logger.error("WebDav sync activation failed - missing parameters:", missingFields);
+        return;
+      }
+      
+      // Validation du format de l'URL
+      if (!params.url.startsWith("http://") && !params.url.startsWith("https://")) {
+        const errorMsg = t("url_error");
+        changeWebDavSyncStatus("error", errorMsg);
+        setWebDavSyncEnabled(false);
+        await AsyncStorage.setItem("webDavSyncEnabled", "false");
+        Logger.error("WebDav sync activation failed - invalid URL format:", params.url);
+        return;
+      }
+      
+      // Sauvegarde des paramètres
       setWebDavSyncParams(params);
       await AsyncStorage.setItem("webDavUrl", params.url);
       await AsyncStorage.setItem("webDavUser", params.user);
       await AsyncStorage.setItem("webDavPassword", params.password);
-    }
-    if (!sync) {
-      changeWebDavSyncStatus("disabled");
-      setWebDavSyncEnabled(false);
-      await AsyncStorage.setItem("webDavSyncEnabled", "false");
-    } else if (params) {
+      
+      // Activation de la sync
       changeWebDavSyncStatus("wait");
       setWebDavSyncEnabled(true);
       await AsyncStorage.setItem("webDavSyncEnabled", "true");
+      
+      Logger.info("WebDav sync enabled, initializing client...");
       await initWebDavClientAndSync(params.url, params.user, params.password);
-    }
-    else {
-      changeWebDavSyncStatus("error", "Missing WebDav parameters");
+      
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      Logger.error("Error in changeWebDavSync:", errorMsg);
+      changeWebDavSyncStatus("error", errorMsg);
       setWebDavSyncEnabled(false);
-      await AsyncStorage.setItem("webDavSyncEnabled", "false");
+      try {
+        await AsyncStorage.setItem("webDavSyncEnabled", "false");
+      } catch (storageError) {
+        Logger.error("Failed to update AsyncStorage after error:", storageError);
+      }
     }
   }
 
@@ -305,28 +364,44 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   //     ##  ## #      #    # #     # #    #  #  #  #     #   #   #   ## #    #
   //     #    # ###### #####  ######  #    #   ##    #####    #   #    #  #### 
   const webDavSync = async (force: boolean = false) => {
-    if (webDavSyncEnabled && webDavClient) {
-      if (webDavSyncStatus === "syncing") {
-        Logger.debug("WebDav sync already in progress, skipping full sync");
-        return;
-      }
-      const delta = new Date().getTime() - lastWebDavSync;
-      if (!force && delta < 10 * 1000) {
-        Logger.debug("WebDav sync done less than 10 seconds ago, skipping full sync:", delta);
-        return;
-      }
-      changeWebDavSyncStatus("syncing");
-      const { synced, multi, error } = await syncData({ db: db, myID: myId, webDavClient: webDavClient, background: true });
-      setWebDavSyncMulti(multi);
-      Logger.debug(": Full WebDav sync completed:", synced, error);
-      if (synced === "error") {
-        Logger.error(": Full WebDav sync error:", error);
-        changeWebDavSyncStatus("error", error || "Unknown error");
-      }
-      else {
-        changeWebDavSyncStatus("synced");
-      }
+    if (!webDavSyncEnabled || !webDavClient) {
+      Logger.debug("WebDav sync disabled or client not available");
+      return;
     }
+    
+    if (webDavSyncStatus === "syncing") {
+      Logger.debug("WebDav sync already in progress, skipping");
+      return;
+    }
+    
+    const delta = new Date().getTime() - lastWebDavSync;
+    if (!force && delta < 10 * 1000) {
+      Logger.debug("WebDav sync done less than 10 seconds ago, skipping:", delta);
+      return;
+    }
+    
+    // Start sync in background - don't await
+    Logger.info("Starting background sync");
+    changeWebDavSyncStatus("syncing");
+    
+    // Execute sync asynchronously without blocking
+    syncByState(
+      db,
+      webDavClient,
+      myId,
+      (status: SyncStatus, message?: string) => {
+        changeWebDavSyncStatus(status as WebDavSyncStatus, message);
+      }
+    ).then((success) => {
+      if (!success) {
+        Logger.error("Background sync failed");
+      } else {
+        Logger.info("Background sync completed successfully");
+      }
+    }).catch((error) => {
+      Logger.error("Background sync error:", error);
+      changeWebDavSyncStatus("error", error instanceof Error ? error.message : String(error));
+    });
   }
 
   //                      #     #               ######                 #####                                  #                   #####                     
@@ -337,26 +412,30 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   //     # #   ## #   #   #  #  # #      #    # #     # #    #  #  #  #     # #      # #      #   ##   #   #     # #   ## #    # #     #   #   #   ## #    #
   //     # #    # #   #    ## ##  ###### #####  ######  #    #   ##    #####  ###### # ###### #    #   #   #     # #    # #####   #####    #   #    #  #### 
   const initWebDavClientAndSync = async (webDavUrl: string, webDavUser: string, webDavPassword: string) => {
-    Logger.debug("initWebDavClientAndSync: WebDav sync is enabled, activate writeAction and creating client...");
+    Logger.debug("initWebDavClientAndSync: WebDav sync is enabled, creating client...");
     const res = await createWebDavClient({ url: webDavUrl, user: webDavUser, password: webDavPassword });
     if (typeof res === "string") {
       Logger.debug("initWebDavClientAndSync: Error creating WebDav client: ", res);
       changeWebDavSyncStatus("error", res);
       return;
-    }
-    else {
+    } else {
       Logger.debug("initWebDavClientAndSync: WebDav client created successfully");
       setWebDavClient(res);
       changeWebDavSyncStatus("syncing");
-      const { synced, multi, error } = await syncData({ db: db, myID: myId, webDavClient: res, background: false });
-      setWebDavSyncMulti(multi);
-      Logger.debug("initWebDavClientAndSync: Initial WebDav sync completed:", synced, error);
-      if (synced === "error") {
-        Logger.error("initWebDavClientAndSync: WebDav sync error:", error);
-        changeWebDavSyncStatus("error", error || "Unknown error");
-      }
-      else {
-        changeWebDavSyncStatus("synced");
+      
+      // Use state-based sync
+      Logger.info("Initial sync using state-based sync");
+      const success = await syncByState(
+        db,
+        res,
+        myId,
+        (status: SyncStatus, message?: string) => {
+          changeWebDavSyncStatus(status as WebDavSyncStatus, message);
+        }
+      );
+      
+      if (!success) {
+        Logger.error("initWebDavClientAndSync: State-based sync failed");
       }
     }
   }
@@ -456,7 +535,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
         webDavClient,
         changeWebDavSync,
         webDavSyncStatus,
-        webDavSyncMulti,
         webDavSyncError,
         changeWebDavSyncStatus,
         lastWebDavSync,
