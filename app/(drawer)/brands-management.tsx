@@ -15,8 +15,9 @@ import { copyBrandIco, delBrandIco, getBrandIcoURI, icoUnknownBrand } from "@/ho
 import { Brands, deleteBrand, getAllBrands, initBrand, insertBrand, updateBrand } from "@/hooks/dbBrands";
 import * as DocumentPicker from 'expo-document-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity } from "react-native";
 
 export default function BrandsManagementScreen() {
@@ -32,12 +33,21 @@ export default function BrandsManagementScreen() {
   const [imageChanged, setImageChanged] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
-  const { t, webDavSync } = useContext(AppContext)!;
+  const { t, webDavSync, lastWebDavSync } = useContext(AppContext)!;
   const iconSize = 48;
 
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  // Refresh data after sync
   useEffect(() => {
-    loadData();
-  }, []);
+    if (lastWebDavSync > 0) {
+      loadData();
+    }
+  }, [lastWebDavSync]);
 
   async function loadData() {
     const res: Brands[] = await getAllBrands(db, "order_by_usage");

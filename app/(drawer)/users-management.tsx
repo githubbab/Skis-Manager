@@ -5,8 +5,9 @@ import AppStyles from "@/constants/AppStyles";
 import { ThemeContext } from "@/context/ThemeContext";
 import { Users, deleteUser, getAllUsers, initUser, insertUser, updateUser } from "@/hooks/dbUsers";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import AddButton from "@/components/AddButton";
@@ -30,7 +31,7 @@ export default function UsersManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { t, webDavSync } = useContext(AppContext);
+  const { t, webDavSync, lastWebDavSync } = useContext(AppContext);
 
   const [users, setUsers] = useState<Users[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -51,9 +52,18 @@ export default function UsersManagementScreen() {
     return 0;
   });
 
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  // Refresh data after sync
   useEffect(() => {
-    loadData();
-  }, []);
+    if (lastWebDavSync > 0) {
+      loadData();
+    }
+  }, [lastWebDavSync]);
 
   async function loadData() {
     const res: Users[] = await getAllUsers(db);

@@ -97,24 +97,23 @@ export default function SkisManagement() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
-  )
+    }, [])
+  );
 
   // Refresh data after sync
   useEffect(() => {
-    Logger.debug("skis-management - lastWebDavSync changed, reloading data");
     if (lastWebDavSync > 0) {
       loadData();
     }
   }, [lastWebDavSync]);
 
   const hideAll = (but?: "users" | "tos" | "brand" | "boots" | "endDate" | "beginDate" | "name" | "size" | "radius") => {
-    (but === "users") ? setUsersVisible(true) : setUsersVisible(false);
-    (but === "tos") ? setTosVisible(true) : setTosVisible(false);
-    (but === "brand") ? setBrandVisible(true) : setBrandVisible(false);
-    (but === "boots") ? setBootsVisible(true) : setBootsVisible(false);
-    (but === "endDate") ? setEndDatePickerVisible(true) : setEndDatePickerVisible(false);
-    (but === "beginDate") ? setBeginDatePickerVisible(true) : setBeginDatePickerVisible(false);
+    setUsersVisible(but === "users");
+    setTosVisible(but === "tos");
+    setBrandVisible(but === "brand");
+    setBootsVisible(but === "boots");
+    setEndDatePickerVisible(but === "endDate");
+    setBeginDatePickerVisible(but === "beginDate");
     if (but !== "name" && inputNameRef.current) inputNameRef.current.blur();
     if (but !== "radius" && inputRadiusRef.current) inputRadiusRef.current.blur();
     if (but !== "size" && inputSizeRef.current) inputSizeRef.current.blur();

@@ -12,8 +12,9 @@ import AppStyles from "@/constants/AppStyles";
 import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { deleteTypeOfSkis, getAllTypeOfSkis, initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
+import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import * as DocumentPicker from 'expo-document-picker';
 import { ImageManipulator } from 'expo-image-manipulator';
@@ -23,7 +24,7 @@ export default function TypeOfSkisManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { t, webDavSync } = useContext(AppContext);
+  const { t, webDavSync, lastWebDavSync } = useContext(AppContext);
 
   const [types, setTypes] = useState<TOS[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -37,9 +38,18 @@ export default function TypeOfSkisManagementScreen() {
 
   const iconSize = 48;
 
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  // Refresh data after sync
   useEffect(() => {
-    loadData();
-  }, []);
+    if (lastWebDavSync > 0) {
+      loadData();
+    }
+  }, [lastWebDavSync]);
 
   async function loadData() {
     const res: TOS[] = await getAllTypeOfSkis(db);

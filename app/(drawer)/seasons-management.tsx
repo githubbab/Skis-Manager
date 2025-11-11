@@ -13,8 +13,9 @@ import { ThemeContext } from "@/context/ThemeContext";
 import type { Seasons } from "@/hooks/dbSeasons";
 import { deleteSeason, getAllSeasons, insertSeason, updateSeason } from "@/hooks/dbSeasons";
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, FlatList, Text, TextInput, Pressable } from "react-native";
 
 const SeasonsManagement = () => {
@@ -28,7 +29,7 @@ const SeasonsManagement = () => {
   const [dateTimePickerVisible, setDateTimePickerVisible] = useState(false);
   const db = useSQLiteContext();
 
-  const { localeDate, t, changeSeason, webDavSync } = useContext(AppContext);
+  const { localeDate, t, changeSeason, webDavSync, lastWebDavSync } = useContext(AppContext);
 
   const loadData = async () => {
     const data: Seasons[] = await getAllSeasons(db);
@@ -38,9 +39,18 @@ const SeasonsManagement = () => {
     }
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  // Refresh data after sync
   useEffect(() => {
-    loadData();
-  }, []);
+    if (lastWebDavSync > 0) {
+      loadData();
+    }
+  }, [lastWebDavSync]);
 
   const saveAction = async () => {
     if (!name || !begin) {

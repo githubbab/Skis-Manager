@@ -11,15 +11,16 @@ import AppStyles from "@/constants/AppStyles";
 import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { deleteTypeOfOutings, getAllTypeOfOutings, initTypeOfOutings, insertTypeOfOutings, TOO, updateTypeOfOutings } from "@/hooks/dbTypeOfOuting";
+import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Text, TextInput, View } from "react-native";
 
 export default function TypeOfOutingsManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const db = useSQLiteContext();
-  const { t, webDavSync } = useContext(AppContext);
+  const { t, webDavSync, lastWebDavSync } = useContext(AppContext);
 
   const [types, setTypes] = useState<TOO[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -28,9 +29,18 @@ export default function TypeOfOutingsManagementScreen() {
   const [canOffPiste, setCanOffPiste] = useState<boolean>(false);
   const inputRef = useRef<TextInput>(null);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  // Refresh data after sync
   useEffect(() => {
-    loadData();
-  }, []);
+    if (lastWebDavSync > 0) {
+      loadData();
+    }
+  }, [lastWebDavSync]);
 
   async function loadData() {
     // Ajoute itemCount si tu veux afficher le nombre d'utilisations

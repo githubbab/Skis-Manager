@@ -8,7 +8,6 @@ import AppStyles from "@/constants/AppStyles";
 import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getSeasonOffPistes, OffPistes } from "@/hooks/dbOffPistes";
-import { Logger } from "@/hooks/ToolsBox";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useState } from "react";

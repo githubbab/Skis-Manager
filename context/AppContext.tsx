@@ -1,5 +1,5 @@
 import translations, { Lang, TranslationKey } from "@/constants/Translations";
-import {  execQuery, getDeviceID } from "@/hooks/DataManager";
+import {  getDeviceID } from "@/hooks/DataManager";
 import { getCurrentSeason } from "@/hooks/dbSeasons";
 import { getAllSettings, insertSettings, Settings } from "@/hooks/dbSettings";
 import { createWebDavClient, syncByState, SyncStatus } from "@/hooks/webdav-sync";

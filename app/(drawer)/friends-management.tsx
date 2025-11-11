@@ -12,8 +12,9 @@ import AppStyles from "@/constants/AppStyles";
 import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { Friends, deleteFriend, getFriendsWithOutingsCount, initFriend, insertFriend, updateFriend } from "@/hooks/dbFriends";
+import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Text, TextInput } from "react-native";
 
 export default function FriendsManagement() {
@@ -27,11 +28,20 @@ export default function FriendsManagement() {
   const [name, setName] = useState("");
   const inputRef = useRef<TextInput>(null);
 
-  const { t, webDavSync } = useContext(AppContext);
+  const { t, webDavSync, lastWebDavSync } = useContext(AppContext);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  // Refresh data after sync
   useEffect(() => {
-    loadData();
-  }, []);
+    if (lastWebDavSync > 0) {
+      loadData();
+    }
+  }, [lastWebDavSync]);
 
   async function loadData() {
     // Ajoute itemCount si tu veux afficher le nombre d'utilisations (exemple : sorties associées)

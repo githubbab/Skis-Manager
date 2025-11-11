@@ -14,7 +14,7 @@ import { Logger } from "@/hooks/ToolsBox";
 
 export default function DrawerLayout() {
   const { currentTheme, colorsTheme } = useContext(ThemeContext);
-  const { t, viewOuting, viewFriends, webDavClient, deviceID, webDavSyncEnabled, webDavSyncStatus, webDavSync } = useContext(AppContext)!;
+  const { t, viewOuting, viewFriends, webDavSyncEnabled, webDavSyncStatus, webDavSync } = useContext(AppContext)!;
 
   const styles = StyleSheet.create({
     drawerHeaderStyle: {

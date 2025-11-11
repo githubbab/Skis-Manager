@@ -10,7 +10,7 @@ import { Pressable, StyleSheet, Text } from "react-native";
 
 const TabLayout = () => {
   const { colorsTheme } = useContext(ThemeContext);
-  const { t, localeDate: localeDate, seasonDate, seasonName, viewOuting, viewFriends, lastWebDavSync } = useContext(AppContext)!;
+  const { localeDate: localeDate, seasonDate, seasonName, viewOuting, viewFriends, lastWebDavSync } = useContext(AppContext)!;
 
   const [seasonDateHuman, setSeasonDateHuman] = useState<string>(localeDate(seasonDate.getTime(), { day: '2-digit', month: 'short', year: 'numeric' }));
   const [seasonNameHuman, setSeasonNameHuman] = useState<string>(seasonName);
