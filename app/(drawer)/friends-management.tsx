@@ -29,63 +29,28 @@ export default function FriendsManagement() {
 
   const { t, webDavSync } = useContext(AppContext);
 
-  //                      #######                                  
-  // #    #  ####  ###### #       ###### ###### ######  ####  #####
-  // #    # #      #      #       #      #      #      #    #   #  
-  // #    #  ####  #####  #####   #####  #####  #####  #        #  
-  // #    #      # #      #       #      #      #      #        #  
-  // #    # #    # #      #       #      #      #      #    #   #  
-  //  ####   ####  ###### ####### #      #      ######  ####    #  
   useEffect(() => {
     loadData();
   }, []);
 
-  //                             ######                     
-  // #       ####    ##   #####  #     #   ##   #####   ##  
-  // #      #    #  #  #  #    # #     #  #  #    #    #  # 
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // #      #    # ###### #    # #     # ######   #   ######
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // ######  ####  #    # #####  ######  #    #   #   #    #
   async function loadData() {
     // Ajoute itemCount si tu veux afficher le nombre d'utilisations (exemple : sorties associées)
     const res: Friends[] = await getFriendsWithOutingsCount(db);
     setFriends(res);
   }
 
-  //                                #                  #     #                            
-  //  ####  #####  ###### #    #   # #   #####  #####  ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   #  #   #  #    # #    # # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #     # #    # #    # #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # ####### #    # #    # #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #     # #    # #    # #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # #     # #####  #####  #     #  ####  #####  #    # ######
   function openAddModal() {
     setEditingFriend(initFriend());
     setName("");
     setModalVisible(true);
   }
 
-  //                             #######                #     #                            
-  //  ####  #####  ###### #    # #       #####  # ##### ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   # #       #    # #   #   # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #####   #    # #   #   #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # #       #    # #   #   #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #       #    # #   #   #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # ####### #####  #   #   #     #  ####  #####  #    # ######
   function openEditModal(friend: Friends) {
     setEditingFriend(friend);
     setName(friend.name);
     setModalVisible(true);
   }
 
-  //                                #                                
-  //  ####    ##   #    # ######   # #    ####  ##### #  ####  #    #
-  // #       #  #  #    # #       #   #  #    #   #   # #    # ##   #
-  //  ####  #    # #    # #####  #     # #        #   # #    # # #  #
-  //      # ###### #    # #      ####### #        #   # #    # #  # #
-  // #    # #    #  #  #  #      #     # #    #   #   # #    # #   ##
-  //  ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   async function saveAction() {
     if (!name.trim()) return;
     if (editingFriend.id !== "not-an-id") {
@@ -101,13 +66,6 @@ export default function FriendsManagement() {
     loadData();
   }
 
-  //                                           ######                                   
-  // #    #   ##   #    # #####  #      ###### #     # ###### #      ###### ##### ######
-  // #    #  #  #  ##   # #    # #      #      #     # #      #      #        #   #     
-  // ###### #    # # #  # #    # #      #####  #     # #####  #      #####    #   ##### 
-  // #    # ###### #  # # #    # #      #      #     # #      #      #        #   #     
-  // #    # #    # #   ## #    # #      #      #     # #      #      #        #   #     
-  // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   function handleDelete(friend: Friends) {
     Alert.alert(
       t('delete'),
@@ -126,13 +84,6 @@ export default function FriendsManagement() {
     );
   }
 
-  //                                              #                                
-  //  ####    ##   #    #  ####  ###### #        # #    ####  ##### #  ####  #    #
-  // #    #  #  #  ##   # #    # #      #       #   #  #    #   #   # #    # ##   #
-  // #      #    # # #  # #      #####  #      #     # #        #   # #    # # #  #
-  // #      ###### #  # # #      #      #      ####### #        #   # #    # #  # #
-  // #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
-  //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
     setEditingFriend(initFriend());
@@ -140,13 +91,6 @@ export default function FriendsManagement() {
     inputRef.current?.blur();
   }
 
-  //                                           ###                    
-  // #####  ###### #    # #####  ###### #####   #  ##### ###### #    #
-  // #    # #      ##   # #    # #      #    #  #    #   #      ##  ##
-  // #    # #####  # #  # #    # #####  #    #  #    #   #####  # ## #
-  // #####  #      #  # # #    # #      #####   #    #   #      #    #
-  // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
-  // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem(item: Friends) {
     const nbActions = item.nbOutings || 0;
 
@@ -179,12 +123,6 @@ export default function FriendsManagement() {
     );
   }
 
-  // #####  ###### ##### #    # #####  #    #
-  // #    # #        #   #    # #    # ##   #
-  // #    # #####    #   #    # #    # # #  #
-  // #####  #        #   #    # #####  #  # #
-  // #   #  #        #   #    # #   #  #   ##
-  // #    # ######   #    ####  #    # #    #
   return (
     <Body>
       <Text style={[appStyles.title, { marginBottom: 8 }]}>
@@ -202,13 +140,6 @@ export default function FriendsManagement() {
       </Tile>
       <AddButton onPress={openAddModal} disabled={false} />
       {
-        // #     #                             #######                             
-        // ##   ##  ####  #####    ##   #      #       #####  # #####  ####  ##### 
-        // # # # # #    # #    #  #  #  #      #       #    # #   #   #    # #    #
-        // #  #  # #    # #    # #    # #      #####   #    # #   #   #    # #    #
-        // #     # #    # #    # ###### #      #       #    # #   #   #    # ##### 
-        // #     # #    # #    # #    # #      #       #    # #   #   #    # #   # 
-        // #     #  ####  #####  #    # ###### ####### #####  #   #    ####  #    #
       }
       <ModalEditor visible={modalVisible}>
         <Row>

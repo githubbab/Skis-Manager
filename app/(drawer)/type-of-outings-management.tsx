@@ -28,37 +28,16 @@ export default function TypeOfOutingsManagementScreen() {
   const [canOffPiste, setCanOffPiste] = useState<boolean>(false);
   const inputRef = useRef<TextInput>(null);
 
-  //                      #######                                  
-  // #    #  ####  ###### #       ###### ###### ######  ####  #####
-  // #    # #      #      #       #      #      #      #    #   #  
-  // #    #  ####  #####  #####   #####  #####  #####  #        #  
-  // #    #      # #      #       #      #      #      #        #  
-  // #    # #    # #      #       #      #      #      #    #   #  
-  //  ####   ####  ###### ####### #      #      ######  ####    #  
   useEffect(() => {
     loadData();
   }, []);
 
-  //                             ######                     
-  // #       ####    ##   #####  #     #   ##   #####   ##  
-  // #      #    #  #  #  #    # #     #  #  #    #    #  # 
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // #      #    # ###### #    # #     # ######   #   ######
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // ######  ####  #    # #####  ######  #    #   #   #    #
   async function loadData() {
     // Ajoute itemCount si tu veux afficher le nombre d'utilisations
     const res: TOO[] = await getAllTypeOfOutings(db);
     setTypes(res);
   }
 
-  //                                #                  #     #                            
-  //  ####  #####  ###### #    #   # #   #####  #####  ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   #  #   #  #    # #    # # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #     # #    # #    # #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # ####### #    # #    # #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #     # #    # #    # #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # #     # #####  #####  #     #  ####  #####  #    # ######
   function openAddModal() {
     setEditingType(initTypeOfOutings());
     setName("");
@@ -66,13 +45,6 @@ export default function TypeOfOutingsManagementScreen() {
     setModalVisible(true);
   }
 
-  //                             #######                #     #                            
-  //  ####  #####  ###### #    # #       #####  # ##### ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   # #       #    # #   #   # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #####   #    # #   #   #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # #       #    # #   #   #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #       #    # #   #   #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # ####### #####  #   #   #     #  ####  #####  #    # ######
   function openEditModal(type: TOO) {
     setEditingType(type);
     setName(type.name);
@@ -80,13 +52,6 @@ export default function TypeOfOutingsManagementScreen() {
     setModalVisible(true);
   }
 
-  //                                #                                
-  //  ####    ##   #    # ######   # #    ####  ##### #  ####  #    #
-  // #       #  #  #    # #       #   #  #    #   #   # #    # ##   #
-  //  ####  #    # #    # #####  #     # #        #   # #    # # #  #
-  //      # ###### #    # #      ####### #        #   # #    # #  # #
-  // #    # #    #  #  #  #      #     # #    #   #   # #    # #   ##
-  //  ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   async function saveAction() {
     if (!name.trim()) return;
     if (editingType.id !== "not-an-id") {
@@ -102,13 +67,6 @@ export default function TypeOfOutingsManagementScreen() {
     webDavSync();
   }
 
-  //                                           ######                                   
-  // #    #   ##   #    # #####  #      ###### #     # ###### #      ###### ##### ######
-  // #    #  #  #  ##   # #    # #      #      #     # #      #      #        #   #     
-  // ###### #    # # #  # #    # #      #####  #     # #####  #      #####    #   ##### 
-  // #    # ###### #  # # #    # #      #      #     # #      #      #        #   #     
-  // #    # #    # #   ## #    # #      #      #     # #      #      #        #   #     
-  // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   function handleDelete(type: TOO) {
     Alert.alert(
       t('delete'),
@@ -127,13 +85,6 @@ export default function TypeOfOutingsManagementScreen() {
     );
   }
 
-  //                                              #                                
-  //  ####    ##   #    #  ####  ###### #        # #    ####  ##### #  ####  #    #
-  // #    #  #  #  ##   # #    # #      #       #   #  #    #   #   # #    # ##   #
-  // #      #    # # #  # #      #####  #      #     # #        #   # #    # # #  #
-  // #      ###### #  # # #      #      #      ####### #        #   # #    # #  # #
-  // #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
-  //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
     setEditingType(initTypeOfOutings());
@@ -141,13 +92,6 @@ export default function TypeOfOutingsManagementScreen() {
     inputRef.current?.blur();
   }
 
-  //                                           ###                    
-  // #####  ###### #    # #####  ###### #####   #  ##### ###### #    #
-  // #    # #      ##   # #    # #      #    #  #    #   #      ##  ##
-  // #    # #####  # #  # #    # #####  #    #  #    #   #####  # ## #
-  // #####  #      #  # # #    # #      #####   #    #   #      #    #
-  // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
-  // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem({ item }: { item: TOO }) {
     const nbActions = item.itemCount || 0;
 
@@ -184,12 +128,6 @@ export default function TypeOfOutingsManagementScreen() {
     );
   }
 
-  // #####  ###### ##### #    # #####  #    #
-  // #    # #        #   #    # #    # ##   #
-  // #    # #####    #   #    # #    # # #  #
-  // #####  #        #   #    # #####  #  # #
-  // #   #  #        #   #    # #   #  #   ##
-  // #    # ######   #    ####  #    # #    #
   return (
     <Body>
       <Text style={[appStyles.title, { marginVertical: 8 }]}>
@@ -206,13 +144,6 @@ export default function TypeOfOutingsManagementScreen() {
       </Tile>
       <AddButton onPress={openAddModal} disabled={false} />
       {
-        // #     #                             #######                             
-        // ##   ##  ####  #####    ##   #      #       #####  # #####  ####  ##### 
-        // # # # # #    # #    #  #  #  #      #       #    # #   #   #    # #    #
-        // #  #  # #    # #    # #    # #      #####   #    # #   #   #    # #    #
-        // #     # #    # #    # ###### #      #       #    # #   #   #    # ##### 
-        // #     # #    # #    # #    # #      #       #    # #   #   #    # #   # 
-        // #     #  ####  #####  #    # ###### ####### #####  #   #    ####  #    #
       }
       <ModalEditor visible={modalVisible}>
         <Row>

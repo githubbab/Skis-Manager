@@ -32,26 +32,11 @@ import { WebDAVClient } from "webdav";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ScrollView } from "react-native-gesture-handler";
 
-
-//                                                ######                              #     #                           
-// ###### #    # ##### #####    ##    ####  ##### #     # ######  ####  ###### #    # ##   ##   ##   #####  ####  #    #
-// #       #  #    #   #    #  #  #  #    #   #   #     # #      #    # #       #  #  # # # #  #  #    #   #    # #    #
-// #####    ##     #   #    # #    # #        #   ######  #####  #      #####    ##   #  #  # #    #   #   #      ######
-// #        ##     #   #####  ###### #        #   #   #   #      #  ### #        ##   #     # ######   #   #      #    #
-// #       #  #    #   #   #  #    # #    #   #   #    #  #      #    # #       #  #  #     # #    #   #   #    # #    #
-// ###### #    #   #   #    # #    #  ####    #   #     # ######  ####  ###### #    # #     # #    #   #    ####  #    #
 function extractRegexMatch(name: string, regex: RegExp): string | undefined {
   const matches = name.match(regex);
   return matches ? matches[1] : undefined;
 }
 
-//                                                  #####                            #####                  ######  ###### 
-// #####  ######  ####  #####  ####  #####  ###### #     # #    # # #    # #  ####  #     # #    # #  ####  #     # #     #
-// #    # #      #        #   #    # #    # #      #       #    # # #    # # #      #       #   #  # #      #     # #     #
-// #    # #####   ####    #   #    # #    # #####   #####  #    # # #    # #  ####   #####  ####   #  ####  #     # ###### 
-// #####  #           #   #   #    # #####  #            # #    # # #    # #      #       # #  #   #      # #     # #     #
-// #   #  #      #    #   #   #    # #   #  #      #     # #    # #  #  #  # #    # #     # #   #  # #    # #     # #     #
-// #    # ######  ####    #    ####  #    # ######  #####   ####  #   ##   #  ####   #####  #    # #  ####  ######  ###### 
 async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQLite.SQLiteDatabase) {
   let itemsBoots: Boots[] = [];
   let itemsSkis: Skis[] = [];
@@ -203,7 +188,6 @@ async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQ
     }
     name = name.replace(new RegExp(typeOfSkis[ssRow.idStyleSkis].name, "i"), "");
 
-
     const listUsers: string[] = ssRow.listUser ? ssRow.listUser.split(",").filter((id: number) => itemsUsers[id]).map((id: number) => itemsUsers[id].id) : [];
     if (itemsUsers[ssRow.idUtilisateur] && !listUsers.includes(itemsUsers[ssRow.idUtilisateur].id)) {
       listUsers.push(itemsUsers[ssRow.idUtilisateur].id);
@@ -284,13 +268,6 @@ async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQ
   await reloadAppAsync()
 }
 
-// ######                                      #####                       #####                                           
-// #     #   ##    ####  #    # #    # #####  #     # #   # #    #  ####  #     # ###### ##### ##### # #    #  ####   #### 
-// #     #  #  #  #    # #   #  #    # #    # #        # #  ##   # #    # #       #        #     #   # ##   # #    # #     
-// ######  #    # #      ####   #    # #    #  #####    #   # #  # #       #####  #####    #     #   # # #  # #       #### 
-// #     # ###### #      #  #   #    # #####        #   #   #  # # #            # #        #     #   # #  # # #  ###      #
-// #     # #    # #    # #   #  #    # #      #     #   #   #   ## #    # #     # #        #     #   # #   ## #    # #    #
-// ######  #    #  ####  #    #  ####  #       #####    #   #    #  ####   #####  ######   #     #   # #    #  ####   #### 
 export default function BackupSyncSettings() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
@@ -303,26 +280,12 @@ export default function BackupSyncSettings() {
   const [syncDevices, setSyncDevices] = useState<DeviceInfo[]>([]);
   const myID = getDeviceID();
 
-  //                                            #####                      ###                     
-  //         ###### ###### #####  ####  #    # #     # #   # #    #  ####   #  #    # ######  #### 
-  //         #      #        #   #    # #    # #        # #  ##   # #    #  #  ##   # #      #    #
-  //         #####  #####    #   #      ######  #####    #   # #  # #       #  # #  # #####  #    #
-  //         #      #        #   #      #    #       #   #   #  # # #       #  #  # # #      #    #
-  //         #      #        #   #    # #    # #     #   #   #   ## #    #  #  #   ## #      #    #
-  //         #      ######   #    ####  #    #  #####    #   #    #  ####  ### #    # #       #### 
   const fetchSyncInfo = async () => {
     if (!webDavClient) return;
     const devices = await getDeviceList(webDavClient);
     setSyncDevices(devices);
   }
 
-  //                              #######                                  
-  //         #    #  ####  ###### #       ###### ###### ######  ####  #####
-  //         #    # #      #      #       #      #      #      #    #   #  
-  //         #    #  ####  #####  #####   #####  #####  #####  #        #  
-  //         #    #      # #      #       #      #      #      #        #  
-  //         #    # #    # #      #       #      #      #      #    #   #  
-  //          ####   ####  ###### ####### #      #      ######  ####    #  
   useEffect(() => {
     if (!webDavSyncEnabled) return;
     fetchSyncInfo();
@@ -337,13 +300,6 @@ export default function BackupSyncSettings() {
       changeWebDavSync(false);
   }, [webDavUrlState, webDavUserState, webDavPasswordState])
 
-  //                                                         #######               ######  ###### 
-  //         #####  ######  ####  #####  ####  #####  ###### #     # #      #####  #     # #     #
-  //         #    # #      #        #   #    # #    # #      #     # #      #    # #     # #     #
-  //         #    # #####   ####    #   #    # #    # #####  #     # #      #    # #     # ###### 
-  //         #####  #           #   #   #    # #####  #      #     # #      #    # #     # #     #
-  //         #   #  #      #    #   #   #    # #   #  #      #     # #      #    # #     # #     #
-  //         #    # ######  ####    #    ####  #    # ###### ####### ###### #####  ######  ###### 
   const restoreOldDB = async () => {
     const dbRestoreDir = new Directory(Paths.document.uri + "dbRestore/");
     if (!dbRestoreDir.exists) {
@@ -497,13 +453,6 @@ export default function BackupSyncSettings() {
     })
   }
 
-  //                                    ######  ######  #######                
-  //          ####   ####  #####  #   # #     # #     # #       # #      ######
-  //         #    # #    # #    #  # #  #     # #     # #       # #      #     
-  //         #      #    # #    #   #   #     # ######  #####   # #      ##### 
-  //         #      #    # #####    #   #     # #     # #       # #      #     
-  //         #    # #    # #        #   #     # #     # #       # #      #     
-  //          ####   ####  #        #   ######  ######  #       # ###### ######
   function copyDBFile(oldDBUri: string, newDBUri: string) {
     Logger.debug("copyDBFile: Copying DB file from", oldDBUri, "to", newDBUri);
     const oldDBFile = new File(oldDBUri);
@@ -520,25 +469,11 @@ export default function BackupSyncSettings() {
     Logger.debug("copyDBFile: DB file copied to", newDBUri);
   }
 
-  //                                            ######                                                 
-  //          ####  #    #   ##   #####  ###### #     #   ##   #####   ##   #####    ##    ####  ######
-  //         #      #    #  #  #  #    # #      #     #  #  #    #    #  #  #    #  #  #  #      #     
-  //          ####  ###### #    # #    # #####  #     # #    #   #   #    # #####  #    #  ####  ##### 
-  //              # #    # ###### #####  #      #     # ######   #   ###### #    # ######      # #     
-  //         #    # #    # #    # #   #  #      #     # #    #   #   #    # #    # #    # #    # #     
-  //          ####  #    # #    # #    # ###### ######  #    #   #   #    # #####  #    #  ####  ######
   const shareDatabase = async () => {
     Logger.log("shareDatabase: ", db.databasePath);
     await Sharing.shareAsync("file://" + db.databasePath)
   }
 
-  //                                                    #####                      #     #               ######               
-  //         #    #   ##   #    # #####  #      ###### #     # #   # #    #  ####  #  #  # ###### #####  #     #   ##   #    #
-  //         #    #  #  #  ##   # #    # #      #      #        # #  ##   # #    # #  #  # #      #    # #     #  #  #  #    #
-  //         ###### #    # # #  # #    # #      #####   #####    #   # #  # #      #  #  # #####  #####  #     # #    # #    #
-  //         #    # ###### #  # # #    # #      #            #   #   #  # # #      #  #  # #      #    # #     # ###### #    #
-  //         #    # #    # #   ## #    # #      #      #     #   #   #   ## #    # #  #  # #      #    # #     # #    #  #  # 
-  //         #    # #    # #    # #####  ###### ######  #####    #   #    #  ####   ## ##  ###### #####  ######  #    #   ##  
   const handleSyncWebDav = async () => {
     if (!webDavSyncEnabled) {
       setInactivated(true);
@@ -624,12 +559,6 @@ export default function BackupSyncSettings() {
     }
   }
 
-  //         #####  ###### ##### #    # #####  #    #
-  //         #    # #        #   #    # #    # ##   #
-  //         #    # #####    #   #    # #    # # #  #
-  //         #####  #        #   #    # #####  #  # #
-  //         #   #  #        #   #    # #   #  #   ##
-  //         #    # ######   #    ####  #    # #    #
   return (
     <Body >
       {inactivated && <View style={styles.inactivate} />}
@@ -828,12 +757,6 @@ export default function BackupSyncSettings() {
   );
 }
 
-//  ####  ##### #   # #      ######  #### 
-// #        #    # #  #      #      #     
-//  ####    #     #   #      #####   #### 
-//      #   #     #   #      #           #
-// #    #   #     #   #      #      #    #
-//  ####    #     #   ###### ######  #### 
 const styles = StyleSheet.create({
 
   inactivate: {

@@ -122,7 +122,6 @@ export default function SeasonsStatistics() {
           {item.typeOfSkis} {item.idBrand === "init-unknown" ? "" : item.brand + " "}{item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
         </Text>
 
-
         {item.listUserNames?.map((value: string, index: number) => {
           return <Pastille key={"SKIS" + value + index} name={value} size={iconSize}
             style={{ marginRight: -10, zIndex: index * -1 }} />;
@@ -177,8 +176,6 @@ export default function SeasonsStatistics() {
       <Separator />
     </View>
   )
-
-
 
   if (selectedSeason.id === "not-an-id") {
     return (

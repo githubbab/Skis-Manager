@@ -37,36 +37,15 @@ export default function TypeOfSkisManagementScreen() {
 
   const iconSize = 48;
 
-  //                      #######                                  
-  // #    #  ####  ###### #       ###### ###### ######  ####  #####
-  // #    # #      #      #       #      #      #      #    #   #  
-  // #    #  ####  #####  #####   #####  #####  #####  #        #  
-  // #    #      # #      #       #      #      #      #        #  
-  // #    # #    # #      #       #      #      #      #    #   #  
-  //  ####   ####  ###### ####### #      #      ######  ####    #  
   useEffect(() => {
     loadData();
   }, []);
 
-  //                             ######                     
-  // #       ####    ##   #####  #     #   ##   #####   ##  
-  // #      #    #  #  #  #    # #     #  #  #    #    #  # 
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // #      #    # ###### #    # #     # ######   #   ######
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // ######  ####  #    # #####  ######  #    #   #   #    #
   async function loadData() {
     const res: TOS[] = await getAllTypeOfSkis(db);
     setTypes(res);
   }
 
-  //                                #                  #     #                            
-  //  ####  #####  ###### #    #   # #   #####  #####  ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   #  #   #  #    # #    # # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #     # #    # #    # #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # ####### #    # #    # #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #     # #    # #    # #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # #     # #####  #####  #     #  ####  #####  #    # ######
   function openAddModal() {
     setEditingTOS(initTypeOfSkis());
     setName("");
@@ -75,13 +54,6 @@ export default function TypeOfSkisManagementScreen() {
     setModalVisible(true);
   }
 
-  //                             #######                #     #                            
-  //  ####  #####  ###### #    # #       #####  # ##### ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   # #       #    # #   #   # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #####   #    # #   #   #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # #       #    # #   #   #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #       #    # #   #   #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # ####### #####  #   #   #     #  ####  #####  #    # ######
   function openEditModal(tos: TOS) {
     setEditingTOS(tos);
     setName(tos.name);
@@ -91,13 +63,6 @@ export default function TypeOfSkisManagementScreen() {
 
   }
 
-  //                                #                                
-  //  ####    ##   #    # ######   # #    ####  ##### #  ####  #    #
-  // #       #  #  #    # #       #   #  #    #   #   # #    # ##   #
-  //  ####  #    # #    # #####  #     # #        #   # #    # # #  #
-  //      # ###### #    # #      ####### #        #   # #    # #  # #
-  // #    # #    #  #  #  #      #     # #    #   #   # #    # #   ##
-  //  ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   async function saveAction() {
     if (!name.trim()) return;
     if (editingTOS.id !== "not-an-id") {
@@ -120,13 +85,6 @@ export default function TypeOfSkisManagementScreen() {
     webDavSync();
   }
 
-  //                                           ######                                   
-  // #    #   ##   #    # #####  #      ###### #     # ###### #      ###### ##### ######
-  // #    #  #  #  ##   # #    # #      #      #     # #      #      #        #   #     
-  // ###### #    # # #  # #    # #      #####  #     # #####  #      #####    #   ##### 
-  // #    # ###### #  # # #    # #      #      #     # #      #      #        #   #     
-  // #    # #    # #   ## #    # #      #      #     # #      #      #        #   #     
-  // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   function handleDelete(tos: TOS) {
     Alert.alert(
       tos.itemCount > 0 ? t('archive') : t('delete'),
@@ -145,13 +103,6 @@ export default function TypeOfSkisManagementScreen() {
     );
   }
 
-  //                                              #                                
-  //  ####    ##   #    #  ####  ###### #        # #    ####  ##### #  ####  #    #
-  // #    #  #  #  ##   # #    # #      #       #   #  #    #   #   # #    # ##   #
-  // #      #    # # #  # #      #####  #      #     # #        #   # #    # # #  #
-  // #      ###### #  # # #      #      #      ####### #        #   # #    # #  # #
-  // #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
-  //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
     setEditingTOS(initTypeOfSkis());
@@ -176,13 +127,6 @@ export default function TypeOfSkisManagementScreen() {
       setImageChanged(true);
     }
   }
-  //                                           ###                    
-  // #####  ###### #    # #####  ###### #####   #  ##### ###### #    #
-  // #    # #      ##   # #    # #      #    #  #    #   #      ##  ##
-  // #    # #####  # #  # #    # #####  #    #  #    #   #####  # ## #
-  // #####  #      #  # # #    # #      #####   #    #   #      #    #
-  // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
-  // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem({ item }: { item: TOS }) {
     const nbActions = item.itemCount || 0;
 
@@ -225,13 +169,6 @@ export default function TypeOfSkisManagementScreen() {
     )
   }
 
-
-  // #####  ###### ##### #    # #####  #    #
-  // #    # #        #   #    # #    # ##   #
-  // #    # #####    #   #    # #    # # #  #
-  // #####  #        #   #    # #####  #  # #
-  // #   #  #        #   #    # #   #  #   ##
-  // #    # ######   #    ####  #    # #    #
   return (
     <Body>
       <Text style={[appStyles.title, { marginVertical: 8 }]}>
@@ -248,13 +185,6 @@ export default function TypeOfSkisManagementScreen() {
       </Tile>
       <AddButton onPress={openAddModal} disabled={false} />
       {
-        // #     #                             #######                             
-        // ##   ##  ####  #####    ##   #      #       #####  # #####  ####  ##### 
-        // # # # # #    # #    #  #  #  #      #       #    # #   #   #    # #    #
-        // #  #  # #    # #    # #    # #      #####   #    # #   #   #    # #    #
-        // #     # #    # #    # ###### #      #       #    # #   #   #    # ##### 
-        // #     # #    # #    # #    # #      #       #    # #   #   #    # #   # 
-        // #     #  ####  #####  #    # ###### ####### #####  #   #    ####  #    #
       }
       <ModalEditor visible={modalVisible}>
         <Row>

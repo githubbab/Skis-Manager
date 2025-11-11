@@ -9,7 +9,6 @@ import { ThemeContext } from "@/context/ThemeContext";
 import React, { useContext, useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 
-
 export default function Settings() {
   const { currentTheme, colorsTheme, toggleTheme, useSystemTheme, isSystemTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);

@@ -24,11 +24,9 @@ import AppContext from "@/context/AppContext";
 import RowItem from "@/components/RowItem";
 import { Logger } from "@/hooks/ToolsBox";
 
-
 let dbState: string = "none";
 
 const iconSize = 32;
-
 
 export default function BootsManagement() {
   const { colorsTheme } = useContext(ThemeContext);
@@ -71,13 +69,6 @@ export default function BootsManagement() {
     return 0;
   });
 
-  //                          #######                                         
-  //     #    #  ####  ###### #       ###### ###### ######  ####  #####  #### 
-  //     #    # #      #      #       #      #      #      #    #   #   #     
-  //     #    #  ####  #####  #####   #####  #####  #####  #        #    #### 
-  //     #    #      # #      #       #      #      #      #        #        #
-  //     #    # #    # #      #       #      #      #      #    #   #   #    #
-  //      ####   ####  ###### ####### #      #      ######  ####    #    #### 
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -91,13 +82,6 @@ export default function BootsManagement() {
     }
   }, [lastWebDavSync]);
 
-  //                                 ######                     
-  //     #       ####    ##   #####  #     #   ##   #####   ##  
-  //     #      #    #  #  #  #    # #     #  #  #    #    #  # 
-  //     #      #    # #    # #    # #     # #    #   #   #    #
-  //     #      #    # ###### #    # #     # ######   #   ######
-  //     #      #    # #    # #    # #     # #    #   #   #    #
-  //     ######  ####  #    # #####  ######  #    #   #   #    #
   async function loadData() {
     if (dbState === "loading") return;
 
@@ -115,13 +99,6 @@ export default function BootsManagement() {
     }
   }
 
-  //                                               ######                                    ######                     
-  //     #    #   ##   #    # #####  #      ###### #     # ###### #      ###### ##### ###### #     #  ####   ####  #####
-  //     #    #  #  #  ##   # #    # #      #      #     # #      #      #        #   #      #     # #    # #    #   #  
-  //     ###### #    # # #  # #    # #      #####  #     # #####  #      #####    #   #####  ######  #    # #    #   #  
-  //     #    # ###### #  # # #    # #      #      #     # #      #      #        #   #      #     # #    # #    #   #  
-  //     #    # #    # #   ## #    # #      #      #     # #      #      #        #   #      #     # #    # #    #   #  
-  //     #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ###### ######   ####   ####    #  
   function handleDeleteBoot(item: Boots): void {
     if (item.end) {
       Alert.alert(
@@ -188,27 +165,12 @@ export default function BootsManagement() {
     }
   }
 
-  //                                               #######                ######                            
-  //     #    #   ##   #    # #####  #      ###### #       #####  # ##### #     #  ####   ####  #####  #### 
-  //     #    #  #  #  ##   # #    # #      #      #       #    # #   #   #     # #    # #    #   #   #     
-  //     ###### #    # # #  # #    # #      #####  #####   #    # #   #   ######  #    # #    #   #    #### 
-  //     #    # ###### #  # # #    # #      #      #       #    # #   #   #     # #    # #    #   #        #
-  //     #    # #    # #   ## #    # #      #      #       #    # #   #   #     # #    # #    #   #   #    #
-  //     #    # #    # #    # #####  ###### ###### ####### #####  #   #   ######   ####   ####    #    #### 
   function handleEditBoot(item: Boots): void {
     setEditMode(true);
     setBoots2Write(item);
     setModalVisible(true);
   }
 
-
-  //                                               ######                     
-  //     #####  ###### #    # #####  ###### #####  #     #  ####   ####  #####
-  //     #    # #      ##   # #    # #      #    # #     # #    # #    #   #  
-  //     #    # #####  # #  # #    # #####  #    # ######  #    # #    #   #  
-  //     #####  #      #  # # #    # #      #####  #     # #    # #    #   #  
-  //     #   #  #      #   ## #    # #      #   #  #     # #    # #    #   #  
-  //     #    # ###### #    # #####  ###### #    # ######   ####   ####    #  
   const renderBoot = ({ item }: { item: Boots }) => {
     return (
       <RowItem
@@ -287,7 +249,6 @@ export default function BootsManagement() {
             >mm</Text>
           </Card>
 
-
           <Text numberOfLines={1}
             style={{
               color: item.end ? colorsTheme.alert : colorsTheme.text,
@@ -315,25 +276,11 @@ export default function BootsManagement() {
     )
   };
 
-  //                                    #                  #     #                            
-  //      ####  #####  ###### #    #   # #   #####  #####  ##   ##  ####  #####    ##   #     
-  //     #    # #    # #      ##   #  #   #  #    # #    # # # # # #    # #    #  #  #  #     
-  //     #    # #    # #####  # #  # #     # #    # #    # #  #  # #    # #    # #    # #     
-  //     #    # #####  #      #  # # ####### #    # #    # #     # #    # #    # ###### #     
-  //     #    # #      #      #   ## #     # #    # #    # #     # #    # #    # #    # #     
-  //      ####  #      ###### #    # #     # #####  #####  #     #  ####  #####  #    # ######
   function openAddModal() {
     setEditMode(false);
     setModalVisible(true);
   }
 
-  //                                                  #                                
-  //      ####    ##   #    #  ####  ###### #        # #    ####  ##### #  ####  #    #
-  //     #    #  #  #  ##   # #    # #      #       #   #  #    #   #   # #    # ##   #
-  //     #      #    # # #  # #      #####  #      #     # #        #   # #    # # #  #
-  //     #      ###### #  # # #      #      #      ####### #        #   # #    # #  # #
-  //     #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
-  //      ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
     if (editMode) {
@@ -348,13 +295,6 @@ export default function BootsManagement() {
     inputLengthRef.current?.blur();
   }
 
-  //                                    #                                
-  //      ####    ##   #    # ######   # #    ####  ##### #  ####  #    #
-  //     #       #  #  #    # #       #   #  #    #   #   # #    # ##   #
-  //      ####  #    # #    # #####  #     # #        #   # #    # # #  #
-  //          # ###### #    # #      ####### #        #   # #    # #  # #
-  //     #    # #    #  #  #  #      #     # #    #   #   # #    # #   ##
-  //      ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   function saveAction() {
     if (!boots2Write?.brand?.trim()) {
       showMessage({
@@ -412,12 +352,6 @@ export default function BootsManagement() {
     }
   }
 
-  //     #####  ###### ##### #    # #####  #    #
-  //     #    # #        #   #    # #    # ##   #
-  //     #    # #####    #   #    # #    # # #  #
-  //     #####  #        #   #    # #####  #  # #
-  //     #   #  #        #   #    # #   #  #   ##
-  //     #    # ######   #    ####  #    # #    #
   if (dbState !== "done") {
     return <Body><Text style={appStyles.text}>Loading...</Text></Body>;
   }
@@ -528,13 +462,6 @@ export default function BootsManagement() {
       </Tile>
       <AddButton onPress={openAddModal} disabled={false} />
       {
-        //     #     #                             #######                             
-        //     ##   ##  ####  #####    ##   #      #       #####  # #####  ####  ##### 
-        //     # # # # #    # #    #  #  #  #      #       #    # #   #   #    # #    #
-        //     #  #  # #    # #    # #    # #      #####   #    # #   #   #    # #    #
-        //     #     # #    # #    # ###### #      #       #    # #   #   #    # ##### 
-        //     #     # #    # #    # #    # #      #       #    # #   #   #    # #   # 
-        //     #     #  ####  #####  #    # ###### ####### #####  #   #    ####  #    #
       }
       <ModalEditor visible={modalVisible}>
         <Text style={appStyles.modalTittle}>
@@ -781,12 +708,6 @@ export default function BootsManagement() {
   );
 }
 
-//      ####  ##### #   # #      ######  #### 
-//     #        #    # #  #      #      #     
-//      ####    #     #   #      #####   #### 
-//          #   #     #   #      #           #
-//     #    #   #     #   #      #      #    #
-//      ####    #     #   ###### ######  #### 
 const styles = StyleSheet.create({
   modalRow: {
     flexDirection: "row",

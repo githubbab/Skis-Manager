@@ -72,15 +72,6 @@ export default function SkisManagement() {
 
   const { t, localeDate, webDavSync, lastWebDavSync } = useContext(AppContext);
 
-
-
-  //                             ######                     
-  // #       ####    ##   #####  #     #   ##   #####   ##  
-  // #      #    #  #  #  #    # #     #  #  #    #    #  # 
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // #      #    # ###### #    # #     # ######   #   ######
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // ######  ####  #    # #####  ######  #    #   #   #    #
   const loadData = async () => {
     if (dbState === "loading") return;
 
@@ -103,13 +94,6 @@ export default function SkisManagement() {
     }
   }
 
-  //                      #######                                  
-  // #    #  ####  ###### #       ###### ###### ######  ####  #####
-  // #    # #      #      #       #      #      #      #    #   #  
-  // #    #  ####  #####  #####   #####  #####  #####  #        #  
-  // #    #      # #      #       #      #      #      #        #  
-  // #    # #    # #      #       #      #      #      #    #   #  
-  //  ####   ####  ###### ####### #      #      ######  ####    #  
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -124,13 +108,6 @@ export default function SkisManagement() {
     }
   }, [lastWebDavSync]);
 
-  //                           #                 
-  // #    # # #####  ######   # #   #      #     
-  // #    # # #    # #       #   #  #      #     
-  // ###### # #    # #####  #     # #      #     
-  // #    # # #    # #      ####### #      #     
-  // #    # # #    # #      #     # #      #     
-  // #    # # #####  ###### #     # ###### ######
   const hideAll = (but?: "users" | "tos" | "brand" | "boots" | "endDate" | "beginDate" | "name" | "size" | "radius") => {
     (but === "users") ? setUsersVisible(true) : setUsersVisible(false);
     (but === "tos") ? setTosVisible(true) : setTosVisible(false);
@@ -143,13 +120,6 @@ export default function SkisManagement() {
     if (but !== "size" && inputSizeRef.current) inputSizeRef.current.blur();
   }
 
-  //                                          #######                                    
-  // #####  ####   ####   ####  #      ###### #       # #      ##### ###### #####   #### 
-  //   #   #    # #    # #    # #      #      #       # #        #   #      #    # #     
-  //   #   #    # #    # #      #      #####  #####   # #        #   #####  #    #  #### 
-  //   #   #    # #    # #  ### #      #      #       # #        #   #      #####       #
-  //   #   #    # #    # #    # #      #      #       # #        #   #      #   #  #    #
-  //   #    ####   ####   ####  ###### ###### #       # ######   #   ###### #    #  #### 
   const toggleUsersFilter = () => {
     setViewUserFilter(!viewUserFilter);
     setViewTosFilter(false);
@@ -159,13 +129,6 @@ export default function SkisManagement() {
     setViewUserFilter(false);
   };
 
-  //                        #####                  #######                                    
-  // #      #  ####  ##### #     # #    # #  ####  #       # #      ##### #####  ###### ##### 
-  // #      # #        #   #       #   #  # #      #       # #        #   #    # #      #    #
-  // #      #  ####    #    #####  ####   #  ####  #####   # #        #   #    # #####  #    #
-  // #      #      #   #         # #  #   #      # #       # #        #   #####  #      #    #
-  // #      # #    #   #   #     # #   #  # #    # #       # #        #   #   #  #      #    #
-  // ###### #  ####    #    #####  #    # #  ####  #       # ######   #   #    # ###### ##### 
   const listSkisFiltred: Skis[] = listSkis
     .filter((item) => (
       viewArchived === "yes" || (viewArchived === "only" ? item.end : !item.end)
@@ -193,13 +156,6 @@ export default function SkisManagement() {
       return 0;
     });
 
-  //                                            #####                 
-  // #####  ###### #    # #####  ###### #####  #     # #    # #  #### 
-  // #    # #      ##   # #    # #      #    # #       #   #  # #     
-  // #    # #####  # #  # #    # #####  #    #  #####  ####   #  #### 
-  // #####  #      #  # # #    # #      #####        # #  #   #      #
-  // #   #  #      #   ## #    # #      #   #  #     # #   #  # #    #
-  // #    # ###### #    # #####  ###### #    #  #####  #    # #  #### 
   const renderSkis: ListRenderItem<Skis> = ({ item }) => {
 
     return (
@@ -232,8 +188,6 @@ export default function SkisManagement() {
           >
             {item.typeOfSkis} {item.idBrand === "init-unknown" ? "" : item.brand + " "}{item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
           </Text>
-
-
 
           {item.listUsers && (() => {
             const users = item.listUsers;
@@ -320,26 +274,12 @@ export default function SkisManagement() {
       </RowItem>
     )
   };
-  //                             #     #                            
-  //  ####  #####  ###### #    # ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   # # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # #     #  ####  #####  #    # ######
   function openModal(editing: boolean) {
     setEditMode(editing);
     setModalVisible(true);
     if (!editing) setSkis2Write(initSkis(smDate()));
   }
 
-  //                                              #                                
-  //  ####    ##   #    #  ####  ###### #        # #    ####  ##### #  ####  #    #
-  // #    #  #  #  ##   # #    # #      #       #   #  #    #   #   # #    # ##   #
-  // #      #    # # #  # #      #####  #      #     # #        #   # #    # # #  #
-  // #      ###### #  # # #      #      #      ####### #        #   # #    # #  # #
-  // #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
-  //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
     if (!editMode) {
@@ -349,13 +289,6 @@ export default function SkisManagement() {
     hideAll();
   }
 
-  //                                           ######                                     #####          
-  // #    #   ##   #    # #####  #      ###### #     # ###### #      ###### ##### ###### #     # #    # #
-  // #    #  #  #  ##   # #    # #      #      #     # #      #      #        #   #      #       #   #  #
-  // ###### #    # # #  # #    # #      #####  #     # #####  #      #####    #   #####   #####  ####   #
-  // #    # ###### #  # # #    # #      #      #     # #      #      #        #   #            # #  #   #
-  // #    # #    # #   ## #    # #      #      #     # #      #      #        #   #      #     # #   #  #
-  // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######  #####  #    # #
   function handleDeleteSki(skis: Skis) {
     if (skis?.end) {
       Alert.alert(
@@ -419,13 +352,6 @@ export default function SkisManagement() {
     setEditMode(false);
   }
 
-  //                                #                                
-  //  ####    ##   #    # ######   # #    ####  ##### #  ####  #    #
-  // #       #  #  #    # #       #   #  #    #   #   # #    # ##   #
-  //  ####  #    # #    # #####  #     # #        #   # #    # # #  #
-  //      # ###### #    # #      ####### #        #   # #    # #  # #
-  // #    # #    #  #  #  #      #     # #    #   #   # #    # #   ##
-  //  ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   function saveAction() {
     if (editMode) {
       updateSki(db, {
@@ -491,12 +417,6 @@ export default function SkisManagement() {
 
   }
 
-  // #####  ###### ##### #    # #####  #    #
-  // #    # #        #   #    # #    # ##   #
-  // #    # #####    #   #    # #    # # #  #
-  // #####  #        #   #    # #####  #  # #
-  // #   #  #        #   #    # #   #  #   ##
-  // #    # ######   #    ####  #    # #    #
   if (dbState !== "done") {
     return <Body><Text style={appStyles.text}>Loading...</Text></Body>;
   }
@@ -650,13 +570,6 @@ export default function SkisManagement() {
       <AddButton onPress={() => openModal(false)} disabled={false} />
 
       {
-        // #     #                             #######                             
-        // ##   ##  ####  #####    ##   #      #       #####  # #####  ####  ##### 
-        // # # # # #    # #    #  #  #  #      #       #    # #   #   #    # #    #
-        // #  #  # #    # #    # #    # #      #####   #    # #   #   #    # #    #
-        // #     # #    # #    # ###### #      #       #    # #   #   #    # ##### 
-        // #     # #    # #    # #    # #      #       #    # #   #   #    # #   # 
-        // #     #  ####  #####  #    # ###### ####### #####  #   #    ####  #    #
       }
       <ModalEditor visible={modalVisible}>
         <Row>
@@ -780,7 +693,6 @@ export default function SkisManagement() {
           </Tile>
         </Row>
 
-
         <Row>
           <AppIcon name={"calendar1"} color={colorsTheme.text} />
           <Tile flex={1}>
@@ -818,8 +730,6 @@ export default function SkisManagement() {
 
           </Tile>
         </Row>
-
-
 
         <Row>
           <AppIcon name={"arrow-up2"} color={colorsTheme.text} />
@@ -884,13 +794,6 @@ export default function SkisManagement() {
         </Row>
       </ModalEditor >
       {
-        // #     #                             #     #                            
-        // ##   ##  ####  #####    ##   #      #     #  ####  ###### #####   #### 
-        // # # # # #    # #    #  #  #  #      #     # #      #      #    # #     
-        // #  #  # #    # #    # #    # #      #     #  ####  #####  #    #  #### 
-        // #     # #    # #    # ###### #      #     #      # #      #####       #
-        // #     # #    # #    # #    # #      #     # #    # #      #   #  #    #
-        // #     #  ####  #####  #    # ######  #####   ####  ###### #    #  #### 
       }
       <ModalEditor visible={usersVisible}>
         <Text style={appStyles.title}>{t('choose_users')}</Text>
@@ -958,13 +861,6 @@ export default function SkisManagement() {
 
       </ModalEditor>
       {
-        // #     #                             ######                            
-        // ##   ##  ####  #####    ##   #      #     #  ####   ####  #####  #### 
-        // # # # # #    # #    #  #  #  #      #     # #    # #    #   #   #     
-        // #  #  # #    # #    # #    # #      ######  #    # #    #   #    #### 
-        // #     # #    # #    # ###### #      #     # #    # #    #   #        #
-        // #     # #    # #    # #    # #      #     # #    # #    #   #   #    #
-        // #     #  ####  #####  #    # ###### ######   ####   ####    #    #### 
       }
       <ModalEditor visible={bootsVisible} >
         <Text style={appStyles.title}>{t('choose_boots')}</Text>
@@ -1033,13 +929,6 @@ export default function SkisManagement() {
 
       </ModalEditor>
       {
-        // #     #                             #######         ##### 
-        // ##   ##  ####  #####    ##   #         #     ####  #     #
-        // # # # # #    # #    #  #  #  #         #    #    # #      
-        // #  #  # #    # #    # #    # #         #    #    #  ##### 
-        // #     # #    # #    # ###### #         #    #    #       #
-        // #     # #    # #    # #    # #         #    #    # #     #
-        // #     #  ####  #####  #    # ######    #     ####   ##### 
       }
       <ModalEditor visible={tosVisible} >
         <Text style={appStyles.title}>{t('choose_tos')}</Text>
@@ -1078,13 +967,6 @@ export default function SkisManagement() {
         />
       </ModalEditor>
       {
-        // #     #                             ######                                    
-        // ##   ##  ####  #####    ##   #      #     # #####    ##   #    # #####   #### 
-        // # # # # #    # #    #  #  #  #      #     # #    #  #  #  ##   # #    # #     
-        // #  #  # #    # #    # #    # #      ######  #    # #    # # #  # #    #  #### 
-        // #     # #    # #    # ###### #      #     # #####  ###### #  # # #    #      #
-        // #     # #    # #    # #    # #      #     # #   #  #    # #   ## #    # #    #
-        // #     #  ####  #####  #    # ###### ######  #    # #    # #    # #####   #### 
       }
       <ModalEditor visible={brandVisible} >
         <Text style={appStyles.title}>{t('choose_brand')}</Text>
@@ -1124,13 +1006,6 @@ export default function SkisManagement() {
       </ModalEditor>
 
       {
-        // ######                      #######                 ######                               
-        // #     #   ##   ##### ######    #    # #    # ###### #     # #  ####  #    # ###### ##### 
-        // #     #  #  #    #   #         #    # ##  ## #      #     # # #    # #   #  #      #    #
-        // #     # #    #   #   #####     #    # # ## # #####  ######  # #      ####   #####  #    #
-        // #     # ######   #   #         #    # #    # #      #       # #      #  #   #      ##### 
-        // #     # #    #   #   #         #    # #    # #      #       # #    # #   #  #      #   # 
-        // ######  #    #   #   ######    #    # #    # ###### #       #  ####  #    # ###### #    #
         endDatePickerVisible &&
         <DateTimePicker
           mode={'date'}
@@ -1163,13 +1038,6 @@ export default function SkisManagement() {
     ;
 }
 
-//  #####                           
-// #     # ##### #   # #      ######
-// #         #    # #  #      #     
-//  #####    #     #   #      ##### 
-//       #   #     #   #      #     
-// #     #   #     #   #      #     
-//  #####    #     #   ###### ######
 const styles = StyleSheet.create({
   modalRow: {
     flexDirection: "row",

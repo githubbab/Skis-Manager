@@ -26,7 +26,6 @@ import RowItem from "@/components/RowItem";
 
 const customSwatches = ["#6CC5B0", "#F3722C", "#FF8AB7", "#3CA951", "#A463F2", "#4269D0"];
 
-
 export default function UsersManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
@@ -52,62 +51,27 @@ export default function UsersManagementScreen() {
     return 0;
   });
 
-  //                      #######                                  
-  // #    #  ####  ###### #       ###### ###### ######  ####  #####
-  // #    # #      #      #       #      #      #      #    #   #  
-  // #    #  ####  #####  #####   #####  #####  #####  #        #  
-  // #    #      # #      #       #      #      #      #        #  
-  // #    # #    # #      #       #      #      #      #    #   #  
-  //  ####   ####  ###### ####### #      #      ######  ####    #  
   useEffect(() => {
     loadData();
   }, []);
 
-  //                             ######                     
-  // #       ####    ##   #####  #     #   ##   #####   ##  
-  // #      #    #  #  #  #    # #     #  #  #    #    #  # 
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // #      #    # ###### #    # #     # ######   #   ######
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // ######  ####  #    # #####  ######  #    #   #   #    #
   async function loadData() {
     const res: Users[] = await getAllUsers(db);
     setUsers(res);
   }
 
-  //                                #                  #     #                            
-  //  ####  #####  ###### #    #   # #   #####  #####  ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   #  #   #  #    # #    # # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #     # #    # #    # #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # ####### #    # #    # #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #     # #    # #    # #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # #     # #####  #####  #     #  ####  #####  #    # ######
   function openAddModal() {
     setEditingUser(false);
     setSelectedUser(initUser());
     setModalVisible(true);
   }
 
-  //                             #######                #     #                            
-  //  ####  #####  ###### #    # #       #####  # ##### ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   # #       #    # #   #   # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #####   #    # #   #   #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # #       #    # #   #   #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #       #    # #   #   #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # ####### #####  #   #   #     #  ####  #####  #    # ######
   function openEditModal(user: Users) {
     setEditingUser(true);
     setSelectedUser(user);
     setModalVisible(true);
   }
 
-  //                             #     #                     
-  //  ####    ##   #    # ###### #     #  ####  ###### ##### 
-  // #       #  #  #    # #      #     # #      #      #    #
-  //  ####  #    # #    # #####  #     #  ####  #####  #    #
-  //      # ###### #    # #      #     #      # #      ##### 
-  // #    # #    #  #  #  #      #     # #    # #      #   # 
-  //  ####  #    #   ##   ######  #####   ####  ###### #    #
   async function saveUser() {
     if (editingUser) {
       await updateUser(db, selectedUser);
@@ -122,13 +86,6 @@ export default function UsersManagementScreen() {
     webDavSync();
   }
 
-  //                                           ######                       #####                                    
-  // #    #   ##   #    # #####  #      ###### #     #   ##   ##### ###### #     # #    #   ##   #    #  ####  ######
-  // #    #  #  #  ##   # #    # #      #      #     #  #  #    #   #      #       #    #  #  #  ##   # #    # #     
-  // ###### #    # # #  # #    # #      #####  #     # #    #   #   #####  #       ###### #    # # #  # #      ##### 
-  // #    # ###### #  # # #    # #      #      #     # ######   #   #      #       #    # ###### #  # # #  ### #     
-  // #    # #    # #   ## #    # #      #      #     # #    #   #   #      #     # #    # #    # #   ## #    # #     
-  // #    # #    # #    # #####  ###### ###### ######  #    #   #   ######  #####  #    # #    # #    #  ####  ######
   async function handleDateChange(event: any, date?: Date) {
     setShowDatePicker(false);
     if (event.type === "set" && selectedUser) {
@@ -139,13 +96,6 @@ export default function UsersManagementScreen() {
     }
   }
 
-  //                                           ######                                   
-  // #    #   ##   #    # #####  #      ###### #     # ###### #      ###### ##### ######
-  // #    #  #  #  ##   # #    # #      #      #     # #      #      #        #   #     
-  // ###### #    # # #  # #    # #      #####  #     # #####  #      #####    #   ##### 
-  // #    # ###### #  # # #    # #      #      #     # #      #      #        #   #     
-  // #    # #    # #   ## #    # #      #      #     # #      #      #        #   #     
-  // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   function handleDelete(user: Users) {
     if (!user) return;
     if (user.end) {
@@ -205,13 +155,6 @@ export default function UsersManagementScreen() {
     }
   }
 
-  //                #####                              ######                 
-  //  ####  #    # #     #  ####  #       ####  #####  #     # #  ####  #    #
-  // #    # ##   # #       #    # #      #    # #    # #     # # #    # #   # 
-  // #    # # #  # #       #    # #      #    # #    # ######  # #      ####  
-  // #    # #  # # #       #    # #      #    # #####  #       # #      #  #  
-  // #    # #   ## #     # #    # #      #    # #   #  #       # #    # #   # 
-  //  ####  #    #  #####   ####  ######  ####  #    # #       #  ####  #    #
   const onColorPick = (color: ColorFormatsObject) => {
     selectedUser.pcolor = color.hex;
     setSelectedUser({ ...selectedUser });
@@ -219,13 +162,6 @@ export default function UsersManagementScreen() {
     inputRef.current?.blur();
   };
 
-  //                                              #                                
-  //  ####    ##   #    #  ####  ###### #        # #    ####  ##### #  ####  #    #
-  // #    #  #  #  ##   # #    # #      #       #   #  #    #   #   # #    # ##   #
-  // #      #    # # #  # #      #####  #      #     # #        #   # #    # # #  #
-  // #      ###### #  # # #      #      #      ####### #        #   # #    # #  # #
-  // #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
-  //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
     setSelectedUser(initUser());
@@ -234,13 +170,6 @@ export default function UsersManagementScreen() {
     inputRef.current?.blur();
   }
 
-  //                                           ###                    
-  // #####  ###### #    # #####  ###### #####   #  ##### ###### #    #
-  // #    # #      ##   # #    # #      #    #  #    #   #      ##  ##
-  // #    # #####  # #  # #    # #####  #    #  #    #   #####  # ## #
-  // #####  #      #  # # #    # #      #####   #    #   #      #    #
-  // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
-  // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   function renderItem(item: Users) {
     const nbActions = item.nbOutings + item.nbBoots + item.nbSkis;
     return (
@@ -286,12 +215,6 @@ export default function UsersManagementScreen() {
     );
   }
 
-  // #####  ###### ##### #    # #####  #    #
-  // #    # #        #   #    # #    # ##   #
-  // #    # #####    #   #    # #    # # #  #
-  // #####  #        #   #    # #####  #  # #
-  // #   #  #        #   #    # #   #  #   ##
-  // #    # ######   #    ####  #    # #    #
   return (
     <Body >
       <Row>
@@ -324,13 +247,6 @@ export default function UsersManagementScreen() {
       <AddButton onPress={openAddModal} disabled={false} />
 
       {
-        // #     #                             #######                             
-        // ##   ##  ####  #####    ##   #      #       #####  # #####  ####  ##### 
-        // # # # # #    # #    #  #  #  #      #       #    # #   #   #    # #    #
-        // #  #  # #    # #    # #    # #      #####   #    # #   #   #    # #    #
-        // #     # #    # #    # ###### #      #       #    # #   #   #    # ##### 
-        // #     # #    # #    # #    # #      #       #    # #   #   #    # #   # 
-        // #     #  ####  #####  #    # ###### ####### #####  #   #    ####  #    #
       }
       <ModalEditor visible={modalVisible}>
         <Row>

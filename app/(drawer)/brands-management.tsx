@@ -35,36 +35,15 @@ export default function BrandsManagementScreen() {
   const { t, webDavSync } = useContext(AppContext)!;
   const iconSize = 48;
 
-  //                      #######                                  
-  // #    #  ####  ###### #       ###### ###### ######  ####  #####
-  // #    # #      #      #       #      #      #      #    #   #  
-  // #    #  ####  #####  #####   #####  #####  #####  #        #  
-  // #    #      # #      #       #      #      #      #        #  
-  // #    # #    # #      #       #      #      #      #    #   #  
-  //  ####   ####  ###### ####### #      #      ######  ####    #  
   useEffect(() => {
     loadData();
   }, []);
 
-  //                             ######                     
-  // #       ####    ##   #####  #     #   ##   #####   ##  
-  // #      #    #  #  #  #    # #     #  #  #    #    #  # 
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // #      #    # ###### #    # #     # ######   #   ######
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // ######  ####  #    # #####  ######  #    #   #   #    #
   async function loadData() {
     const res: Brands[] = await getAllBrands(db, "order_by_usage");
     setBrands(res);
   }
 
-  //                                #                  #     #                            
-  //  ####  #####  ###### #    #   # #   #####  #####  ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   #  #   #  #    # #    # # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #     # #    # #    # #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # ####### #    # #    # #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #     # #    # #    # #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # #     # #####  #####  #     #  ####  #####  #    # ######
   function openAddModal() {
     setEditingBrand(initBrand());
     setName("");
@@ -73,14 +52,6 @@ export default function BrandsManagementScreen() {
     setImageChanged(false);
   }
 
-
-  //                             #######                #     #                            
-  //  ####  #####  ###### #    # #       #####  # ##### ##   ##  ####  #####    ##   #     
-  // #    # #    # #      ##   # #       #    # #   #   # # # # #    # #    #  #  #  #     
-  // #    # #    # #####  # #  # #####   #    # #   #   #  #  # #    # #    # #    # #     
-  // #    # #####  #      #  # # #       #    # #   #   #     # #    # #    # ###### #     
-  // #    # #      #      #   ## #       #    # #   #   #     # #    # #    # #    # #     
-  //  ####  #      ###### #    # ####### #####  #   #   #     #  ####  #####  #    # ######
   function openEditModal(brand: Brands) {
     setEditingBrand(brand);
     setName(brand.name);
@@ -89,13 +60,6 @@ export default function BrandsManagementScreen() {
     setImageChanged(false);
   }
 
-  //                                #                                
-  //  ####    ##   #    # ######   # #    ####  ##### #  ####  #    #
-  // #       #  #  #    # #       #   #  #    #   #   # #    # ##   #
-  //  ####  #    # #    # #####  #     # #        #   # #    # # #  #
-  //      # ###### #    # #      ####### #        #   # #    # #  # #
-  // #    # #    #  #  #  #      #     # #    #   #   # #    # #   ##
-  //  ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   async function saveAction() {
     if (!name.trim()) return;
     let brandId = editingBrand.id;
@@ -140,13 +104,6 @@ export default function BrandsManagementScreen() {
     }
   }
 
-  //                                           ######                                   
-  // #    #   ##   #    # #####  #      ###### #     # ###### #      ###### ##### ######
-  // #    #  #  #  ##   # #    # #      #      #     # #      #      #        #   #     
-  // ###### #    # # #  # #    # #      #####  #     # #####  #      #####    #   ##### 
-  // #    # ###### #  # # #    # #      #      #     # #      #      #        #   #     
-  // #    # #    # #   ## #    # #      #      #     # #      #      #        #   #     
-  // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   function handleDelete(brand: Brands) {
     Alert.alert(
       t('delete'),
@@ -165,13 +122,6 @@ export default function BrandsManagementScreen() {
     );
   }
 
-  //                                              #                                
-  //  ####    ##   #    #  ####  ###### #        # #    ####  ##### #  ####  #    #
-  // #    #  #  #  ##   # #    # #      #       #   #  #    #   #   # #    # ##   #
-  // #      #    # # #  # #      #####  #      #     # #        #   # #    # # #  #
-  // #      ###### #  # # #      #      #      ####### #        #   # #    # #  # #
-  // #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
-  //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   function cancelAction() {
     setModalVisible(false);
     setEditingBrand(initBrand());
@@ -180,14 +130,6 @@ export default function BrandsManagementScreen() {
     setBrandImage(undefined);
     inputRef.current?.blur();
   }
-
-  //                                           ###                    
-  // #####  ###### #    # #####  ###### #####   #  ##### ###### #    #
-  // #    # #      ##   # #    # #      #    #  #    #   #      ##  ##
-  // #    # #####  # #  # #    # #####  #    #  #    #   #####  # ## #
-  // #####  #      #  # # #    # #      #####   #    #   #      #    #
-  // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
-  // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
 
   function renderItem(item: Brands) {
     return (
@@ -221,12 +163,6 @@ export default function BrandsManagementScreen() {
     );
   }
 
-  // #####  ###### ##### #    # #####  #    #
-  // #    # #        #   #    # #    # ##   #
-  // #    # #####    #   #    # #    # # #  #
-  // #####  #        #   #    # #####  #  # #
-  // #   #  #        #   #    # #   #  #   ##
-  // #    # ######   #    ####  #    # #    #
   return (
     <Body>
       <Text style={[appStyles.title, { marginVertical: 8 }]}>
@@ -244,13 +180,6 @@ export default function BrandsManagementScreen() {
       </Tile>
       <AddButton onPress={openAddModal} disabled={false} />
       {
-        // #     #                             #######                             
-        // ##   ##  ####  #####    ##   #      #       #####  # #####  ####  ##### 
-        // # # # # #    # #    #  #  #  #      #       #    # #   #   #    # #    #
-        // #  #  # #    # #    # #    # #      #####   #    # #   #   #    # #    #
-        // #     # #    # #    # ###### #      #       #    # #   #   #    # ##### 
-        // #     # #    # #    # #    # #      #       #    # #   #   #    # #   # 
-        // #     #  ####  #####  #    # ###### ####### #####  #   #    ####  #    #
       }
       <ModalEditor visible={modalVisible}>
         <Text style={appStyles.title}>
