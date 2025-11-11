@@ -29,17 +29,17 @@ export function initUser(): Users {
 export async function insertUser(db: SQLiteDatabase, u: { name: string, end?: number, pcolor?: string }) {
   const id = createId();
   await execQuery(db, insertQuery(TABLES.USERS, ["id", "name", "end", "pcolor"],
-    [id, u.name, u.end ?? null, u.pcolor ?? null]), id);
+    [id, u.name, u.end ?? null, u.pcolor ?? null]));
   return { id: id, name: u.name, end: u.end, pcolor: u.pcolor } as Users;
 }
 
 export async function updateUser(db: SQLiteDatabase, u: Users) {
   await execQuery(db, updateQuery(TABLES.USERS, ["name", "end", "pcolor"],
-    [u.name, u.end ?? null, u.pcolor ?? null], "id = ?", [u.id]), u.id);
+    [u.name, u.end ?? null, u.pcolor ?? null], "id = ?", [u.id]));
 }
 
 export async function deleteUser(db: SQLiteDatabase, id: string) {
-  await execQuery(db, deleteQuery(TABLES.USERS, "id = ?", [id]), id);
+  await execQuery(db, deleteQuery(TABLES.USERS, "id = ?", [id]));
 }
 
 export async function getAllUsers(db: SQLiteDatabase, activeTo?: number): Promise<Users[]> {

@@ -14,7 +14,7 @@ const RowItem = ({
 }:
   {
     children: ReactNode;
-    onSelect: () => void;
+    onSelect?: () => void;
     onEdit?: () => void;
     onDelete?: () => void;
     deleteMode?: "archive" | "delete" | "restore";
@@ -25,7 +25,7 @@ const RowItem = ({
 
   return (
     <View>
-      <TouchableOpacity onPress={onSelect} style={[{
+      <TouchableOpacity onPress={onSelect || (() => {})} style={[{
         borderBottomWidth: 1,
         borderBottomColor: "#ccc",
         paddingVertical: 4,

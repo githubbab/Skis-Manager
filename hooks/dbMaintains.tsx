@@ -28,7 +28,7 @@ export async function insertMaintain(db: SQLiteDatabase, m: {
   const id = createId();
   const query = insertQuery(TABLES.MAINTAINS, ["id", "date", "idSkis", "swr", "description"],
     [id, m.date, m.idSkis, m.swr, m.description])
-  await execQuery(db, query, id);
+  await execQuery(db, query);
   return { id: id, date: m.date, idSkis: m.idSkis, swr: m.swr, description: m.description } as Maintains;
 }
 
@@ -41,7 +41,7 @@ export async function updateMaintain(db: SQLiteDatabase, m: Maintains) {
   }
   const query = updateQuery(TABLES.MAINTAINS, ["date", "idSkis", "swr", "description"],
     [m.date, m.idSkis, m.swr, m.description, m.id], "id = ?", [m.id]);
-  await execQuery(db, query, m.id);
+  await execQuery(db, query);
 }
 
 export async function deleteMaintain(db: SQLiteDatabase, id: string) {
@@ -49,7 +49,7 @@ export async function deleteMaintain(db: SQLiteDatabase, id: string) {
     return;
   }
   const query = deleteQuery(TABLES.MAINTAINS, "id = ?", [id]);
-  await execQuery(db, query, id);
+  await execQuery(db, query);
 }
 
 export async function getMaintains4Skis(db: SQLiteDatabase, idSkis: string): Promise<Maintains[]> {

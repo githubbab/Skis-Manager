@@ -49,7 +49,7 @@ export async function insertOuting(db: SQLiteDatabase, o: {
       query += insertQuery(TABLES.JOIN_OUTINGS_OFFPISTES, ["idOuting", "idOffPiste", "count"], [id, idOffPiste, nb]);
     }
   }
-  await execQuery(db, query, id);
+  await execQuery(db, query);
   return {
     id: id, date: o.date, idOutingType: o.idOutingType, idSkis: o.idSkis, idUser: o.idUser, idBoots: o.idBoots,
     idFriends: o.idFriends, listOfOffPistes: o.listOfOffPistes
@@ -75,13 +75,13 @@ export async function updateOuting(db: SQLiteDatabase, o: Outings) {
       query += insertQuery(TABLES.JOIN_OUTINGS_OFFPISTES, ["idOuting", "idOffPiste", "count"], [o.id, idOffPiste, count]);
     }
   }
-  await execQuery(db, query, o.id);
+  await execQuery(db, query);
 }
 
 export async function deleteOuting(db: SQLiteDatabase, id: string) {
   await execQuery(db, deleteQuery(TABLES.JOIN_OUTINGS_FRIENDS, "idOuting = ?", [id]) +
     deleteQuery(TABLES.JOIN_OUTINGS_OFFPISTES, "idOuting = ?", [id]) +
-    deleteQuery(TABLES.OUTINGS, "id = ?", [id]), id);
+    deleteQuery(TABLES.OUTINGS, "id = ?", [id]));
 }
 
 export async function getAllOutings(db: SQLiteDatabase, seasonDate: number): Promise<Outings[]> {

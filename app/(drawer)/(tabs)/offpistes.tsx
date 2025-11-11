@@ -32,10 +32,7 @@ export default function Offpistes() {
   // #      #    # #    # #    # #     # #    #   #   #    #
   // ######  ####  #    # #####  ######  #    #   #   #    #
   const loadData = async () => {
-    // Fetch off-pistes data here
-    Logger.debug("Loading off-pistes data from DB");
     const data = await getSeasonOffPistes(db);
-    Logger.debug("Off-pistes data loaded:", data);
     setListOffPistes(data);
   };
 
@@ -70,7 +67,7 @@ export default function Offpistes() {
           onRefresh={loadData}
           refreshing={false}
           renderItem={({ item }) => (
-            <RowItem isActive={false} onSelect={() => { }}>
+            <RowItem isActive={false}>
               <Row>
                 <Text style={appStyles.text}>{item.name}</Text>
                 <Text style={appStyles.text}>{item.count > 0 ? item.count : ""}</Text>

@@ -39,7 +39,6 @@ export default function SeasonsStatistics() {
   const loadSeasons = async () => {
     try {
       if (loading) return;
-      Logger.debug("Loading seasons...");
       setLoading(true);
       const seasonsFromDB = await getAllSeasons(db);
       setSeasons(seasonsFromDB);
@@ -71,7 +70,7 @@ export default function SeasonsStatistics() {
 
   useEffect(() => {
     loadSeasons();
-  }, [currentTheme]);
+  }, []);
 
   const renderSeason: ListRenderItem<Seasons> = ({ item }) => (
     <RowItem

@@ -1,7 +1,7 @@
 import { Buffer } from "buffer";
+import { AuthType, createClient, FileStat, WebDAVClient } from "webdav";
 import { SQLiteDatabase } from "expo-sqlite";
 import { showMessage } from "react-native-flash-message";
-import { WebDAVClient } from "webdav";
 import { TABLES, imgStoreDir } from "./DataManager";
 import { File } from "expo-file-system";
 import { Logger } from "./ToolsBox";
@@ -63,6 +63,87 @@ const SYNCABLE_TABLES = [
   TABLES.JOIN_OUTINGS_OFFPISTES,
 ];
 
+// #     #           #     ######                 #####                                          
+// #  #  # ###### #####  #     #   ##   #    #   #     # #      # ###### #    # #####           
+// #  #  # #      #    # #     #  #  #  #    #   #       #      # #      ##   #   #             
+// #  #  # #####  #####  #     # #    # #    #   #       #      # #####  # #  #   #             
+// #  #  # #      #    # #     # ###### #    #   #       #      # #      #  # #   #             
+// #  #  # #      #    # #     # #    #  #  #    #     # #      # #      #   ##   #             
+//  ## ##  ###### #####  ######  #    #   ##      #####  ###### # ###### #    #   #             
+
+/**
+ * Create and initialize a WebDAV client
+ */
+export async function createWebDavClient(params: { url: string, user: string, password: string }): Promise<WebDAVClient | string> {
+  try {
+    const client = createClient(
+      params.url,
+      {
+        username: params.user,
+        password: params.password,
+        authType: AuthType.Password,
+      }
+    );
+    const contents: FileStat[] = await getRemoteDirectoryContents(client, "/");
+    Logger.debug("WebDav connection test succeeded");
+    const hasImagesDir = contents.some((item) => item.type === "directory" && item.basename === "images");
+    if (!hasImagesDir) {
+      await client.createDirectory("/images");
+      Logger.debug("Created /images directory on WebDav server");
+    }
+    return client;
+  } catch (error) {
+    Logger.error("WebDav connection test failed: ", error);
+    return "ERROR: " + (error instanceof Error ? error.message : String(error));
+  }
+}
+
+/**
+ * Get remote directory contents (helper function)
+ */
+async function getRemoteDirectoryContents(client: WebDAVClient, path: string): Promise<FileStat[]> {
+  const contentsRaw = await client.getDirectoryContents(path);
+  const contents: FileStat[] = Array.isArray(contentsRaw)
+    ? contentsRaw
+    : (contentsRaw.data as FileStat[]);
+  return contents;
+}
+
+/**
+ * Import all remote images from WebDAV (legacy function for initial setup)
+ */
+export async function importAllRemoteImages(client: WebDAVClient): Promise<void> {
+  Logger.debug("Importing all remote images from WebDav server");
+  const remoteImages: FileStat[] = (await getRemoteDirectoryContents(client, "/images/")).filter((item) => item.type === "file");
+
+  for (const image of remoteImages) {
+    const localPath = `${imgStoreDir.uri}/${image.basename}`;
+    await importRemoteFile(client, "/images/" + image.basename, localPath);
+  }
+}
+
+/**
+ * Import a single remote file (helper function)
+ */
+async function importRemoteFile(client: WebDAVClient, remotePath: string, localPath: string): Promise<void> {
+  const fileStream = await client.getFileContents(remotePath, { format: "binary" });
+  let buffer: Buffer;
+  if (Buffer.isBuffer(fileStream)) {
+    buffer = fileStream;
+  } else if (typeof fileStream === "string") {
+    buffer = Buffer.from(fileStream);
+  } else if (fileStream instanceof ArrayBuffer) {
+    buffer = Buffer.from(new Uint8Array(fileStream));
+  } else {
+    throw new Error("Unsupported fileStream type");
+  }
+  const localFile = new File(localPath);
+  if (localFile.exists) {
+    localFile.delete();
+  }
+  localFile.write(buffer);
+}
+
 //  #####                                                #     #               ######                             
 // #     # #   # #    #  ####  #####   ##   ##### ###### #     #   ##   #    # #     #   ##   ##### ###### #####    ##    ####  ###### 
 // #        # #  ##   # #    # #    # #  #  #    #      #     #  #  #  #    # #     #  #  #    #   #      #    #  #  #  #      #      
@@ -92,16 +173,13 @@ async function countLocalRecords(db: SQLiteDatabase): Promise<number> {
 
 /**
  * Main sync function - orchestrates the full synchronization process
- */ 
-
-/**
- * Main sync function - orchestrates the full synchronization process
  */
 export async function syncByState(
   db: SQLiteDatabase,
   webDavClient: WebDAVClient,
   deviceId: string,
-  onProgress?: (status: SyncStatus, message?: string) => void
+  onProgress?: (status: SyncStatus, message?: string) => void,
+  silent: boolean = false
 ): Promise<boolean> {
   Logger.info("=== Starting state-based sync ===");
   
@@ -178,11 +256,13 @@ export async function syncByState(
     onProgress?.("synced", "Synchronisation terminée");
     Logger.info("=== Sync completed successfully ===");
     
-    showMessage({
-      message: "Synchronisation réussie",
-      type: "success",
-      duration: 2000,
-    });
+    if (!silent) {
+      showMessage({
+        message: "Synchronisation réussie",
+        type: "success",
+        duration: 2000,
+      });
+    }
     
     return true;
     
@@ -190,12 +270,14 @@ export async function syncByState(
     Logger.error("Sync error:", error);
     onProgress?.("error", "Erreur de synchronisation");
     
-    showMessage({
-      message: "Erreur de synchronisation",
-      description: error instanceof Error ? error.message : String(error),
-      type: "danger",
-      duration: 4000,
-    });
+    if (!silent) {
+      showMessage({
+        message: "Erreur de synchronisation",
+        description: error instanceof Error ? error.message : String(error),
+        type: "danger",
+        duration: 4000,
+      });
+    }
     
     return false;
   }
@@ -434,7 +516,9 @@ async function mergeTable(
   }
   
   return result;
-}/**
+}
+
+/**
  * Insert a remote record into the local database
  */
 async function insertRemoteRecord(db: SQLiteDatabase, tableName: string, record: any): Promise<void> {
@@ -712,13 +796,13 @@ async function uploadImage(webDavClient: WebDAVClient, file: File, filename: str
   }
 }
 
-// #     #                               
-// #     # ##### # #       ####  
-// #     #   #   # #      #      
-// #     #   #   # #       ####  
-// #     #   #   # #           #
-// #     #   #   # #      #    #
-//  #####    #   # ######  ####  
+// ######                                #     #                               
+// #     # ###### #    # #  ####  ###### ##   ##   ##   #    #   ##    ####  ###### 
+// #     # #      #    # # #    # #      # # # #  #  #  ##   #  #  #  #    # #      
+// #     # #####  #    # # #      #####  #  #  # #    # # #  # #    # #      #####  
+// #     # #      #    # # #      #      #     # ###### #  # # ###### #  ### #      
+// #     # #       #  #  # #    # #      #     # #    # #   ## #    # #    # #      
+// ######  ######   ##   #  ####  ###### #     # #    # #    # #    #  ####  ###### 
 
 /**
  * Get list of devices that have synced to WebDAV

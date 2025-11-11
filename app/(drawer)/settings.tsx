@@ -56,12 +56,12 @@ export default function Settings() {
         <View style={[styles.pickerView, { backgroundColor: colorsTheme.tileBG }]}>
           <Row>
             <TouchableOpacity onPress={() => { if (lang !== "en") changeLang("en") }}
-              style={{ flex: 1, borderColor: colorsTheme.primary, borderWidth: lang === "en" ? 2 : 0, borderRadius: 8 }}>
-                <Image source={require('@/assets/images/en.png')} style={{ width: 32, height: 32, margin: "auto" }} />
+              style={{ flex: 1, borderColor: colorsTheme.primary, borderWidth: lang === "en" ? 2 : 0, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                <Image source={require('@/assets/images/en.png')} style={{ width: 32, height: 32 }} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => { if (lang !== "fr") changeLang("fr") }}
-              style={{ flex: 1, borderColor: colorsTheme.primary, borderWidth: lang === "fr" ? 2 : 0, borderRadius: 8 }}>
-              <Image source={require('@/assets/images/fr.png')} style={{ width: 32, height: 32, margin: "auto" }} />
+              style={{ flex: 1, borderColor: colorsTheme.primary, borderWidth: lang === "fr" ? 2 : 0, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+              <Image source={require('@/assets/images/fr.png')} style={{ width: 32, height: 32 }} />
             </TouchableOpacity>
           </Row>
         </View>

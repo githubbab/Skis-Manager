@@ -96,7 +96,7 @@ export async function insertSki(db: SQLiteDatabase, s: {
   for (const idBoots of s.listBoots) {
     query += insertQuery(TABLES.JOIN_SKIS_BOOTS, ["idSkis", "idBoots"], [id, idBoots]);
   }
-  await execQuery(db, query, id);
+  await execQuery(db, query);
   return {
     id: id, name: s.name, idBrand: s.idBrand, idTypeOfSkis: s.idTypeOfSkis, begin: s.begin, end: s.end, size: s.size,
     radius: s.radius, waist: s.waist, listBoots: s.listBoots, listUsers: s.listUsers
@@ -119,13 +119,13 @@ export async function updateSki(db: SQLiteDatabase, s: Skis) {
   const bootsQuery =
     diffAndGenerateQueries(bootsResult, s.listBoots, TABLES.JOIN_SKIS_BOOTS, "idSkis", s.id, "idBoots");
 
-  await execQuery(db, query + usersQuery + bootsQuery, s.id);
+  await execQuery(db, query + usersQuery + bootsQuery);
 }
 
 export async function deleteSki(db: SQLiteDatabase, id: string) {
   await execQuery(db, deleteQuery(TABLES.JOIN_SKIS_USERS, "idSkis = ?", [id]) +
     deleteQuery(TABLES.JOIN_SKIS_BOOTS, "idSkis = ?", [id]) +
-    deleteQuery(TABLES.SKIS, "id = ?", [id]), id);
+    deleteQuery(TABLES.SKIS, "id = ?", [id]));
 }
 
 export async function getAllSkis(db: SQLiteDatabase): Promise<Skis[]> {

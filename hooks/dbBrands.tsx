@@ -25,16 +25,16 @@ export function initBrand(): Brands {
 // -------------------- BRANDS --------------------
 export async function insertBrand(db: SQLiteDatabase, b: { name: string }) {
   const id = createId();
-  await execQuery(db, insertQuery(TABLES.BRANDS, ["id", "name"], [id, b.name]), id);
+  await execQuery(db, insertQuery(TABLES.BRANDS, ["id", "name"], [id, b.name]));
   return { id: id, name: b.name };
 }
 
 export async function updateBrand(db: SQLiteDatabase, b: { id: string, name: string }) {
-  await execQuery(db, updateQuery(TABLES.BRANDS, ["name"], [b.name], "id = ?", [b.id]), b.id);
+  await execQuery(db, updateQuery(TABLES.BRANDS, ["name"], [b.name], "id = ?", [b.id]));
 }
 
 export async function deleteBrand(db: SQLiteDatabase, id: string) {
-  await execQuery(db, deleteQuery(TABLES.BRANDS, "id = ?", [id]), id);
+  await execQuery(db, deleteQuery(TABLES.BRANDS, "id = ?", [id]));
   delBrandIco(id);
 }
 

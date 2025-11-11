@@ -18,7 +18,6 @@ import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity, View } from 
 import * as DocumentPicker from 'expo-document-picker';
 import { ImageManipulator } from 'expo-image-manipulator';
 import { copyToSIco, delToSIco, getToSIcoURI } from "@/hooks/DataManager";
-import { Logger } from "@/hooks/ToolsBox";
 
 export default function TypeOfSkisManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
@@ -84,7 +83,6 @@ export default function TypeOfSkisManagementScreen() {
   // #    # #      #      #   ## #       #    # #   #   #     # #    # #    # #    # #     
   //  ####  #      ###### #    # ####### #####  #   #   #     #  ####  #####  #    # ######
   function openEditModal(tos: TOS) {
-    Logger.debug("Editing TOS:", tos);
     setEditingTOS(tos);
     setName(tos.name);
     setWaxNeed(tos.waxNeed);
@@ -131,8 +129,8 @@ export default function TypeOfSkisManagementScreen() {
   // #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ######
   function handleDelete(tos: TOS) {
     Alert.alert(
-      tos.itemCount > 0 ? t('delete') : t('archive'),
-      tos.itemCount > 0 ? t('del_tos') : t('archive_tos'),
+      tos.itemCount > 0 ? t('archive') : t('delete'),
+      tos.itemCount > 0 ? t('archive_tos') : t('del_tos'),
       [
         { text: t('cancel'), style: "cancel" },
         {
@@ -176,7 +174,6 @@ export default function TypeOfSkisManagementScreen() {
       const manipResult = await (await manipulator.renderAsync()).saveAsync();
       setTosImage(manipResult.uri);
       setImageChanged(true);
-      Logger.log("Image sélectionnée :", manipResult.uri);
     }
   }
   //                                           ###                    

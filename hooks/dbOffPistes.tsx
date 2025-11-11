@@ -19,7 +19,7 @@ export function initOffPiste(): OffPistes {
 // -------------------- OFF-PISTES --------------------
 export async function insertOffPiste(db: SQLiteDatabase, op: { name: string }) {
   const id = createId();
-  await execQuery(db, insertQuery(TABLES.OFFPISTES, ["id", "name"], [id, op.name]), id);
+  await execQuery(db, insertQuery(TABLES.OFFPISTES, ["id", "name"], [id, op.name]));
   return { id: id, name: op.name } as OffPistes;
 }
 
@@ -30,14 +30,14 @@ export async function updateOffPiste(db: SQLiteDatabase, op: OffPistes) {
   if (!op.name) {
     return;
   }
-  await execQuery(db, updateQuery(TABLES.OFFPISTES, ["name"], [op.name], "id = ?", [op.id]), op.id);
+  await execQuery(db, updateQuery(TABLES.OFFPISTES, ["name"], [op.name], "id = ?", [op.id]));
 }
 
 export async function deleteOffPiste(db: SQLiteDatabase, id: string) {
   if (!id || id === "not-an-id") {
     return;
   }
-  await execQuery(db, deleteQuery(TABLES.OFFPISTES, "id = ?", [id]), id);
+  await execQuery(db, deleteQuery(TABLES.OFFPISTES, "id = ?", [id]));
 }
 export async function getAllOffPistes(db: SQLiteDatabase): Promise<OffPistes[]> {
   const result: OffPistes[] = await db.getAllAsync(`

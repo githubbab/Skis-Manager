@@ -20,16 +20,16 @@ export function initFriend(): Friends {
 // -------------------- FRIENDS --------------------
 export async function insertFriend(db: SQLiteDatabase, f: { name: string }) {
   const id = createId();
-  await execQuery(db, insertQuery(TABLES.FRIENDS, ["id", "name"], [id, f.name]), id);
+  await execQuery(db, insertQuery(TABLES.FRIENDS, ["id", "name"], [id, f.name]));
   return { id: id, name: f.name } as Friends;
 }
 
 export async function updateFriend(db: SQLiteDatabase, f: Friends) {
-  await execQuery(db, updateQuery(TABLES.FRIENDS, ["name"], [f.name], "id = ?", [f.id]), f.id);
+  await execQuery(db, updateQuery(TABLES.FRIENDS, ["name"], [f.name], "id = ?", [f.id]));
 }
 
 export async function deleteFriend(db: SQLiteDatabase, id: string) {
-  await execQuery(db, deleteQuery(TABLES.FRIENDS, "id = ?", [id]), id);
+  await execQuery(db, deleteQuery(TABLES.FRIENDS, "id = ?", [id]));
 }
 export async function getAllFriends(db: SQLiteDatabase): Promise<Friends[]> {
   const result = await db.getAllAsync(`SELECT * FROM ${TABLES.FRIENDS}`);

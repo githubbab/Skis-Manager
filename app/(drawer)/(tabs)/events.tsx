@@ -12,7 +12,6 @@ import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
 import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
-import { getLastDBWrite } from "@/hooks/DataManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
 import { Friends, getAllFriends } from "@/hooks/dbFriends";
 import { deleteMaintain, getAllMaintains, initMaintain, insertMaintain, Maintains, updateMaintain } from "@/hooks/dbMaintains";
@@ -38,7 +37,6 @@ const Events = () => {
   const appStyles = AppStyles(colorsTheme);
   const [dbState, setDbState] = useState("none");
   const db = useSQLiteContext();
-  const [lastCheck, setLastCheck] = useState<number>(0);
 
   const [listEvents, setListEvents] = useState<EventsType[]>([]);
   const [tooFilter, setTooFilter] = useState<TOO | null>(null);
@@ -202,12 +200,8 @@ const Events = () => {
   //  #####   ####  ###### #        ####   ####   ####   ####  ####### #      #      ######  ####    #  
   useFocusEffect(
     useCallback(() => {
-      Logger.debug("useFocusEffect - checking for data updates");
       if (dbState === "loading") return;
-      const lastWrite = getLastDBWrite();
-      if (lastWrite > lastCheck) {
-        loadData().then(() => setLastCheck(lastWrite))
-      }
+      loadData();
     }, [])
   )
 
@@ -306,7 +300,6 @@ const Events = () => {
   function changeDate(date: Date, type: "outing" | "maintain") {
     if (type === "maintain") setPartOfDay("pm");
     const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : type === "outing" ? 16 : 18));
-    Logger.debug("changeDate", date2Save, type, partOfDay);
 
     if (type === "outing") {
       if (listUsers.length === 1) {
@@ -331,12 +324,8 @@ const Events = () => {
   }
 
   function onDateChange(event: any, selectedDate: Date | undefined) {
-    Logger.debug("onDateChange", event.type, selectedDate);
     if (event.type === "set" && selectedDate) {
       changeDate(selectedDate, dateTimePickerVisible as "outing" | "maintain");
-    }
-    else {
-      Logger.debug("Date selection cancelled");
     }
     setDateTimePickerVisible("none");
   }
@@ -349,7 +338,6 @@ const Events = () => {
   // #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
   //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   const cancelAction = async () => {
-    Logger.debug("Cancelling action");
     setMaintainsVisible(false);
     setMaintain2Write(initMaintain());
     setOutingVisible(false);
@@ -378,7 +366,6 @@ const Events = () => {
   // #    # #    #  #  #  #      #     # #    #   #   # #   ## #    #
   //  ####  #    #   ##   ###### #######  ####    #   # #    #  #### 
   const saveOuting = async () => {
-    Logger.debug("Saving outing", outing2write);
     if (outing2write.id === "not-an-id") {
       await insertOuting(db, outing2write);
     } else {
@@ -390,7 +377,6 @@ const Events = () => {
     await loadData(); // Reload data after saving
   }
   const handleDeleteOuting = (outing: Outings) => {
-    Logger.debug("Deleting outing", outing);
     Alert.alert(
       t('delete'),
       t("del_outing"),
@@ -421,7 +407,6 @@ const Events = () => {
   // #    # #    #  #  #  #      #     # #    # # #   ##   #   #    # # #   ##
   //  ####  #    #   ##   ###### #     # #    # # #    #   #   #    # # #    #
   const saveMaintain = async () => {
-    Logger.debug("Saving maintain", maintain2write);
     if (maintain2write.id === "not-an-id") {
       await insertMaintain(db, maintain2write);
     } else {
@@ -440,7 +425,6 @@ const Events = () => {
   // #    # #      #      #        #   #      #     # #    # # #   ##   #   #    # # #   ##
   // #####  ###### ###### ######   #   ###### #     # #    # # #    #   #   #    # # #    #
   const handleDeleteMaintain = (maintain: Maintains) => {
-    Logger.debug("Deleting maintain", maintain);
     Alert.alert(
       t('delete'),
       t("del_maintain"),
@@ -475,8 +459,6 @@ const Events = () => {
   const renderOutingSkis: ListRenderItem<Skis> = ({ item }) => {
     return (
       <TouchableOpacity onPress={() => {
-        Logger.debug("renderOutingSkis:", item);
-        Logger.debug("majorOutingType:", item.majorTypeOfOuting);
         if (outing2write.idSkis === item.id) {
           const skis = filterOutingSkis(outing2write.idUser || "");
           if (skis.length !== 1) {

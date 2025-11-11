@@ -14,13 +14,10 @@ import { ThemeContext } from "@/context/ThemeContext";
 import { copyBrandIco, delBrandIco, getBrandIcoURI, icoUnknownBrand } from "@/hooks/DataManager";
 import { Brands, deleteBrand, getAllBrands, initBrand, insertBrand, updateBrand } from "@/hooks/dbBrands";
 import * as DocumentPicker from 'expo-document-picker';
-import { ImageManipulator } from 'expo-image-manipulator';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Text, TextInput, TouchableOpacity } from "react-native";
-import { File } from "expo-file-system";
-import { Logger } from "@/hooks/ToolsBox";
-
 
 export default function BrandsManagementScreen() {
   const { colorsTheme } = useContext(ThemeContext);
@@ -57,7 +54,6 @@ export default function BrandsManagementScreen() {
   // #      #    # #    # #    # #     # #    #   #   #    #
   // ######  ####  #    # #####  ######  #    #   #   #    #
   async function loadData() {
-    Logger.log(": Loading brands from DB");
     const res: Brands[] = await getAllBrands(db, "order_by_usage");
     setBrands(res);
   }
@@ -114,7 +110,6 @@ export default function BrandsManagementScreen() {
     // Si une image a été sélectionnée, la sauvegarder dans le dossier local
     if (brandImage && brandId && imageChanged && brandImage.startsWith("file://")) {
       // Si l'image n'est pas déjà dans le bon dossier, la copier
-      Logger.log(": Brand image:", brandImage, "Brand ID:", brandId);
       copyBrandIco(brandId, brandImage);
     } else if ((!brandImage || !brandImage?.startsWith("file://")) && brandId && imageChanged) {
       // Si l'image a été supprimée, supprimer le fichier
@@ -134,12 +129,14 @@ export default function BrandsManagementScreen() {
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const img = result.assets[0];
-      // Redimensionne à 256x256
+      // Redimensionne à 256x256 en conservant la transparence
       const manipulator = ImageManipulator.manipulate(img.uri).resize({ width: 256, height: 256 });
-      const manipResult = await (await manipulator.renderAsync()).saveAsync();
+      const manipResult = await (await manipulator.renderAsync()).saveAsync({
+        format: SaveFormat.PNG,  // Format PNG pour conserver la transparence
+        compress: 0.9,             // Compression maximale (0 = max compression, 1 = qualité max)
+      });
       setBrandImage(manipResult.uri);
       setImageChanged(true);
-      Logger.log(": Image sélectionnée :", manipResult.uri);
     }
   }
 
@@ -193,18 +190,6 @@ export default function BrandsManagementScreen() {
   // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
 
   function renderItem(item: Brands) {
-    const nbActions = item.nbSkis + item.nbBoots;
-    if (!item.id.startsWith('init-')) {
-      Logger.log(": Brand", item.name, "icoUri:", item.icoUri, "nbActions:", nbActions);
-      const file = new File(item.icoUri);
-      if (!file.exists) {
-        Logger.log(":   File not found:", item.icoUri);
-      }
-      else {
-        Logger.log(":   File exists:", item.icoUri);
-      }
-    }
-
     return (
       <RowItem
         isActive={item.id === editingBrand.id}

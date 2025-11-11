@@ -123,7 +123,6 @@ export default function Index() {
       await webDavSync();
     }
 
-    Logger.debug("index - loadData");
     try {
       setDbState("loading");
       const topUsersResult: Users[] = await getTopUsers(db);
@@ -146,7 +145,6 @@ export default function Index() {
       setListFriends(friendsResult);
       const offPistesResult: OffPistes[] = await getAllOffPistes(db);
       setListOffPistes(offPistesResult);
-      Logger.debug("index - db load data done");
       setDbState("done");
     } catch (error) {
       Logger.error(error);
@@ -289,7 +287,6 @@ export default function Index() {
         else {
           setSelectedSkis(initSkis(0));
         }
-        console.log("selectedSkis:", selectedSkis, outing2write, maintain2write);
       }}
         isActive={selectedSkis.id === item.id}
         style={{
@@ -510,8 +507,6 @@ export default function Index() {
   const renderOutingSkis: ListRenderItem<Skis> = ({ item }) => {
     return (
       <TouchableOpacity onPress={() => {
-        Logger.debug("renderOutingSkis:", item);
-        Logger.debug("majorOutingType:", item.majorTypeOfOuting);
         if (outing2write.idSkis === item.id) {
           const skis = filterOutingSkis(outing2write.idUser || "");
           if (skis.length !== 1) {
@@ -637,7 +632,6 @@ export default function Index() {
   // #    # #    #  #  #  #      #     # #    #   #   # #   ## #    #
   //  ####  #    #   ##   ###### #######  ####    #   # #    #  #### 
   const saveOuting = async () => {
-    Logger.debug("Saving outing", outing2write);
     setAddOutingMode(false);
     await insertOuting(db, outing2write);
     cancelAdd();
@@ -652,7 +646,6 @@ export default function Index() {
   // #    # #    #  #  #  #      #     # #    # # #   ##   #   #    # # #   ##
   //  ####  #    #   ##   ###### #     # #    # # #    #   #   #    # # #    #
   const saveMaintain = async () => {
-    Logger.debug("Saving maintain");
     setAddMaintainMode(false);
     await insertMaintain(db, maintain2write);
     cancelAdd();
@@ -695,7 +688,6 @@ export default function Index() {
 
   function changeDate(date: Date, type: "outing" | "maintain") {
     const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : 16));
-    Logger.debug("changeDate", date2Save);
 
     if (type === "outing") {
       if (listUsers.length === 1) {
@@ -715,18 +707,13 @@ export default function Index() {
         setOuting2Write({ ...outing2write, date: date2Save });
       }
     } else {
-      Logger.debug("changeDate maintain", date2Save);
       setMaintain2Write({ ...maintain2write, date: date2Save });
     }
   }
 
   function onDateChange(event: any, selectedDate: Date | undefined) {
-    Logger.debug("onDateChange", event.type, selectedDate);
     if (event.type === "set" && selectedDate) {
       changeDate(selectedDate, dateTimePickerVisible as "outing" | "maintain");
-    }
-    else {
-      Logger.debug("Date selection cancelled");
     }
     setDateTimePickerVisible("none");
   }

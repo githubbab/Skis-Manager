@@ -56,7 +56,7 @@ export async function insertBoots<Boots>(db: SQLiteDatabase, b: {
   for (const idUser of b.listUsers) {
     query += insertQuery(TABLES.JOIN_BOOTS_USERS, ["idBoots", "idUser"], [id, idUser]);
   }
-  await execQuery(db, query, id);
+  await execQuery(db, query);
   return { id: id, name: b.name, idBrand: b.idBrand, begin: b.begin, end: b.end, size: b.size, length: b.size, flex: b.flex } as Boots;
 }
 
@@ -73,14 +73,14 @@ export async function updateBoots(db: SQLiteDatabase, b: Boots) {
       .map((row: any) => row.idUser);
   const usersQuery =
     diffAndGenerateQueries(usersResult, b.listUsers, TABLES.JOIN_BOOTS_USERS, "idBoots", b.id, "idUser");
-  await execQuery(db, query + usersQuery, b.id);
+  await execQuery(db, query + usersQuery);
 }
 
 export async function deleteBoots(db: SQLiteDatabase, id: string) {
   if (!id || id === "not-an-id") {
     throw new Error("Boots ID is required for deletion");
   }
-  await execQuery(db, deleteQuery(TABLES.BOOTS, "id = ?", [id]) + deleteQuery(TABLES.JOIN_BOOTS_USERS, "idBoots = ?", [id]), id);
+  await execQuery(db, deleteQuery(TABLES.BOOTS, "id = ?", [id]) + deleteQuery(TABLES.JOIN_BOOTS_USERS, "idBoots = ?", [id]));
 }
 
 export async function getAllBoots(db: SQLiteDatabase, activeUntil?: number): Promise<Boots[]> {

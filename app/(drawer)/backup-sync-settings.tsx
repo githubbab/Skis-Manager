@@ -8,7 +8,7 @@ import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import AppStyles from "@/constants/AppStyles";
 import { ThemeContext } from "@/context/ThemeContext";
-import { clearDatabase, getDeviceID, TABLES , clearStore } from "@/hooks/DataManager";
+import { clearDatabase, getDeviceID, TABLES , clearImageStore } from "@/hooks/DataManager";
 import { Boots, insertBoots } from "@/hooks/dbBoots";
 import { insertMaintain } from "@/hooks/dbMaintains";
 import { insertOuting } from "@/hooks/dbOutings";
@@ -16,8 +16,7 @@ import { insertSeason } from "@/hooks/dbSeasons";
 import { insertSki, Skis } from "@/hooks/dbSkis";
 import { initTypeOfSkis, insertTypeOfSkis, TOS, updateTypeOfSkis } from "@/hooks/dbTypeOfSkis";
 import { insertUser, Users } from "@/hooks/dbUsers";
-import { createWebDavClient, importAllRemoteImages } from "@/hooks/SyncWebDav";
-import { getDeviceList, deleteDeviceFiles, DeviceInfo } from "@/hooks/syncByState";
+import { createWebDavClient, importAllRemoteImages, getDeviceList, deleteDeviceFiles, DeviceInfo } from "@/hooks/webdav-sync";
 import { Logger, smDate } from "@/hooks/ToolsBox";
 import { reloadAppAsync } from "expo";
 import * as DocumentPicker from 'expo-document-picker';
@@ -66,7 +65,7 @@ async function restoreSuivisSkisDB(db: SQLite.SQLiteDatabase, sqLiteDatabase: SQ
     autoHide: false,
   })
   await clearDatabase(db);
-  await clearStore();
+  await clearImageStore();
   message += ` done\nRestore database(typeOfSkis)...`;
   showMessage({
     message: message,
@@ -444,7 +443,7 @@ export default function BackupSyncSettings() {
           try {
             // @ts-ignore
             Logger.debug("restoreOldDB: Clearing Store...");
-            await clearStore()
+            await clearImageStore()
             Logger.debug("restoreOldDB: Closing database...");
             await db.closeAsync();
           } catch (error) {
@@ -809,7 +808,7 @@ export default function BackupSyncSettings() {
                   try {
                     // @ts-ignore
                     Logger.debug("Clearing Store...");
-                    await clearStore()
+                    await clearImageStore()
                     Logger.debug("Clearing database...");
                     await clearDatabase(db);
                     Logger.debug("Clearing AsyncStorage...");

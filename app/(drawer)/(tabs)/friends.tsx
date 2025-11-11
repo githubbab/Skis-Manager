@@ -5,6 +5,7 @@ import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
 import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
+import { Logger } from "@/hooks/ToolsBox";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useState } from "react"
 import { useFocusEffect } from "expo-router";
@@ -39,16 +40,14 @@ export default function TabFriends() {
   const fetchFriends = async () => {
     try {
       const friendsData = await getFriendsWithOutingsCountByTypeOfOuting(db);
-      console.log("Fetched friends:", friendsData);
       setListFriends(friendsData);
       const tooData = await getAllTypeOfOutings(db);
       // Supprime les types de sorties non utilisés
       const usedTooIds = new Set(friendsData.map(f => f.typeOfOuting).filter(id => id !== undefined));
       const filteredTooData = tooData.filter(too => usedTooIds.has(too.id));
-      console.log("Fetched type of outings:", filteredTooData);
       setTypeOfOuting(filteredTooData);
     } catch (error) {
-      console.error("Error fetching friends:", error);
+      Logger.error("Error fetching friends:", error);
     }
   };
 
@@ -84,7 +83,7 @@ export default function TabFriends() {
           onRefresh={fetchFriends}
           refreshing={false}
           renderItem={({ item }) => (
-            <RowItem isActive={false} onSelect={() => { }}>
+            <RowItem isActive={false}>
               {filteredFriends.filter(f => f.id === item).map((f, index) => (
                 <Row key={f.typeOfOuting ?? "no-type"}>
                   {<Text style={[appStyles.text, { marginHorizontal: 4, flex: 1 }]}>{index === 0 ? listFriends.find(f => f.id === item)?.name : ""}</Text>}

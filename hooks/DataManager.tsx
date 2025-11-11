@@ -13,10 +13,8 @@ import { Logger } from "./ToolsBox";
 // #       #    # #  # #      #   #   ###### #  # #   #   #           #
 // #     # #    # #   ## #    #   #   #    # #   ##   #   #      #    #
 //  #####   ####  #    #  ####    #   #    # #    #   #   ######  #### 
-const actionsStorePath = Paths.document.uri + "/actions/";
 const imgStorePath = Paths.document.uri + "/images/";
 export const icoUnknownBrand = imgStorePath + "brand-init-unknown.png";
-export const actionsStoreDir = new Directory(actionsStorePath);
 export const imgStoreDir = new Directory(imgStorePath);
 // Database version
 const DATABASE_VERSION = 3;
@@ -27,13 +25,7 @@ const DATABASE_VERSION = 3;
 // #     # #    # #    # # #    # #####  #      #####   #### 
 //  #   #  ###### #####  # ###### #    # #      #           #
 //   # #   #    # #   #  # #    # #    # #      #      #    #
-//    #    #    # #    # # #    # #####  ###### ######  #### 
-// Variables to track changes
-let imageStoreUpdated = false;
-let ActionsStoreUpdated = false;
-// Variables to track DB state
-let lastDBWrite = Date.now();
-let dbUpdated = false;
+//    #    #    # #####  ###### ######  #### 
 // Device ID
 let deviceID: string = "not-an-id";
 let lastId: string = "not-an-id";
@@ -170,28 +162,6 @@ export function getDeviceID() {
   return deviceID;
 }
 
-//                      ######                                                  #     #                                         
-// #    #   ##    ####  #     #   ##   #####   ##   #####    ##    ####  ###### #     # #####  #####    ##   ##### ###### ##### 
-// #    #  #  #  #      #     #  #  #    #    #  #  #    #  #  #  #      #      #     # #    # #    #  #  #    #   #      #    #
-// ###### #    #  ####  #     # #    #   #   #    # #####  #    #  ####  #####  #     # #    # #    # #    #   #   #####  #    #
-// #    # ######      # #     # ######   #   ###### #    # ######      # #      #     # #####  #    # ######   #   #      #    #
-// #    # #    # #    # #     # #    #   #   #    # #    # #    # #    # #      #     # #      #    # #    #   #   #      #    #
-// #    # #    #  ####  ######  #    #   #   #    # #####  #    #  ####  ######  #####  #      #####  #    #   #   ###### ##### 
-export function hasDatabaseUpdated() {
-  return dbUpdated;
-}
-
-//                                   ######                                                  #     #                                         
-// #####  ######  ####  ###### ##### #     #   ##   #####   ##   #####    ##    ####  ###### #     # #####  #####    ##   ##### ###### ##### 
-// #    # #      #      #        #   #     #  #  #    #    #  #  #    #  #  #  #      #      #     # #    # #    #  #  #    #   #      #    #
-// #    # #####   ####  #####    #   #     # #    #   #   #    # #####  #    #  ####  #####  #     # #    # #    # #    #   #   #####  #    #
-// #####  #           # #        #   #     # ######   #   ###### #    # ######      # #      #     # #####  #    # ######   #   #      #    #
-// #   #  #      #    # #        #   #     # #    #   #   #    # #    # #    # #    # #      #     # #      #    # #    #   #   #      #    #
-// #    # ######  ####  ######   #   ######  #    #   #   #    # #####  #    #  ####  ######  #####  #      #####  #    #   #   ###### ##### 
-export function resetDatabaseUpdated() {
-  dbUpdated = false;
-}
-
 //                                    ######                                                 
 //  ####  #      ######   ##   #####  #     #   ##   #####   ##   #####    ##    ####  ######
 // #    # #      #       #  #  #    # #     #  #  #    #    #  #  #    #  #  #  #      #     
@@ -216,15 +186,10 @@ export async function clearDatabase(db: SQLiteDatabase) {
 // #        ##   #      #      #   # # #    # #      #####    #  
 // #       #  #  #      #    # #    #  #    # #      #   #    #  
 // ###### #    # ######  ####   #### #  ####  ###### #    #   #  
-export async function execQuery(db: SQLiteDatabase, query: string, id?: string) {
+export async function execQuery(db: SQLiteDatabase, query: string) {
 
   try {
     await db.execAsync(query);
-    lastDBWrite = Date.now();
-    dbUpdated = true;
-    if (id) {
-      writeActions("query_" + id + "_" + lastDBWrite.toString() + "_" + deviceID + ".sql", query);
-    }
   } catch (err) {
     const errNumber = (err as any)?.code ?? -1;
     const message = err ? err.toString() : "Unknown error";
@@ -340,17 +305,6 @@ function makeDeviceId(length: number) {
   return result;
 }
 
-//                     #                           ######  ######  #     #                      
-//  ####  ###### ##### #         ##    ####  ##### #     # #     # #  #  # #####  # ##### ######
-// #    # #        #   #        #  #  #        #   #     # #     # #  #  # #    # #   #   #     
-// #      #####    #   #       #    #  ####    #   #     # ######  #  #  # #    # #   #   ##### 
-// #  ### #        #   #       ######      #   #   #     # #     # #  #  # #####  #   #   #     
-// #    # #        #   #       #    # #    #   #   #     # #     # #  #  # #   #  #   #   #     
-//  ####  ######   #   ####### #    #  ####    #   ######  ######   ## ##  #    # #   #   ######
-export function getLastDBWrite() {
-  return lastDBWrite;
-}
-
 //                  ######                      #     #                                          
 // # #    # # ##### #     #   ##   #####   ##   ##   ##   ##   #    #   ##    ####  ###### ##### 
 // # ##   # #   #   #     #  #  #    #    #  #  # # # #  #  #  ##   #  #  #  #    # #      #    #
@@ -373,12 +327,6 @@ export async function initDataManager(db: SQLiteDatabase): Promise<void> {
   // Initialize file system
   //
   Logger.debug("Initializing DataManager");
-  if (!actionsStoreDir.exists) {
-    actionsStoreDir.create();
-    Logger.debug("Create actionsStore", actionsStoreDir.uri);
-  } else {
-    Logger.debug("Find actionsStore", actionsStoreDir.uri);
-  }
   if (!imgStoreDir.exists) {
     imgStoreDir.create();
     Logger.debug("Create imgStore", imgStoreDir.uri);
@@ -498,51 +446,6 @@ export async function initDataManager(db: SQLiteDatabase): Promise<void> {
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 }
 
-//                       #####                             #     #                                         
-// #    #   ##    ####  #     # #####  ####  #####  ###### #     # #####  #####    ##   ##### ###### ##### 
-// #    #  #  #  #      #         #   #    # #    # #      #     # #    # #    #  #  #    #   #      #    #
-// ###### #    #  ####   #####    #   #    # #    # #####  #     # #    # #    # #    #   #   #####  #    #
-// #    # ######      #       #   #   #    # #####  #      #     # #####  #    # ######   #   #      #    #
-// #    # #    # #    # #     #   #   #    # #   #  #      #     # #      #    # #    #   #   #      #    #
-// #    # #    #  ####   #####    #    ####  #    # ######  #####  #      #####  #    #   #   ###### ##### 
-export function hasStoreUpdated() {
-  return imageStoreUpdated || ActionsStoreUpdated;
-}
-
-//                                    #####                             #     #                                         
-// #####  ######  ####  ###### ##### #     # #####  ####  #####  ###### #     # #####  #####    ##   ##### ###### ##### 
-// #    # #      #      #        #   #         #   #    # #    # #      #     # #    # #    #  #  #    #   #      #    #
-// #    # #####   ####  #####    #    #####    #   #    # #    # #####  #     # #    # #    # #    #   #   #####  #    #
-// #####  #           # #        #         #   #   #    # #####  #      #     # #####  #    # ######   #   #      #    #
-// #   #  #      #    # #        #   #     #   #   #    # #   #  #      #     # #      #    # #    #   #   #      #    #
-// #    # ######  ####  ######   #    #####    #    ####  #    # ######  #####  #      #####  #    #   #   ###### ##### 
-export function resetStoreUpdated() {
-  imageStoreUpdated = false;
-  ActionsStoreUpdated = false;
-}
-
-//                      ###                              #####                             #     #                                         
-// #    #   ##    ####   #  #    #   ##    ####  ###### #     # #####  ####  #####  ###### #     # #####  #####    ##   ##### ###### ##### 
-// #    #  #  #  #       #  ##  ##  #  #  #    # #      #         #   #    # #    # #      #     # #    # #    #  #  #    #   #      #    #
-// ###### #    #  ####   #  # ## # #    # #      #####   #####    #   #    # #    # #####  #     # #    # #    # #    #   #   #####  #    #
-// #    # ######      #  #  #    # ###### #  ### #            #   #   #    # #####  #      #     # #####  #    # ######   #   #      #    #
-// #    # #    # #    #  #  #    # #    # #    # #      #     #   #   #    # #   #  #      #     # #      #    # #    #   #   #      #    #
-// #    # #    #  ####  ### #    # #    #  ####  ######  #####    #    ####  #    # ######  #####  #      #####  #    #   #   ###### ##### 
-export function hasImageStoreUpdated() {
-  return imageStoreUpdated;
-}
-
-//                         #                                         #####                             #     #                                         
-// #    #   ##    ####    # #    ####  ##### #  ####  #    #  ####  #     # #####  ####  #####  ###### #     # #####  #####    ##   ##### ###### ##### 
-// #    #  #  #  #       #   #  #    #   #   # #    # ##   # #      #         #   #    # #    # #      #     # #    # #    #  #  #    #   #      #    #
-// ###### #    #  ####  #     # #        #   # #    # # #  #  ####   #####    #   #    # #    # #####  #     # #    # #    # #    #   #   #####  #    #
-// #    # ######      # ####### #        #   # #    # #  # #      #       #   #   #    # #####  #      #     # #####  #    # ######   #   #      #    #
-// #    # #    # #    # #     # #    #   #   # #    # #   ## #    # #     #   #   #    # #   #  #      #     # #      #    # #    #   #   #      #    #
-// #    # #    #  ####  #     #  ####    #   #  ####  #    #  ####   #####    #    ####  #    # ######  #####  #      #####  #    #   #   ###### ##### 
-export function hasActionsStoreUpdated() {
-  return ActionsStoreUpdated;
-}
-
 //                     #######         #####  ###               #     # ######  ###
 //  ####  ###### #####    #     ####  #     #  #   ####   ####  #     # #     #  # 
 // #    # #        #      #    #    # #        #  #    # #    # #     # #     #  # 
@@ -614,37 +517,22 @@ export function getDistinctBrandIcoURIs(data: any[]): string[] {
   return arrayIcoBrandURI;
 }
 
-//                                 #                                       
-// #    # #####  # ##### ######   # #    ####  ##### #  ####  #    #  #### 
-// #    # #    # #   #   #       #   #  #    #   #   # #    # ##   # #     
-// #    # #    # #   #   #####  #     # #        #   # #    # # #  #  #### 
-// # ## # #####  #   #   #      ####### #        #   # #    # #  # #      #
-// ##  ## #   #  #   #   #      #     # #    #   #   # #    # #   ## #    #
-// #    # #    # #   #   ###### #     #  ####    #   #  ####  #    #  #### 
-function writeActions(filename: string, query: string) {
-  const queryFile = new File(actionsStorePath + filename);
-  queryFile.write(query);
-  ActionsStoreUpdated = true;
-}
-
 //                      ######                              ###              
 // #####  ###### #      #     # #####    ##   #    # #####   #   ####   #### 
 // #    # #      #      #     # #    #  #  #  ##   # #    #  #  #    # #    #
 // #    # #####  #      ######  #    # #    # # #  # #    #  #  #      #    #
 // #    # #      #      #     # #####  ###### #  # # #    #  #  #      #    #
 // #    # #      #      #     # #   #  #    # #   ## #    #  #  #    # #    #
-// #####  ###### ###### ######  #    # #    # #    # #####  ###  ####   #### 
+// #####  ###### ###### ######  #    # #    # #    # #####  ######  #### 
 export function delBrandIco(idBrand: string) {
   const brandIco = new File(imgStorePath + "brand-" + idBrand + ".png");
   if (brandIco.exists) {
     brandIco.delete();
-    imageStoreUpdated = true;
-    writeActions("del_" + idBrand + "_" + new Date().getTime().toString() + "_" + deviceID + ".file", "brand-" + idBrand + ".png");
     Logger.debug("Deleted brand ico", brandIco.uri);
   }
 }
 
-//                      #######         #####  ###              
+//                      #######         #####  ###
 // #####  ###### #         #     ####  #     #  #   ####   #### 
 // #    # #      #         #    #    # #        #  #    # #    #
 // #    # #####  #         #    #    #  #####   #  #      #    #
@@ -655,8 +543,6 @@ export function delToSIco(idTypeOfSkis: string) {
   const tosIco = new File(imgStorePath + "tos-" + idTypeOfSkis + ".png");
   if (tosIco.exists) {
     tosIco.delete();
-    imageStoreUpdated = true;
-    writeActions("del_" + idTypeOfSkis + "_" + new Date().getTime().toString() + "_" + deviceID + ".file", "tos-" + idTypeOfSkis + ".png");
     Logger.debug("Deleted ToS ico", tosIco.uri);
   }
 }
@@ -683,8 +569,6 @@ export function copyBrandIco(idBrand: string, fromUri: string) {
   try {
     fromFile.copy(brandIco);
     if (brandIco.exists) {
-      writeActions("copy_" + idBrand + "_" + new Date().getTime().toString() + "_" + deviceID + ".file", "brand-" + idBrand + ".png");
-      imageStoreUpdated = true;
       Logger.debug("Copied brand ico", fromUri, "to", brandIco.uri);
     }
     else {
@@ -719,8 +603,6 @@ export function copyToSIco(idTypeOfSkis: string, fromUri: string) {
   try {
     fromFile.copy(tosIco);
     if (tosIco.exists) {
-      writeActions("copy_" + idTypeOfSkis + "_" + new Date().getTime().toString() + "_" + deviceID + ".file", "tos-" + idTypeOfSkis + ".png");
-      imageStoreUpdated = true;
       Logger.debug("Copied ToS ico", fromUri, "to", tosIco.uri);
     }
     else {
@@ -733,19 +615,7 @@ export function copyToSIco(idTypeOfSkis: string, fromUri: string) {
   }
 }
 
-//                                     #####                            
-//  ####  #      ######   ##   #####  #     # #####  ####  #####  ######
-// #    # #      #       #  #  #    # #         #   #    # #    # #     
-// #      #      #####  #    # #    #  #####    #   #    # #    # ##### 
-// #      #      #      ###### #####        #   #   #    # #####  #     
-// #    # #      #      #    # #   #  #     #   #   #    # #   #  #     
-//  ####  ###### ###### #    # #    #  #####    #    ####  #    # ######
-export async function clearStore() {
-  await clearActionsStore();
-  await clearImageStore();
-}
-
-//                                    ###                              #####                            
+//                                     ###                              #####                            
 //  ####  #      ######   ##   #####   #  #    #   ##    ####  ###### #     # #####  ####  #####  ######
 // #    # #      #       #  #  #    #  #  ##  ##  #  #  #    # #      #         #   #    # #    # #     
 // #      #      #####  #    # #    #  #  # ## # #    # #      #####   #####    #   #    # #    # ##### 
@@ -760,56 +630,4 @@ export async function clearImageStore() {
       item.delete();
     }
   }
-}
-
-//                                       #                                         #####                            
-//  ####  #      ######   ##   #####    # #    ####  ##### #  ####  #    #  ####  #     # #####  ####  #####  ######
-// #    # #      #       #  #  #    #  #   #  #    #   #   # #    # ##   # #      #         #   #    # #    # #     
-// #      #      #####  #    # #    # #     # #        #   # #    # # #  #  ####   #####    #   #    # #    # ##### 
-// #      #      #      ###### #####  ####### #        #   # #    # #  # #      #       #   #   #    # #####  #     
-// #    # #      #      #    # #   #  #     # #    #   #   # #    # #   ## #    # #     #   #   #    # #   #  #     
-//  ####  ###### ###### #    # #    # #     #  ####    #   #  ####  #    #  ####   #####    #    ####  #    # ######
-export async function clearActionsStore(who: string = "all") {
-  const queryFileList = actionsStoreDir.list();
-  for (const queryFile of queryFileList) {
-    if (who !== "all" && !queryFile.name.includes(who)) {
-      continue;
-    }
-    Logger.debug("Delete dataStore", actionsStorePath + queryFile.name);
-    queryFile.delete();
-  }
-}
-
-//                       #                                   #######                       
-// #      #  ####  ##### #        ####   ####    ##   #      #       # #      ######  #### 
-// #      # #        #   #       #    # #    #  #  #  #      #       # #      #      #     
-// #      #  ####    #   #       #    # #      #    # #      #####   # #      #####   #### 
-// #      #      #   #   #       #    # #      ###### #      #       # #      #           #
-// #      # #    #   #   #       #    # #    # #    # #      #       # #      #      #    #
-// ###### #  ####    #   #######  ####   ####  #    # ###### #       # ###### ######  #### 
-export function listActionsStoreFiles(): (File | Directory)[] {
-  const queryFileList = actionsStoreDir.list();
-  const fileNames: (File | Directory)[] = [];
-  for (const queryFile of queryFileList) {
-    fileNames.push(queryFile);
-  }
-  return fileNames;
-}
-
-export function listImageStoreFiles(): (File | Directory)[] {
-  const imgFileList = imgStoreDir.list();
-  const fileNames: (File | Directory)[] = [];
-  for (const imgFile of imgFileList) {
-    fileNames.push(imgFile);
-  }
-  return fileNames;
-}
-
-export function listRootStoreFiles(): (File | Directory)[] {
-  const rootFileList = Paths.document.list();
-  const fileNames: (File | Directory)[] = [];
-  for (const rootFile of rootFileList) {
-    fileNames.push(rootFile);
-  }
-  return fileNames;
 }

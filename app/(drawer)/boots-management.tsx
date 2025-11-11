@@ -11,7 +11,6 @@ import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
 import { ThemeContext } from "@/context/ThemeContext";
-import { getLastDBWrite } from "@/hooks/DataManager";
 import { Boots, deleteBoots, getAllBoots, initBoots, insertBoots, updateBoots } from "@/hooks/dbBoots";
 import { Brands, getAllBrands } from "@/hooks/dbBrands";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
@@ -27,7 +26,6 @@ import { Logger } from "@/hooks/ToolsBox";
 
 
 let dbState: string = "none";
-let lastCheck = 0;
 
 const iconSize = 32;
 
@@ -82,14 +80,12 @@ export default function BootsManagement() {
   //      ####   ####  ###### ####### #      #      ######  ####    #    #### 
   useFocusEffect(
     useCallback(() => {
-      if (lastCheck === getLastDBWrite()) return
-      loadData().then(() => lastCheck = getLastDBWrite())
+      loadData();
     }, [loadData])
   )
 
   // Refresh data after sync
   useEffect(() => {
-    Logger.debug("boots-management - lastWebDavSync changed, reloading data");
     if (lastWebDavSync > 0) {
       loadData();
     }
@@ -127,7 +123,6 @@ export default function BootsManagement() {
   //     #    # #    # #   ## #    # #      #      #     # #      #      #        #   #      #     # #    # #    #   #  
   //     #    # #    # #    # #####  ###### ###### ######  ###### ###### ######   #   ###### ######   ####   ####    #  
   function handleDeleteBoot(item: Boots): void {
-    Logger.debug("handleDeleteBoot", item);
     if (item.end) {
       Alert.alert(
         t('restore'),
@@ -201,7 +196,6 @@ export default function BootsManagement() {
   //     #    # #    # #   ## #    # #      #      #       #    # #   #   #     # #    # #    #   #   #    #
   //     #    # #    # #    # #####  ###### ###### ####### #####  #   #   ######   ####   ####    #    #### 
   function handleEditBoot(item: Boots): void {
-    Logger.debug("handleEditBoot", item);
     setEditMode(true);
     setBoots2Write(item);
     setModalVisible(true);

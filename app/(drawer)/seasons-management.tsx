@@ -12,7 +12,6 @@ import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import type { Seasons } from "@/hooks/dbSeasons";
 import { deleteSeason, getAllSeasons, insertSeason, updateSeason } from "@/hooks/dbSeasons";
-import { Logger } from "@/hooks/ToolsBox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useContext, useEffect, useState } from "react";
@@ -44,7 +43,6 @@ const SeasonsManagement = () => {
     if (data.length > 0) {
       changeSeason(new Date(data[0].begin), data[0].name);
     }
-    Logger.debug("Seasons loaded:", seasons);
   };
 
   //                      #######                                  
@@ -67,20 +65,18 @@ const SeasonsManagement = () => {
   //  ####  #    #   ##   ###### #     #  ####    #   #  ####  #    #
   const saveAction = async () => {
     if (!name || !begin) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs.");
+      Alert.alert(t('error'), t('fill_all_fields'));
       return;
     }
     const beginInt = parseInt(begin, 10);
     if (isNaN(beginInt)) {
-      Alert.alert("Erreur", "L'année de début doit être un nombre.");
+      Alert.alert(t('error'), t('year_must_be_number'));
       return;
     }
-    Logger.debug("Adding or updating season:", { begin: beginInt, name, editing });
     if (editing === null) {
       await insertSeason(db, { begin: beginInt, name });
     } else {
       await updateSeason(db, { id: editing, begin: beginInt, name });
-      Logger.debug("Season updated:", { id: editing, begin: beginInt, name });
       setEditing(null);
     }
     setName("");
@@ -183,7 +179,7 @@ const SeasonsManagement = () => {
           data={seasons}
           onRefresh={loadData}
           refreshing={false}
-          keyExtractor={(item) => item.begin.toString()}
+          keyExtractor={(item) => item.id}
           renderItem={({ item }) => renderItem(item)}
         />
       </Tile>

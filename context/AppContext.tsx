@@ -2,8 +2,7 @@ import translations, { Lang, TranslationKey } from "@/constants/Translations";
 import {  execQuery, getDeviceID } from "@/hooks/DataManager";
 import { getCurrentSeason } from "@/hooks/dbSeasons";
 import { getAllSettings, insertSettings, Settings } from "@/hooks/dbSettings";
-import { createWebDavClient } from "@/hooks/SyncWebDav";
-import { syncByState, SyncStatus } from "@/hooks/syncByState";
+import { createWebDavClient, syncByState, SyncStatus } from "@/hooks/webdav-sync";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSQLiteContext } from "expo-sqlite";
 import { createContext, ReactNode, useEffect, useState } from "react";
@@ -40,8 +39,6 @@ interface AppContextType {
   toggleViewFriends: (view: boolean) => void;
   //Database
   deviceID: string;
-  lastDBWrite: number;
-  setLastDBWrite: (timestamp: number) => void;
   //Webdav
   webDavSyncEnabled: boolean;
   webDavSyncParams: WebDavParams;
@@ -133,8 +130,6 @@ const AppContext = createContext<AppContextType>({
   toggleViewFriends: () => { },
   //Database
   deviceID: "not-an-id",
-  lastDBWrite: 0,
-  setLastDBWrite: () => { },
   //Webdav
   webDavSyncEnabled: false,
   webDavSyncParams: { url: "", user: "", password: "" },
@@ -176,7 +171,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [viewFriends, setViewFriends] = useState<boolean>(true);
   //Database
   const [deviceID] = useState<string>(myId);
-  const [lastDBWrite, setLastDBWrite] = useState<number>(0);
   //Webdav
   const [webDavSyncEnabled, setWebDavSyncEnabled] = useState<boolean>(false);
   const [webDavSyncParams, setWebDavSyncParams] = useState<WebDavParams>({ url: "", user: "", password: "" });
@@ -391,7 +385,8 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
       myId,
       (status: SyncStatus, message?: string) => {
         changeWebDavSyncStatus(status as WebDavSyncStatus, message);
-      }
+      },
+      true // silent mode - no showMessage popups
     ).then((success) => {
       if (!success) {
         Logger.error("Background sync failed");
@@ -527,8 +522,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
         toggleViewFriends,
         //Database
         deviceID,
-        lastDBWrite,
-        setLastDBWrite,
         //Webdav
         webDavSyncEnabled,
         webDavSyncParams,

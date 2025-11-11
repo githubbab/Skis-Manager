@@ -11,7 +11,6 @@ import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
 import { ThemeContext } from "@/context/ThemeContext";
-import { getLastDBWrite } from "@/hooks/DataManager";
 import { Boots, getAllBoots } from "@/hooks/dbBoots";
 import { Brands, getAllBrands } from "@/hooks/dbBrands";
 import { deleteSki, getAllSkis, initSkis, insertSki, Skis, updateSki } from "@/hooks/dbSkis";
@@ -38,7 +37,6 @@ import AppContext from "@/context/AppContext";
 import RowItem from "@/components/RowItem";
 
 let dbState: string = "none";
-let lastCheck = 0;
 const iconSize = 32;
 
 export default function SkisManagement() {
@@ -84,7 +82,6 @@ export default function SkisManagement() {
   // #      #    # #    # #    # #     # #    #   #   #    #
   // ######  ####  #    # #####  ######  #    #   #   #    #
   const loadData = async () => {
-    Logger.debug("refresh index - db load data")
     if (dbState === "loading") return;
 
     try {
@@ -115,8 +112,7 @@ export default function SkisManagement() {
   //  ####   ####  ###### ####### #      #      ######  ####    #  
   useFocusEffect(
     useCallback(() => {
-      if (lastCheck === getLastDBWrite()) return
-      loadData().then(() => lastCheck = getLastDBWrite())
+      loadData();
     }, [loadData])
   )
 
@@ -370,7 +366,6 @@ export default function SkisManagement() {
           {
             text: t('ok'),
             onPress: () => {
-              Logger.log(skis);
               if (skis.id) {
                 const updateSkis: Skis = {
                   ...skis,
@@ -378,7 +373,6 @@ export default function SkisManagement() {
                   listUsers: skis?.listUsers || [],
                   listBoots: skis?.listBoots || []
                 };
-                Logger.debug("Update skis", updateSkis);
                 updateSki(db, updateSkis).then(
                   () => { webDavSync(); loadData(); }
                 )
@@ -462,7 +456,6 @@ export default function SkisManagement() {
           icon: "warning",
         });
         inputNameRef.current?.focus();
-        Logger.debug("Ski name is required");
         return;
       }
       if (!skis2Write.idTypeOfSkis || skis2Write.idTypeOfSkis === "") {
@@ -473,7 +466,6 @@ export default function SkisManagement() {
           position: "top",
           icon: "warning",
         });
-        Logger.debug("Ski style is required");
         return;
       }
       if (!skis2Write.idBrand || skis2Write.idBrand === "") {

@@ -151,11 +151,9 @@ export default function OffpistesManagement() {
 
     return (
       <RowItem
-        key={item.id}
         onSelect={() => {
           if (item.id === editingOffpiste.id) {
             setEditingOffpiste(initOffPiste());
-            setName("");
           } else {
             setEditingOffpiste(item);
           }
