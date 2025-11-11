@@ -72,7 +72,7 @@ export default function BootsManagement() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+    }, [])
   )
 
   // Refresh data after sync
