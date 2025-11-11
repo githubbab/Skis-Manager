@@ -10,22 +10,12 @@ import { WebDAVClient } from "webdav";
 import { getLocales } from "expo-localization";
 import { Logger } from "@/hooks/ToolsBox";
 
-
-// #######                    
-//    #    #   # #####  ######
-//    #     # #  #    # #     
-//    #      #   #    # ##### 
-//    #      #   #####  #     
-//    #      #   #      #     
-//    #      #   #      ######
-
 type WebDavSyncStatus = "disabled" | "wait" | "syncing" | "synced" | "error";
 type WebDavParams = {
   url: string;
   user: string;
   password: string;
 }
-
 
 interface AppContextType {
   lang: Lang;
@@ -53,14 +43,6 @@ interface AppContextType {
   t: (key: TranslationKey) => string;
   localeDate: (date: number, options?: Intl.DateTimeFormatOptions) => string;
 }
-
-//                                           ######  ######  #                                                       
-//  ####  #    #   ##   #    #  ####  ###### #     # #     # #         ##   #    #  ####  #    #   ##    ####  ######
-// #    # #    #  #  #  ##   # #    # #      #     # #     # #        #  #  ##   # #    # #    #  #  #  #    # #     
-// #      ###### #    # # #  # #      #####  #     # ######  #       #    # # #  # #      #    # #    # #      ##### 
-// #      #    # ###### #  # # #  ### #      #     # #     # #       ###### #  # # #  ### #    # ###### #  ### #     
-// #    # #    # #    # #   ## #    # #      #     # #     # #       #    # #   ## #    # #    # #    # #    # #     
-//  ####  #    # #    # #    #  ####  ###### ######  ######  ####### #    # #    #  ####   ####  #    #  ####  ######
 
 async function changeDBLanguage(db: any, lang: Lang) {
   await insertSettings(db, "language", lang);
@@ -110,14 +92,6 @@ async function changeDBLanguage(db: any, lang: Lang) {
   Logger.debug("Database language changed to:", lang);
 }
 
-//    #                   #####                                         
-//   # #   #####  #####  #     #  ####  #    # ##### ###### #    # #####
-//  #   #  #    # #    # #       #    # ##   #   #   #       #  #    #  
-// #     # #    # #    # #       #    # # #  #   #   #####    ##     #  
-// ####### #####  #####  #       #    # #  # #   #   #        ##     #  
-// #     # #      #      #     # #    # #   ##   #   #       #  #    #  
-// #     # #      #       #####   ####  #    #   #   ###### #    #   #  
-
 const AppContext = createContext<AppContextType>({
   lang: 'en',
   changeLang: () => { },
@@ -145,15 +119,6 @@ const AppContext = createContext<AppContextType>({
   localeDate: () => { return ""; },
 });
 
-//    #                   #####                                          ######                                             
-//   # #   #####  #####  #     #  ####  #    # ##### ###### #    # ##### #     # #####   ####  #    # # #####  ###### ##### 
-//  #   #  #    # #    # #       #    # ##   #   #   #       #  #    #   #     # #    # #    # #    # # #    # #      #    #
-// #     # #    # #    # #       #    # # #  #   #   #####    ##     #   ######  #    # #    # #    # # #    # #####  #    #
-// ####### #####  #####  #       #    # #  # #   #   #        ##     #   #       #####  #    # #    # # #    # #      ##### 
-// #     # #      #      #     # #    # #   ##   #   #       #  #    #   #       #   #  #    #  #  #  # #    # #      #   # 
-// #     # #      #       #####   ####  #    #   #   ###### #    #   #   #       #    #  ####    ##   # #####  ###### #    #
-
-
 // AppContextProvider component to wrap the app and provide the context
 // It initializes the context state and provides functions to update it
 export const AppContextProvider = ({ children }: { children: ReactNode }) => {
@@ -179,94 +144,37 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [lastWebDavSync, setLastWebDavSync] = useState<number>(0);
   const [webDavClient, setWebDavClient] = useState<WebDAVClient | null>(null);
 
-
-  //     #     #               #######                                         
-  //     #     #  ####  ###### #       ###### ###### ######  ####  #####  #### 
-  //     #     # #      #      #       #      #      #      #    #   #   #     
-  //     #     #  ####  #####  #####   #####  #####  #####  #        #    #### 
-  //     #     #      # #      #       #      #      #      #        #        #
-  //     #     # #    # #      #       #      #      #      #    #   #   #    #
-  //      #####   ####  ###### ####### #      #      ######  ####    #    #### 
-
   useEffect(() => {
     initAppContext();
   }, []);
 
-  //                                               #                           
-  //      ####  #    #   ##   #    #  ####  ###### #         ##   #    #  #### 
-  //     #    # #    #  #  #  ##   # #    # #      #        #  #  ##   # #    #
-  //     #      ###### #    # # #  # #      #####  #       #    # # #  # #     
-  //     #      #    # ###### #  # # #  ### #      #       ###### #  # # #  ###
-  //     #    # #    # #    # #   ## #    # #      #       #    # #   ## #    #
-  //      ####  #    # #    # #    #  ####  ###### ####### #    # #    #  #### 
   const changeLang = (newLang: Lang) => {
     setLang(newLang);
     changeDBLanguage(db, newLang);
   }
 
-  //                                                #####                                    
-  //      ####  #    #   ##   #    #  ####  ###### #     # ######   ##    ####   ####  #    #
-  //     #    # #    #  #  #  ##   # #    # #      #       #       #  #  #      #    # ##   #
-  //     #      ###### #    # # #  # #      #####   #####  #####  #    #  ####  #    # # #  #
-  //     #      #    # ###### #  # # #  ### #            # #      ######      # #    # #  # #
-  //     #    # #    # #    # #   ## #    # #      #     # #      #    # #    # #    # #   ##
-  //      ####  #    # #    # #    #  ####  ######  #####  ###### #    #  ####   ####  #    #
   const changeSeason = (date: Date, name: string) => {
     setSeasonDate(date);
     setSeasonName(name);
   }
 
-  //                                              #     #                 #######                             
-  //     #####  ####   ####   ####  #      ###### #     # # ###### #    # #     # #    # ##### # #    #  #### 
-  //       #   #    # #    # #    # #      #      #     # # #      #    # #     # #    #   #   # ##   # #    #
-  //       #   #    # #      #      #      #####  #     # # #####  #    # #     # #    #   #   # # #  # #     
-  //       #   #    # #  ### #  ### #      #       #   #  # #      # ## # #     # #    #   #   # #  # # #  ###
-  //       #   #    # #    # #    # #      #        # #   # #      ##  ## #     # #    #   #   # #   ## #    #
-  //       #    ####   ####   ####  ###### ######    #    # ###### #    # #######  ####    #   # #    #  #### 
   const toggleViewOuting = (view: boolean) => {
     setViewOuting(view);
     insertSettings(db, "viewOuting", view.toString());
   }
 
-  //                                              #     #                 #######                                     
-  //     #####  ####   ####   ####  #      ###### #     # # ###### #    # #       #####  # ###### #    # #####   #### 
-  //       #   #    # #    # #    # #      #      #     # # #      #    # #       #    # # #      ##   # #    # #     
-  //       #   #    # #      #      #      #####  #     # # #####  #    # #####   #    # # #####  # #  # #    #  #### 
-  //       #   #    # #  ### #  ### #      #       #   #  # #      # ## # #       #####  # #      #  # # #    #      #
-  //       #   #    # #    # #    # #      #        # #   # #      ##  ## #       #   #  # #      #   ## #    # #    #
-  //       #    ####   ####   ####  ###### ######    #    # ###### #    # #       #    # # ###### #    # #####   #### 
   const toggleViewFriends = (view: boolean) => {
     setViewFriends(view);
     insertSettings(db, "viewFriends", view.toString());
   }
 
-  //     #####
-  //       #  
-  //       #  
-  //       #  
-  //       #  
-  //       #  
   const t = (key: TranslationKey): string => {
     return translations[lang][key] || key;
   }
-  //                                               ######                     
-  //     #       ####   ####    ##   #      ###### #     #   ##   ##### ######
-  //     #      #    # #    #  #  #  #      #      #     #  #  #    #   #     
-  //     #      #    # #      #    # #      #####  #     # #    #   #   ##### 
-  //     #      #    # #      ###### #      #      #     # ######   #   #     
-  //     #      #    # #    # #    # #      #      #     # #    #   #   #     
-  //     ######  ####   ####  #    # ###### ###### ######  #    #   #   ######
   const localeDate = (date: number, options?: Intl.DateTimeFormatOptions): string => {
     return new Date(date).toLocaleDateString(lang, options);
   }
 
-  //                                               #     #               ######                 #####                       #####                                  
-  //      ####  #    #   ##   #    #  ####  ###### #  #  # ###### #####  #     #   ##   #    # #     # #   # #    #  ####  #     # #####   ##   ##### #    #  #### 
-  //     #    # #    #  #  #  ##   # #    # #      #  #  # #      #    # #     #  #  #  #    # #        # #  ##   # #    # #         #    #  #    #   #    # #     
-  //     #      ###### #    # # #  # #      #####  #  #  # #####  #####  #     # #    # #    #  #####    #   # #  # #       #####    #   #    #   #   #    #  #### 
-  //     #      #    # ###### #  # # #  ### #      #  #  # #      #    # #     # ###### #    #       #   #   #  # # #            #   #   ######   #   #    #      #
-  //     #    # #    # #    # #   ## #    # #      #  #  # #      #    # #     # #    #  #  #  #     #   #   #   ## #    # #     #   #   #    #   #   #    # #    #
-  //      ####  #    # #    # #    #  ####  ######  ## ##  ###### #####  ######  #    #   ##    #####    #   #    #  ####   #####    #   #    #   #    ####   #### 
   const changeWebDavSyncStatus = (status: WebDavSyncStatus, error?: string) => {
     Logger.debug("Changing WebDav sync status:", status, error);
     setWebDavSyncStatus(status);
@@ -278,13 +186,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  //                                               #     #               ######                 #####                     
-  //      ####  #    #   ##   #    #  ####  ###### #  #  # ###### #####  #     #   ##   #    # #     # #   # #    #  #### 
-  //     #    # #    #  #  #  ##   # #    # #      #  #  # #      #    # #     #  #  #  #    # #        # #  ##   # #    #
-  //     #      ###### #    # # #  # #      #####  #  #  # #####  #####  #     # #    # #    #  #####    #   # #  # #     
-  //     #      #    # ###### #  # # #  ### #      #  #  # #      #    # #     # ###### #    #       #   #   #  # # #     
-  //     #    # #    # #    # #   ## #    # #      #  #  # #      #    # #     # #    #  #  #  #     #   #   #   ## #    #
-  //      ####  #    # #    # #    #  ####  ######  ## ##  ###### #####  ######  #    #   ##    #####    #   #    #  #### 
   const changeWebDavSync = async (sync: boolean, params?: WebDavParams): Promise<void> => {
     Logger.debug("Changing WebDav sync settings:", sync, params);
     
@@ -350,13 +251,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  //                          ######                 #####                     
-  //     #    # ###### #####  #     #   ##   #    # #     # #   # #    #  #### 
-  //     #    # #      #    # #     #  #  #  #    # #        # #  ##   # #    #
-  //     #    # #####  #####  #     # #    # #    #  #####    #   # #  # #     
-  //     # ## # #      #    # #     # ###### #    #       #   #   #  # # #     
-  //     ##  ## #      #    # #     # #    #  #  #  #     #   #   #   ## #    #
-  //     #    # ###### #####  ######  #    #   ##    #####    #   #    #  #### 
   const webDavSync = async (force: boolean = false) => {
     if (!webDavSyncEnabled || !webDavClient) {
       Logger.debug("WebDav sync disabled or client not available");
@@ -399,13 +293,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
     });
   }
 
-  //                      #     #               ######                 #####                                  #                   #####                     
-  //     # #    # # ##### #  #  # ###### #####  #     #   ##   #    # #     # #      # ###### #    # #####   # #   #    # #####  #     # #   # #    #  #### 
-  //     # ##   # #   #   #  #  # #      #    # #     #  #  #  #    # #       #      # #      ##   #   #    #   #  ##   # #    # #        # #  ##   # #    #
-  //     # # #  # #   #   #  #  # #####  #####  #     # #    # #    # #       #      # #####  # #  #   #   #     # # #  # #    #  #####    #   # #  # #     
-  //     # #  # # #   #   #  #  # #      #    # #     # ###### #    # #       #      # #      #  # #   #   ####### #  # # #    #       #   #   #  # # #     
-  //     # #   ## #   #   #  #  # #      #    # #     # #    #  #  #  #     # #      # #      #   ##   #   #     # #   ## #    # #     #   #   #   ## #    #
-  //     # #    # #   #    ## ##  ###### #####  ######  #    #   ##    #####  ###### # ###### #    #   #   #     # #    # #####   #####    #   #    #  #### 
   const initWebDavClientAndSync = async (webDavUrl: string, webDavUser: string, webDavPassword: string) => {
     Logger.debug("initWebDavClientAndSync: WebDav sync is enabled, creating client...");
     const res = await createWebDavClient({ url: webDavUrl, user: webDavUser, password: webDavPassword });
@@ -435,13 +322,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  //                         #                   #####                                         
-  //     # #    # # #####   # #   #####  #####  #     #  ####  #    # ##### ###### #    # #####
-  //     # ##   # #   #    #   #  #    # #    # #       #    # ##   #   #   #       #  #    #  
-  //     # # #  # #   #   #     # #    # #    # #       #    # # #  #   #   #####    ##     #  
-  //     # #  # # #   #   ####### #####  #####  #       #    # #  # #   #   #        ##     #  
-  //     # #   ## #   #   #     # #      #      #     # #    # #   ##   #   #       #  #    #  
-  //     # #    # #   #   #     # #      #       #####   ####  #    #   #   ###### #    #   #  
   const initAppContext = async () => {
     Logger.debug("Initializing AppContext");
     const settings: Settings[] = await getAllSettings(db);
@@ -501,13 +381,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-
-  //     #####  ###### ##### #    # #####  #    #
-  //     #    # #        #   #    # #    # ##   #
-  //     #    # #####    #   #    # #    # # #  #
-  //     #####  #        #   #    # #####  #  # #
-  //     #   #  #        #   #    # #   #  #   ##
-  //     #    # ######   #    ####  #    # #    #
   return (
     <AppContext.Provider
       value={{

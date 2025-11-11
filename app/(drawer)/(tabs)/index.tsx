@@ -28,10 +28,6 @@ import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { FlatList, Image, ListRenderItem, Text, TouchableOpacity, View, TextInput } from 'react-native';
 
-
-
-
-
 const iconSize: number = 32;
 const waitSyncTime = 5 * 60 * 1000; // 5 minutes
 
@@ -41,13 +37,6 @@ const getCountColor = (count: number) => {
 }
 
 export default function Index() {
-  //  #####                                         
-  // #     #  ####  #    # ##### ###### #    # #####
-  // #       #    # ##   #   #   #       #  #    #  
-  // #       #    # # #  #   #   #####    ##     #  
-  // #       #    # #  # #   #   #        ##     #  
-  // #     # #    # #   ##   #   #       #  #    #  
-  //  #####   ####  #    #   #   ###### #    #   #   
   const { colorsTheme, currentTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
   const [addOutingMode, setAddOutingMode] = useState<boolean>(false);
@@ -106,13 +95,6 @@ export default function Index() {
     return bMaintains - aMaintains;
   });
 
-  // #                            ######                     
-  // #        ####    ##   #####  #     #   ##   #####   ##  
-  // #       #    #  #  #  #    # #     #  #  #    #    #  # 
-  // #       #    # #    # #    # #     # #    #   #   #    #
-  // #       #    # ###### #    # #     # ######   #   ######
-  // #       #    # #    # #    # #     # #    #   #   #    #
-  // #######  ####  #    # #####  ######  #    #   #   #    #
   const loadData = async () => {
     if (dbState === "loading") {
       Logger.debug("index - loadData already in progress, skipping");
@@ -151,13 +133,6 @@ export default function Index() {
     }
   };
 
-  // #     #               #######                             #######                                  
-  // #     #  ####  ###### #        ####   ####  #    #  ####  #       ###### ###### ######  ####  #####
-  // #     # #      #      #       #    # #    # #    # #      #       #      #      #      #    #   #  
-  // #     #  ####  #####  #####   #    # #      #    #  ####  #####   #####  #####  #####  #        #  
-  // #     #      # #      #       #    # #      #    #      # #       #      #      #      #        #  
-  // #     # #    # #      #       #    # #    # #    # #    # #       #      #      #      #    #   #  
-  //  #####   ####  ###### #        ####   ####   ####   ####  ####### #      #      ######  ####    #  
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -184,7 +159,6 @@ export default function Index() {
     }
     setEffectActive(true);
     setOutingViewUser(true);
-
 
     let outing = outing2write
     if (outing2write.idUser) {
@@ -248,13 +222,6 @@ export default function Index() {
     setEffectActive(false);
   }, [outing2write])
 
-  //                                            #####                               
-  // #####  ###### #    # #####  ###### #####  #     # #    # # ###### #####   #### 
-  // #    # #      ##   # #    # #      #    # #       #   #  # #      #    # #     
-  // #    # #####  # #  # #    # #####  #    #  #####  ####   # #####  #    #  #### 
-  // #####  #      #  # # #    # #      #####        # #  #   # #      #####       #
-  // #   #  #      #   ## #    # #      #   #  #     # #   #  # #      #   #  #    #
-  // #    # ###### #    # #####  ###### #    #  #####  #    # # ###### #    #  #### 
   const renderSkiers: ListRenderItem<Users> = ({ item }) => (
     <View style={{ alignItems: 'center', justifyContent: 'center', width: 85 }}>
       <Pastille size={iconSize + 8} name={item.name} color={item.pcolor} />
@@ -271,13 +238,6 @@ export default function Index() {
     </View>
   )
 
-  //                                            #####                 
-  // #####  ###### #    # #####  ###### #####  #     # #    # #  #### 
-  // #    # #      ##   # #    # #      #    # #       #   #  # #     
-  // #    # #####  # #  # #    # #####  #    #  #####  ####   #  #### 
-  // #####  #      #  # # #    # #      #####        # #  #   #      #
-  // #   #  #      #   ## #    # #      #   #  #     # #   #  # #    #
-  // #    # ###### #    # #####  ###### #    #  #####  #    # #  #### 
   const renderSkis: ListRenderItem<Skis> = ({ item }) => {
     return (
       <RowItem onSelect={() => {
@@ -408,13 +368,6 @@ export default function Index() {
     )
   }
 
-  //                                           #######         #####                             
-  // #####  ###### #    # #####  ###### #####     #     ####  #     # #    #   ##   #####  ##### 
-  // #    # #      ##   # #    # #      #    #    #    #    # #       #    #  #  #  #    # #    #
-  // #    # #####  # #  # #    # #####  #    #    #    #    #  #####  ###### #    # #    # #    #
-  // #####  #      #  # # #    # #      #####     #    #    #       # #    # ###### #####  ##### 
-  // #   #  #      #   ## #    # #      #   #     #    #    # #     # #    # #    # #   #  #     
-  // #    # ###### #    # #####  ###### #    #    #     ####   #####  #    # #    # #    # #     
   const renderToSharp: ListRenderItem<Skis> = ({ item }) => {
     const count = item.nbMaintains || 0;
     const countColor = getCountColor(count)
@@ -453,13 +406,6 @@ export default function Index() {
     )
   }
 
-  //                                           #######        #     #              
-  // #####  ###### #    # #####  ###### #####     #     ####  #  #  #   ##   #    #
-  // #    # #      ##   # #    # #      #    #    #    #    # #  #  #  #  #   #  # 
-  // #    # #####  # #  # #    # #####  #    #    #    #    # #  #  # #    #   ##  
-  // #####  #      #  # # #    # #      #####     #    #    # #  #  # ######   ##  
-  // #   #  #      #   ## #    # #      #   #     #    #    # #  #  # #    #  #  # 
-  // #    # ###### #    # #####  ###### #    #    #     ####   ## ##  #    # #    #
   const renderToWax: ListRenderItem<Skis> = ({ item }) => {
     const count = item.nbMaintains || 0;
     const countColor = getCountColor(count)
@@ -497,13 +443,6 @@ export default function Index() {
       </Row>
     )
   }
-  //                                           #######                               #####                 
-  // #####  ###### #    # #####  ###### #####  #     # #    # ##### # #    #  ####  #     # #    # #  #### 
-  // #    # #      ##   # #    # #      #    # #     # #    #   #   # ##   # #    # #       #   #  # #     
-  // #    # #####  # #  # #    # #####  #    # #     # #    #   #   # # #  # #       #####  ####   #  #### 
-  // #####  #      #  # # #    # #      #####  #     # #    #   #   # #  # # #  ###       # #  #   #      #
-  // #   #  #      #   ## #    # #      #   #  #     # #    #   #   # #   ## #    # #     # #   #  # #    #
-  // #    # ###### #    # #####  ###### #    # #######  ####    #   # #    #  ####   #####  #    # #  #### 
   const renderOutingSkis: ListRenderItem<Skis> = ({ item }) => {
     return (
       <TouchableOpacity onPress={() => {
@@ -546,13 +485,6 @@ export default function Index() {
     )
   }
 
-  //                                           #######                              ######                            
-  // #####  ###### #    # #####  ###### #####  #     # #    # ##### # #    #  ####  #     #  ####   ####  #####  #### 
-  // #    # #      ##   # #    # #      #    # #     # #    #   #   # ##   # #    # #     # #    # #    #   #   #     
-  // #    # #####  # #  # #    # #####  #    # #     # #    #   #   # # #  # #      ######  #    # #    #   #    #### 
-  // #####  #      #  # # #    # #      #####  #     # #    #   #   # #  # # #  ### #     # #    # #    #   #        #
-  // #   #  #      #   ## #    # #      #   #  #     # #    #   #   # #   ## #    # #     # #    # #    #   #   #    #
-  // #    # ###### #    # #####  ###### #    # #######  ####    #   # #    #  ####  ######   ####   ####    #    #### 
   const renderOutingBoots: ListRenderItem<Boots> = ({ item }) => {
     return (
       <TouchableOpacity onPress={() => {
@@ -579,13 +511,6 @@ export default function Index() {
     )
   }
 
-  //                                           #     #                                        #####                 
-  // #####  ###### #    # #####  ###### #####  ##   ##   ##   # #    # #####   ##   # #    # #     # #    # #  #### 
-  // #    # #      ##   # #    # #      #    # # # # #  #  #  # ##   #   #    #  #  # ##   # #       #   #  # #     
-  // #    # #####  # #  # #    # #####  #    # #  #  # #    # # # #  #   #   #    # # # #  #  #####  ####   #  #### 
-  // #####  #      #  # # #    # #      #####  #     # ###### # #  # #   #   ###### # #  # #       # #  #   #      #
-  // #   #  #      #   ## #    # #      #   #  #     # #    # # #   ##   #   #    # # #   ## #     # #   #  # #    #
-  // #    # ###### #    # #####  ###### #    # #     # #    # # #    #   #   #    # # #    #  #####  #    # #  #### 
   const renderMaintainSkis: ListRenderItem<Skis> = ({ item }) => {
     const nbMaintains = (toSharp.find(s => s.id === 'toSharp-' + item.id)?.nbMaintains || 0) + (toWax.find(s => s.id === 'toWax-' + item.id)?.nbMaintains || 0);
     return (
@@ -624,13 +549,6 @@ export default function Index() {
     )
   }
 
-  //                             #######                             
-  //  ####    ##   #    # ###### #     # #    # ##### # #    #  #### 
-  // #       #  #  #    # #      #     # #    #   #   # ##   # #    #
-  //  ####  #    # #    # #####  #     # #    #   #   # # #  # #     
-  //      # ###### #    # #      #     # #    #   #   # #  # # #  ###
-  // #    # #    #  #  #  #      #     # #    #   #   # #   ## #    #
-  //  ####  #    #   ##   ###### #######  ####    #   # #    #  #### 
   const saveOuting = async () => {
     setAddOutingMode(false);
     await insertOuting(db, outing2write);
@@ -638,13 +556,6 @@ export default function Index() {
     await webDavSync();
     await loadData(); // Reload data after saving
   }
-  //                             #     #                                      
-  //  ####    ##   #    # ###### ##   ##   ##   # #    # #####   ##   # #    #
-  // #       #  #  #    # #      # # # #  #  #  # ##   #   #    #  #  # ##   #
-  //  ####  #    # #    # #####  #  #  # #    # # # #  #   #   #    # # # #  #
-  //      # ###### #    # #      #     # ###### # #  # #   #   ###### # #  # #
-  // #    # #    #  #  #  #      #     # #    # # #   ##   #   #    # # #   ##
-  //  ####  #    #   ##   ###### #     # #    # # #    #   #   #    # # #    #
   const saveMaintain = async () => {
     setAddMaintainMode(false);
     await insertMaintain(db, maintain2write);
@@ -652,13 +563,6 @@ export default function Index() {
     await webDavSync();
     await loadData(); // Reload data after saving
   }
-  //                                              #                 
-  //  ####    ##   #    #  ####  ###### #        # #   #####  ##### 
-  // #    #  #  #  ##   # #    # #      #       #   #  #    # #    #
-  // #      #    # # #  # #      #####  #      #     # #    # #    #
-  // #      ###### #  # # #      #      #      ####### #    # #    #
-  // #    # #    # #   ## #    # #      #      #     # #    # #    #
-  //  ####  #    # #    #  ####  ###### ###### #     # #####  ##### 
   const cancelAdd = () => {
     setAddOutingMode(false);
     setAddMaintainMode(false);
@@ -677,14 +581,6 @@ export default function Index() {
     setEffectActive(false);
     setPartOfDay("am");
   }
-
-  //               ######                       #####                                    
-  //  ####  #    # #     #   ##   ##### ###### #     # #    #   ##   #    #  ####  ######
-  // #    # ##   # #     #  #  #    #   #      #       #    #  #  #  ##   # #    # #     
-  // #    # # #  # #     # #    #   #   #####  #       ###### #    # # #  # #      ##### 
-  // #    # #  # # #     # ######   #   #      #       #    # ###### #  # # #  ### #     
-  // #    # #   ## #     # #    #   #   #      #     # #    # #    # #   ## #    # #     
-  //  ####  #    # ######  #    #   #   ######  #####  #    # #    # #    #  ####  ######
 
   function changeDate(date: Date, type: "outing" | "maintain") {
     const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : 16));
@@ -717,15 +613,6 @@ export default function Index() {
     }
     setDateTimePickerVisible("none");
   }
-
-  // #####  ###### ##### #    # #####  #    #
-  // #    # #        #   #    # #    # ##   #
-  // #    # #####    #   #    # #    # # #  #
-  // #####  #        #   #    # #####  #  # #
-  // #   #  #        #   #    # #   #  #   ##
-  // #    # ######   #    ####  #    # #    #
-
-
 
   return (
     <Body inTabs={true}>
@@ -796,13 +683,6 @@ export default function Index() {
       </Row>
 
       {
-        //    #                                                            #     #                            
-        //   # #   #####  #####      ####  #    # ##### # #    #  ####     ##   ##  ####  #####    ##   #     
-        //  #   #  #    # #    #    #    # #    #   #   # ##   # #    #    # # # # #    # #    #  #  #  #     
-        // #     # #    # #    #    #    # #    #   #   # # #  # #         #  #  # #    # #    # #    # #     
-        // ####### #    # #    #    #    # #    #   #   # #  # # #  ###    #     # #    # #    # ###### #     
-        // #     # #    # #    #    #    # #    #   #   # #   ## #    #    #     # #    # #    # #    # #     
-        // #     # #####  #####      ####   ####    #   # #    #  ####     #     #  ####  #####  #    # ######
       }
       <ModalEditor visible={addOutingMode} >
         <Row>
@@ -936,7 +816,6 @@ export default function Index() {
           </Row>
         }
 
-
         {outingViewToOuting &&
           <Row>
             <AppIcon name={"slope"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
@@ -1050,13 +929,6 @@ export default function Index() {
         </Row>
       </ModalEditor>
       {
-        //    #                                                                     #     #                            
-        //   # #   #####  #####     #    #   ##   # #    # #####   ##   # #    #    ##   ##  ####  #####    ##   #     
-        //  #   #  #    # #    #    ##  ##  #  #  # ##   #   #    #  #  # ##   #    # # # # #    # #    #  #  #  #     
-        // #     # #    # #    #    # ## # #    # # # #  #   #   #    # # # #  #    #  #  # #    # #    # #    # #     
-        // ####### #    # #    #    #    # ###### # #  # #   #   ###### # #  # #    #     # #    # #    # ###### #     
-        // #     # #    # #    #    #    # #    # # #   ##   #   #    # # #   ##    #     # #    # #    # #    # #     
-        // #     # #####  #####     #    # #    # # #    #   #   #    # # #    #    #     #  ####  #####  #    # ######
       }
       <ModalEditor visible={addMaintainMode} >
         <Row>
@@ -1189,13 +1061,6 @@ export default function Index() {
         </Row>
       </ModalEditor>
       {
-        // ######                      #######                 ######
-        // #     #   ##   ##### ######    #    # #    # ###### #     # #  ####  #    # ###### ##### 
-        // #     #  #  #    #   #         #    # ##  ## #      #     # # #    # #   #  #      #    #
-        // #     # #    #   #   #####     #    # # ## # #####  ######  # #      ####   #####  #    #
-        // #     # ######   #   #         #    # #    # #      #       # #      #  #   #      ##### 
-        // #     # #    #   #   #         #    # #    # #      #       # #    # #   #  #      #   # 
-        // ######  #    #   #   ######    #    # #    # ###### #       #  ####  #    # ###### #    #
       }
       {dateTimePickerVisible !== "none" &&
         <DateTimePicker
@@ -1208,13 +1073,6 @@ export default function Index() {
         />
       }
       {
-        // #     #                             #######                                     
-        // ##   ##  ####  #####    ##   #      #       #####  # ###### #    # #####   #### 
-        // # # # # #    # #    #  #  #  #      #       #    # # #      ##   # #    # #     
-        // #  #  # #    # #    # #    # #      #####   #    # # #####  # #  # #    #  #### 
-        // #     # #    # #    # ###### #      #       #####  # #      #  # # #    #      #
-        // #     # #    # #    # #    # #      #       #   #  # #      #   ## #    # #    #
-        // #     #  ####  #####  #    # ###### #       #    # # ###### #    # #####   #### 
       }
       <ModalEditor visible={friendsVisible} center={true} onRequestClose={() => setFriendsVisible(false)}>
         <Tile>
@@ -1241,13 +1099,6 @@ export default function Index() {
         <AppButton onPress={() => setFriendsVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
       </ModalEditor>
       {
-        // #     #                             ####### ####### #######
-        // ##   ##  ####  #####    ##   #         #    #     # #     #
-        // # # # # #    # #    #  #  #  #         #    #     # #     #
-        // #  #  # #    # #    # #    # #         #    #     # #     #
-        // #     # #    # #    # ###### #         #    #     # #     #
-        // #     # #    # #    # #    # #         #    #     # #     #
-        // #     #  ####  #####  #    # ######    #    ####### #######
       }
       <ModalEditor visible={outingVisible} center={true} onRequestClose={() => setOutingVisible(false)}>
         <Row>
@@ -1288,13 +1139,6 @@ export default function Index() {
         <AppButton onPress={() => setOutingVisible(false)} caption={t('cancel')} color={colorsTheme.transparentGray} style={{ marginTop: 16 }} />
       </ModalEditor>
       {
-        // #     #                             #######               ######                       
-        // ##   ##  ####  #####    ##   #      #     # ###### ###### #     # #  ####  ##### ######
-        // # # # # #    # #    #  #  #  #      #     # #      #      #     # # #        #   #     
-        // #  #  # #    # #    # #    # #      #     # #####  #####  ######  #  ####    #   ##### 
-        // #     # #    # #    # ###### #      #     # #      #      #       #      #   #   #     
-        // #     # #    # #    # #    # #      #     # #      #      #       # #    #   #   #     
-        // #     #  ####  #####  #    # ###### ####### #      #      #       #  ####    #   ######
       }
       <ModalEditor visible={offPisteVisible} center={true} onRequestClose={() => setOffPisteVisible(false)}>
         <Row>

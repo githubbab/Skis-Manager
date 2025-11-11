@@ -6,37 +6,16 @@ import { Asset } from "expo-asset";
 import { Directory, File, Paths } from "expo-file-system";
 import { Logger } from "./ToolsBox";
 
-//  #####                                                              
-// #     #  ####  #    #  ####  #####   ##   #    # ##### ######  #### 
-// #       #    # ##   # #        #    #  #  ##   #   #   #      #     
-// #       #    # # #  #  ####    #   #    # # #  #   #   #####   #### 
-// #       #    # #  # #      #   #   ###### #  # #   #   #           #
-// #     # #    # #   ## #    #   #   #    # #   ##   #   #      #    #
-//  #####   ####  #    #  ####    #   #    # #    #   #   ######  #### 
 const imgStorePath = Paths.document.uri + "/images/";
 export const icoUnknownBrand = imgStorePath + "brand-init-unknown.png";
 export const imgStoreDir = new Directory(imgStorePath);
 // Database version
 const DATABASE_VERSION = 3;
 
-// #     #                                                   
-// #     #   ##   #####  #   ##   #####  #      ######  #### 
-// #     #  #  #  #    # #  #  #  #    # #      #      #     
-// #     # #    # #    # # #    # #####  #      #####   #### 
-//  #   #  ###### #####  # ###### #    # #      #           #
-//   # #   #    # #   #  # #    # #    # #      #      #    #
-//    #    #    # #####  ###### ######  #### 
 // Device ID
 let deviceID: string = "not-an-id";
 let lastId: string = "not-an-id";
 
-// #######                                   
-//    #      ##   #####  #      ######  #### 
-//    #     #  #  #    # #      #      #     
-//    #    #    # #####  #      #####   #### 
-//    #    ###### #    # #      #           #
-//    #    #    # #    # #      #      #    #
-//    #    #    # #####  ###### ######  #### 
 export const TABLES = {
   FRIENDS: "itemsFriends",
   BOOTS: "itemsBoots",
@@ -57,13 +36,6 @@ export const TABLES = {
   SETTINGS: "settings",
 }
 
-//    #                                     
-//   # #    ####   ####  ###### #####  #### 
-//  #   #  #      #      #        #   #     
-// #     #  ####   ####  #####    #    #### 
-// #######      #      # #        #        #
-// #     # #    # #    # #        #   #    #
-// #     #  ####   ####  ######   #    #### 
 const baseImages: { [key: string]: any } = {
   "tos-init-gs.png": require("@/assets/images/tos/init-gs.png"),
   "tos-init-powder.png": require("@/assets/images/tos/init-powder.png"),
@@ -96,13 +68,6 @@ const baseImages: { [key: string]: any } = {
   "brand-init-unknown.png": require("@/assets/images/brands/init-unknown.png")
 };
 
-//                                           #####   #####  #      
-// ######  ####  #####  #    #   ##   ##### #     # #     # #      
-// #      #    # #    # ##  ##  #  #    #   #       #     # #      
-// #####  #    # #    # # ## # #    #   #    #####  #     # #      
-// #      #    # #####  #    # ######   #         # #   # # #      
-// #      #    # #   #  #    # #    #   #   #     # #    #  #      
-// #       ####  #    # #    # #    #   #    #####   #### # #######
 export function formatSQL(sql: string, values: any[]): string {
   let i = 0;
   return sql.replace(/\?/g, () => {
@@ -113,13 +78,6 @@ export function formatSQL(sql: string, values: any[]): string {
   });
 }
 
-//                                          ###       
-//  ####  #####  ######   ##   ##### ######  #  ##### 
-// #    # #    # #       #  #    #   #       #  #    #
-// #      #    # #####  #    #   #   #####   #  #    #
-// #      #####  #      ######   #   #       #  #    #
-// #    # #   #  #      #    #   #   #       #  #    #
-//  ####  #    # ###### #    #   #   ###### ### ##### 
 export function createId() {
   let newId = new Date().getTime().toString() + "-" + deviceID;
   while (newId === lastId) {
@@ -131,13 +89,6 @@ export function createId() {
   return newId;
 }
 
-//                         #####                           #                    
-// #  ####  #####   ##   #     # #      ######  ####  #   ##   #####  #      ######
-// # #        #    #  #  #     # #      #      #        #  #   #    # #      #     
-// #  ####    #   #    # ######  #      #####   ####      #    #####  #      ##### 
-// #      #   #   ###### #     # #      #           #     #    #    # #      #     
-// # #    #   #   #    # #     # #      #      #    #     #    #    # #      #     
-// #  ####    #   #    # #     # ###### ######  ####      #    #####  ###### ######
 function isTableSyncable(table: string): boolean {
   const syncableTables = [
     // Main tables
@@ -151,24 +102,10 @@ function isTableSyncable(table: string): boolean {
   return syncableTables.includes(table);
 }
 
-//                     ######                                ### ###### 
-//  ####  ###### ##### #     # ###### #    # #  ####  ######  #  #     #
-// #    # #        #   #     # #      #    # # #    # #       #  #     #
-// #      #####    #   #     # #####  #    # # #      #####   #  #     #
-// #  ### #        #   #     # #      #    # # #      #       #  #     #
-// #    # #        #   #     # #       #  #  # #    # #       #  #     #
-//  ####  ######   #   ######  ######   ##   #  ####  ###### ### ###### 
 export function getDeviceID() {
   return deviceID;
 }
 
-//                                    ######                                                 
-//  ####  #      ######   ##   #####  #     #   ##   #####   ##   #####    ##    ####  ######
-// #    # #      #       #  #  #    # #     #  #  #    #    #  #  #    #  #  #  #      #     
-// #      #      #####  #    # #    # #     # #    #   #   #    # #####  #    #  ####  ##### 
-// #      #      #      ###### #####  #     # ######   #   ###### #    # ######      # #     
-// #    # #      #      #    # #   #  #     # #    #   #   #    # #    # #    # #    # #     
-//  ####  ###### ###### #    # #    # ######  #    #   #   #    # #####  #    #  ####  ######
 export async function clearDatabase(db: SQLiteDatabase) {
   Logger.debug("Reinitializing database");
   for (const table of [TABLES.MAINTAINS, TABLES.OUTINGS, TABLES.JOIN_SKIS_BOOTS, TABLES.JOIN_SKIS_USERS, TABLES.JOIN_OUTINGS_OFFPISTES, TABLES.SKIS, TABLES.BOOTS, TABLES.USERS, TABLES.SEASONS]) {
@@ -179,13 +116,6 @@ export async function clearDatabase(db: SQLiteDatabase) {
   Logger.debug("Database reinitialized");
 }
 
-//                              #####                            
-// ###### #    # ######  ####  #     # #    # ###### #####  #   #
-// #       #  #  #      #    # #     # #    # #      #    #  # # 
-// #####    ##   #####  #      #     # #    # #####  #    #   #  
-// #        ##   #      #      #   # # #    # #      #####    #  
-// #       #  #  #      #    # #    #  #    # #      #   #    #  
-// ###### #    # ######  ####   #### #  ####  ###### #    #   #  
 export async function execQuery(db: SQLiteDatabase, query: string) {
 
   try {
@@ -198,13 +128,6 @@ export async function execQuery(db: SQLiteDatabase, query: string) {
   }
 }
 
-//                                      #####                            
-// # #    #  ####  ###### #####  ##### #     # #    # ###### #####  #   #
-// # ##   # #      #      #    #   #   #     # #    # #      #    #  # # 
-// # # #  #  ####  #####  #    #   #   #     # #    # #####  #    #   #  
-// # #  # #      # #      #####    #   #   # # #    # #      #####    #  
-// # #   ## #    # #      #   #    #   #    #  #    # #      #   #    #  
-// # #    #  ####  ###### #    #   #    #### #  ####  ###### #    #   #  
 export function insertQuery(table: string, columns: string[], values: any[], withSync: boolean = true): string {
   // Add sync fields if table supports them and withSync is true
   if (withSync && isTableSyncable(table)) {
@@ -219,13 +142,6 @@ export function insertQuery(table: string, columns: string[], values: any[], wit
   );
 }
 
-//                                           #####                            
-// #    # #####  #####    ##   ##### ###### #     # #    # ###### #####  #   #
-// #    # #    # #    #  #  #    #   #      #     # #    # #      #    #  # # 
-// #    # #    # #    # #    #   #   #####  #     # #    # #####  #    #   #  
-// #    # #####  #    # ######   #   #      #   # # #    # #      #####    #  
-// #    # #      #    # #    #   #   #      #    #  #    # #      #   #    #  
-//  ####  #      #####  #    #   #   ######  #### #  ####  ###### #    #   #  
 export function updateQuery(table: string, columns: string[], values: any[], where: string, whereValues: any[], withSync: boolean = true): string {
   // Add sync fields if table supports them and withSync is true
   if (withSync && isTableSyncable(table)) {
@@ -242,13 +158,6 @@ export function updateQuery(table: string, columns: string[], values: any[], whe
   );
 }
 
-//                                           #####                            
-// #####  ###### #      ###### ##### ###### #     # #    # ###### #####  #   #
-// #    # #      #      #        #   #      #     # #    # #      #    #  # # 
-// #    # #####  #      #####    #   #####  #     # #    # #####  #    #   #  
-// #    # #      #      #        #   #      #   # # #    # #      #####    #  
-// #    # #      #      #        #   #      #    #  #    # #      #   #    #  
-// #####  ###### ###### ######   #   ######  #### #  ####  ###### #    #   #  
 export function deleteQuery(table: string, where: string, whereValues: any[]): string {
   return formatSQL(
     `DELETE
@@ -258,13 +167,6 @@ export function deleteQuery(table: string, where: string, whereValues: any[]): s
   );
 }
 
-//                           #                   #####                                                   #####                                      
-// #####  # ###### ######   # #   #    # #####  #     # ###### #    # ###### #####    ##   ##### ###### #     # #    # ###### #####  # ######  #### 
-// #    # # #      #       #   #  ##   # #    # #       #      ##   # #      #    #  #  #    #   #      #     # #    # #      #    # # #      #     
-// #    # # #####  #####  #     # # #  # #    # #  #### #####  # #  # #####  #    # #    #   #   #####  #     # #    # #####  #    # # #####   #### 
-// #    # # #      #      ####### #  # # #    # #     # #      #  # # #      #####  ######   #   #      #   # # #    # #      #####  # #           #
-// #    # # #      #      #     # #   ## #    # #     # #      #   ## #      #   #  #    #   #   #      #    #  #    # #      #   #  # #      #    #
-// #####  # #      #      #     # #    # #####   #####  ###### #    # ###### #    # #    #   #   ######  #### #  ####  ###### #    # # ######  #### 
 export function diffAndGenerateQueries(
   existing: string[],
   updated: string[],
@@ -288,13 +190,6 @@ export function diffAndGenerateQueries(
   return query;
 }
 
-//                             ###       
-// #    #   ##   #    # ######  #  ##### 
-// ##  ##  #  #  #   #  #       #  #    #
-// # ## # #    # ####   #####   #  #    #
-// #    # ###### #  #   #       #  #    #
-// #    # #    # #   #  #       #  #    #
-// #    # #    # #    # ###### ### ##### 
 function makeDeviceId(length: number) {
   let result = '';
   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -305,13 +200,6 @@ function makeDeviceId(length: number) {
   return result;
 }
 
-//                  ######                      #     #                                          
-// # #    # # ##### #     #   ##   #####   ##   ##   ##   ##   #    #   ##    ####  ###### ##### 
-// # ##   # #   #   #     #  #  #    #    #  #  # # # #  #  #  ##   #  #  #  #    # #      #    #
-// # # #  # #   #   #     # #    #   #   #    # #  #  # #    # # #  # #    # #      #####  #    #
-// # #  # # #   #   #     # ######   #   ###### #     # ###### #  # # ###### #  ### #      ##### 
-// # #   ## #   #   #     # #    #   #   #    # #     # #    # #   ## #    # #    # #      #   # 
-// # #    # #   #   ######  #    #   #   #    # #     # #    # #    # #    #  ####  ###### #    #
 export async function initDataManager(db: SQLiteDatabase): Promise<void> {
   //
   // Device ID
@@ -446,13 +334,6 @@ export async function initDataManager(db: SQLiteDatabase): Promise<void> {
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 }
 
-//                     #######         #####  ###               #     # ######  ###
-//  ####  ###### #####    #     ####  #     #  #   ####   ####  #     # #     #  # 
-// #    # #        #      #    #    # #        #  #    # #    # #     # #     #  # 
-// #      #####    #      #    #    #  #####   #  #      #    # #     # ######   # 
-// #  ### #        #      #    #    #       #  #  #      #    # #     # #   #    # 
-// #    # #        #      #    #    # #     #  #  #    # #    # #     # #    #   # 
-//  ####  ######   #      #     ####   #####  ###  ####   ####   #####  #     # ###
 export function getToSIcoURI(id: string, defaultImage: boolean = false): string | undefined {
   const tosIco = new File(imgStorePath + "tos-" + id + ".png");
   if (!defaultImage && tosIco.exists) {
@@ -464,13 +345,6 @@ export function getToSIcoURI(id: string, defaultImage: boolean = false): string 
   return undefined;
 }
 
-//                     ######                              ###               #     # ######  ###
-//  ####  ###### ##### #     # #####    ##   #    # #####   #   ####   ####  #     # #     #  # 
-// #    # #        #   #     # #    #  #  #  ##   # #    #  #  #    # #    # #     # #     #  # 
-// #      #####    #   ######  #    # #    # # #  # #    #  #  #      #    # #     # ######   # 
-// #  ### #        #   #     # #####  ###### #  # # #    #  #  #      #    # #     # #   #    # 
-// #    # #        #   #     # #   #  #    # #   ## #    #  #  #    # #    # #     # #    #   # 
-//  ####  ######   #   ######  #    # #    # #    # #####  ###  ####   ####   #####  #     # ###
 export function getBrandIcoURI(id: string, defaultImage: boolean = false): string {
   const brandIco = new File(imgStorePath + "brand-" + id + ".png");
   if (!defaultImage && brandIco.exists) {
@@ -482,13 +356,6 @@ export function getBrandIcoURI(id: string, defaultImage: boolean = false): strin
   return icoUnknownBrand;
 }
 
-//                     ######                                       #######         #####  ###               #     # ######  ###       
-//  ####  ###### ##### #     # #  ####  ##### # #    #  ####  #####    #     ####  #     #  #   ####   ####  #     # #     #  #   #### 
-// #    # #        #   #     # # #        #   # ##   # #    #   #      #    #    # #        #  #    # #    # #     # #     #  #  #     
-// #      #####    #   #     # #  ####    #   # # #  # #        #      #    #    #  #####   #  #      #    # #     # ######   #   #### 
-// #  ### #        #   #     # #      #   #   # #  # # #        #      #    #    #       #  #  #      #    # #     # #   #    #       #
-// #    # #        #   #     # # #    #   #   # #   ## #    #   #      #    #    # #     #  #  #    # #    # #     # #    #   #  #    #
-//  ####  ######   #   ######  #  ####    #   # #    #  ####    #      #     ####   #####  ###  ####   ####   #####  #     # ###  #### 
 export function getDistinctToSIcoURIs(data: any[]): string[] {
   const arrayIcoToSURI: string[] = [];
   const distinctIdTypeOfSkis = Array.from(new Set(data.map((ski: any) => ski.idTypeOfSkis)));
@@ -501,13 +368,6 @@ export function getDistinctToSIcoURIs(data: any[]): string[] {
   return arrayIcoToSURI;
 }
 
-//                     ######                                       ######                              ###               #     # ######  ###       
-//  ####  ###### ##### #     # #  ####  ##### # #    #  ####  ##### #     # #####    ##   #    # #####   #   ####   ####  #     # #     #  #   #### 
-// #    # #        #   #     # # #        #   # ##   # #    #   #   #     # #    #  #  #  ##   # #    #  #  #    # #    # #     # #     #  #  #     
-// #      #####    #   #     # #  ####    #   # # #  # #        #   ######  #    # #    # # #  # #    #  #  #      #    # #     # ######   #   #### 
-// #  ### #        #   #     # #      #   #   # #  # # #        #   #     # #####  ###### #  # # #    #  #  #      #    # #     # #   #    #       #
-// #    # #        #   #     # # #    #   #   # #   ## #    #   #   #     # #   #  #    # #   ## #    #  #  #    # #    # #     # #    #   #  #    #
-//  ####  ######   #   ######  #  ####    #   # #    #  ####    #   ######  #    # #    # #    # #####  ###  ####   ####   #####  #     # ###  #### 
 export function getDistinctBrandIcoURIs(data: any[]): string[] {
   const arrayIcoBrandURI: string[] = [];
   const distinctIdBrands = Array.from(new Set(data.map((ski: any) => ski.idBrand)));
@@ -517,13 +377,6 @@ export function getDistinctBrandIcoURIs(data: any[]): string[] {
   return arrayIcoBrandURI;
 }
 
-//                      ######                              ###              
-// #####  ###### #      #     # #####    ##   #    # #####   #   ####   #### 
-// #    # #      #      #     # #    #  #  #  ##   # #    #  #  #    # #    #
-// #    # #####  #      ######  #    # #    # # #  # #    #  #  #      #    #
-// #    # #      #      #     # #####  ###### #  # # #    #  #  #      #    #
-// #    # #      #      #     # #   #  #    # #   ## #    #  #  #    # #    #
-// #####  ###### ###### ######  #    # #    # #    # #####  ######  #### 
 export function delBrandIco(idBrand: string) {
   const brandIco = new File(imgStorePath + "brand-" + idBrand + ".png");
   if (brandIco.exists) {
@@ -532,13 +385,6 @@ export function delBrandIco(idBrand: string) {
   }
 }
 
-//                      #######         #####  ###
-// #####  ###### #         #     ####  #     #  #   ####   #### 
-// #    # #      #         #    #    # #        #  #    # #    #
-// #    # #####  #         #    #    #  #####   #  #      #    #
-// #    # #      #         #    #    #       #  #  #      #    #
-// #    # #      #         #    #    # #     #  #  #    # #    #
-// #####  ###### ######    #     ####   #####  ###  ####   #### 
 export function delToSIco(idTypeOfSkis: string) {
   const tosIco = new File(imgStorePath + "tos-" + idTypeOfSkis + ".png");
   if (tosIco.exists) {
@@ -547,13 +393,6 @@ export function delToSIco(idTypeOfSkis: string) {
   }
 }
 
-//                            ######                              ###              
-//  ####   ####  #####  #   # #     # #####    ##   #    # #####   #   ####   #### 
-// #    # #    # #    #  # #  #     # #    #  #  #  ##   # #    #  #  #    # #    #
-// #      #    # #    #   #   ######  #    # #    # # #  # #    #  #  #      #    #
-// #      #    # #####    #   #     # #####  ###### #  # # #    #  #  #      #    #
-// #    # #    # #        #   #     # #   #  #    # #   ## #    #  #  #    # #    #
-//  ####   ####  #        #   ######  #    # #    # #    # #####  ###  ####   #### 
 export function copyBrandIco(idBrand: string, fromUri: string) {
   const brandIco = new File(imgStorePath + "brand-" + idBrand + ".png");
   if (brandIco.exists) {
@@ -581,13 +420,6 @@ export function copyBrandIco(idBrand: string, fromUri: string) {
   }
 }
 
-//                            #######         #####  ###              
-//  ####   ####  #####  #   #    #     ####  #     #  #   ####   #### 
-// #    # #    # #    #  # #     #    #    # #        #  #    # #    #
-// #      #    # #    #   #      #    #    #  #####   #  #      #    #
-// #      #    # #####    #      #    #    #       #  #  #      #    #
-// #    # #    # #        #      #    #    # #     #  #  #    # #    #
-//  ####   ####  #        #      #     ####   #####  ###  ####   #### 
 export function copyToSIco(idTypeOfSkis: string, fromUri: string) {
   const tosIco = new File(imgStorePath + "tos-" + idTypeOfSkis + ".png");
   if (tosIco.exists) {
@@ -615,13 +447,6 @@ export function copyToSIco(idTypeOfSkis: string, fromUri: string) {
   }
 }
 
-//                                     ###                              #####                            
-//  ####  #      ######   ##   #####   #  #    #   ##    ####  ###### #     # #####  ####  #####  ######
-// #    # #      #       #  #  #    #  #  ##  ##  #  #  #    # #      #         #   #    # #    # #     
-// #      #      #####  #    # #    #  #  # ## # #    # #      #####   #####    #   #    # #    # ##### 
-// #      #      #      ###### #####   #  #    # ###### #  ### #            #   #   #    # #####  #     
-// #    # #      #      #    # #   #   #  #    # #    # #    # #      #     #   #   #    # #   #  #     
-//  ####  ###### ###### #    # #    # ### #    # #    #  ####  ######  #####    #    ####  #    # ######
 export async function clearImageStore() {
   const imageFileList = imgStoreDir.list();
   for (const item of imageFileList) {

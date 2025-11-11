@@ -27,7 +27,6 @@ import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, Image, ListRenderItem, Text, TextInput, TouchableOpacity, View, FlatList } from 'react-native';
 
-
 const iconSize = 32; // Size for icons in the filter row
 
 type EventsType = { type: "outing" | "maintain"; data: Outings | Maintains };
@@ -125,13 +124,6 @@ const Events = () => {
     return bNb - aNb;
   });
 
-  // #                            ######                     
-  // #        ####    ##   #####  #     #   ##   #####   ##  
-  // #       #    #  #  #  #    # #     #  #  #    #    #  # 
-  // #       #    # #    # #    # #     # #    #   #   #    #
-  // #       #    # ###### #    # #     # ######   #   ######
-  // #       #    # #    # #    # #     # #    #   #   #    #
-  // #######  ####  #    # #####  ######  #    #   #   #    #
   const loadData = async () => {
     setDbState("loading");
     try {
@@ -190,14 +182,6 @@ const Events = () => {
     return extractedOffPistes;
   };
 
-
-  // #     #               #######                             #######                                  
-  // #     #  ####  ###### #        ####   ####  #    #  ####  #       ###### ###### ######  ####  #####
-  // #     # #      #      #       #    # #    # #    # #      #       #      #      #      #    #   #  
-  // #     #  ####  #####  #####   #    # #      #    #  ####  #####   #####  #####  #####  #        #  
-  // #     #      # #      #       #    # #      #    #      # #       #      #      #      #        #  
-  // #     # #    # #      #       #    # #    # #    # #    # #       #      #      #      #    #   #  
-  //  #####   ####  ###### #        ####   ####   ####   ####  ####### #      #      ######  ####    #  
   useFocusEffect(
     useCallback(() => {
       if (dbState === "loading") return;
@@ -288,15 +272,6 @@ const Events = () => {
     setEffectActive(false);
   }, [outing2write])
 
-
-  //               ######                       #####                                    
-  //  ####  #    # #     #   ##   ##### ###### #     # #    #   ##   #    #  ####  ######
-  // #    # ##   # #     #  #  #    #   #      #       #    #  #  #  ##   # #    # #     
-  // #    # # #  # #     # #    #   #   #####  #       ###### #    # # #  # #      ##### 
-  // #    # #  # # #     # ######   #   #      #       #    # ###### #  # # #  ### #     
-  // #    # #   ## #     # #    #   #   #      #     # #    # #    # #   ## #    # #     
-  //  ####  #    # ######  #    #   #   ######  #####  #    # #    # #    #  ####  ######
-
   function changeDate(date: Date, type: "outing" | "maintain") {
     if (type === "maintain") setPartOfDay("pm");
     const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : type === "outing" ? 16 : 18));
@@ -330,13 +305,6 @@ const Events = () => {
     setDateTimePickerVisible("none");
   }
 
-  //                                              #                                
-  //  ####    ##   #    #  ####  ###### #        # #    ####  ##### #  ####  #    #
-  // #    #  #  #  ##   # #    # #      #       #   #  #    #   #   # #    # ##   #
-  // #      #    # # #  # #      #####  #      #     # #        #   # #    # # #  #
-  // #      ###### #  # # #      #      #      ####### #        #   # #    # #  # #
-  // #    # #    # #   ## #    # #      #      #     # #    #   #   # #    # #   ##
-  //  ####  #    # #    #  ####  ###### ###### #     #  ####    #   #  ####  #    #
   const cancelAction = async () => {
     setMaintainsVisible(false);
     setMaintain2Write(initMaintain());
@@ -358,13 +326,6 @@ const Events = () => {
     await loadData(); // Reload data after cancelling
   }
 
-  //                             #######                             
-  //  ####    ##   #    # ###### #     # #    # ##### # #    #  #### 
-  // #       #  #  #    # #      #     # #    #   #   # ##   # #    #
-  //  ####  #    # #    # #####  #     # #    #   #   # # #  # #     
-  //      # ###### #    # #      #     # #    #   #   # #  # # #  ###
-  // #    # #    #  #  #  #      #     # #    #   #   # #   ## #    #
-  //  ####  #    #   ##   ###### #######  ####    #   # #    #  #### 
   const saveOuting = async () => {
     if (outing2write.id === "not-an-id") {
       await insertOuting(db, outing2write);
@@ -399,13 +360,6 @@ const Events = () => {
     setOutingVisible(false);
   }
 
-  //                             #     #                                      
-  //  ####    ##   #    # ###### ##   ##   ##   # #    # #####   ##   # #    #
-  // #       #  #  #    # #      # # # #  #  #  # ##   #   #    #  #  # ##   #
-  //  ####  #    # #    # #####  #  #  # #    # # # #  #   #   #    # # # #  #
-  //      # ###### #    # #      #     # ###### # #  # #   #   ###### # #  # #
-  // #    # #    #  #  #  #      #     # #    # # #   ##   #   #    # # #   ##
-  //  ####  #    #   ##   ###### #     # #    # # #    #   #   #    # # #    #
   const saveMaintain = async () => {
     if (maintain2write.id === "not-an-id") {
       await insertMaintain(db, maintain2write);
@@ -417,13 +371,6 @@ const Events = () => {
     await loadData(); // Reload data after saving
     webDavSync();
   }
-  //                                          #     #                                      
-  // #####  ###### #      ###### ##### ###### ##   ##   ##   # #    # #####   ##   # #    #
-  // #    # #      #      #        #   #      # # # #  #  #  # ##   #   #    #  #  # ##   #
-  // #    # #####  #      #####    #   #####  #  #  # #    # # # #  #   #   #    # # # #  #
-  // #    # #      #      #        #   #      #     # ###### # #  # #   #   ###### # #  # #
-  // #    # #      #      #        #   #      #     # #    # # #   ##   #   #    # # #   ##
-  // #####  ###### ###### ######   #   ###### #     # #    # # #    #   #   #    # # #    #
   const handleDeleteMaintain = (maintain: Maintains) => {
     Alert.alert(
       t('delete'),
@@ -449,13 +396,6 @@ const Events = () => {
     setOutingVisible(false);
   }
 
-  //                                           #######                               #####                 
-  // #####  ###### #    # #####  ###### #####  #     # #    # ##### # #    #  ####  #     # #    # #  #### 
-  // #    # #      ##   # #    # #      #    # #     # #    #   #   # ##   # #    # #       #   #  # #     
-  // #    # #####  # #  # #    # #####  #    # #     # #    #   #   # # #  # #       #####  ####   #  #### 
-  // #####  #      #  # # #    # #      #####  #     # #    #   #   # #  # # #  ###       # #  #   #      #
-  // #   #  #      #   ## #    # #      #   #  #     # #    #   #   # #   ## #    # #     # #   #  # #    #
-  // #    # ###### #    # #####  ###### #    # #######  ####    #   # #    #  ####   #####  #    # #  #### 
   const renderOutingSkis: ListRenderItem<Skis> = ({ item }) => {
     return (
       <TouchableOpacity onPress={() => {
@@ -498,13 +438,6 @@ const Events = () => {
     )
   }
 
-  //                                           #######                              ######                            
-  // #####  ###### #    # #####  ###### #####  #     # #    # ##### # #    #  ####  #     #  ####   ####  #####  #### 
-  // #    # #      ##   # #    # #      #    # #     # #    #   #   # ##   # #    # #     # #    # #    #   #   #     
-  // #    # #####  # #  # #    # #####  #    # #     # #    #   #   # # #  # #      ######  #    # #    #   #    #### 
-  // #####  #      #  # # #    # #      #####  #     # #    #   #   # #  # # #  ### #     # #    # #    #   #        #
-  // #   #  #      #   ## #    # #      #   #  #     # #    #   #   # #   ## #    # #     # #    # #    #   #   #    #
-  // #    # ###### #    # #####  ###### #    # #######  ####    #   # #    #  ####  ######   ####   ####    #    #### 
   const renderOutingBoots: ListRenderItem<Boots> = ({ item }) => {
     return (
       <TouchableOpacity onPress={() => {
@@ -531,13 +464,6 @@ const Events = () => {
     )
   }
 
-  //                                           #     #                                        #####                 
-  // #####  ###### #    # #####  ###### #####  ##   ##   ##   # #    # #####   ##   # #    # #     # #    # #  #### 
-  // #    # #      ##   # #    # #      #    # # # # #  #  #  # ##   #   #    #  #  # ##   # #       #   #  # #     
-  // #    # #####  # #  # #    # #####  #    # #  #  # #    # # # #  #   #   #    # # # #  #  #####  ####   #  #### 
-  // #####  #      #  # # #    # #      #####  #     # ###### # #  # #   #   ###### # #  # #       # #  #   #      #
-  // #   #  #      #   ## #    # #      #   #  #     # #    # # #   ##   #   #    # # #   ## #     # #   #  # #    #
-  // #    # ###### #    # #####  ###### #    # #     # #    # # #    #   #   #    # # #    #  #####  #    # #  #### 
   const renderMaintainSkis: ListRenderItem<Skis> = ({ item }) => {
     return (
       <TouchableOpacity
@@ -567,21 +493,7 @@ const Events = () => {
     )
   }
 
-  //                                           ###                    
-  // #####  ###### #    # #####  ###### #####   #  ##### ###### #    #
-  // #    # #      ##   # #    # #      #    #  #    #   #      ##  ##
-  // #    # #####  # #  # #    # #####  #    #  #    #   #####  # ## #
-  // #####  #      #  # # #    # #      #####   #    #   #      #    #
-  // #   #  #      #   ## #    # #      #   #   #    #   #      #    #
-  // #    # ###### #    # #####  ###### #    # ###   #   ###### #    #
   const renderItem: ListRenderItem<any> = ({ item }) => {
-    // #######                                    
-    // #     # #    # ##### # #    #  ####   #### 
-    // #     # #    #   #   # ##   # #    # #     
-    // #     # #    #   #   # # #  # #       #### 
-    // #     # #    #   #   # #  # # #  ###      #
-    // #     # #    #   #   # #   ## #    # #    #
-    // #######  ####    #   # #    #  ####   #### 
     if (item.type === "outing") {
       const outingSkis: Skis | undefined = listSkis.find(s => s.id === item.data.idSkis);
       if (!outingSkis) {
@@ -682,13 +594,6 @@ const Events = () => {
         </RowItem>
       );
     }
-    // #     #                                             
-    // ##   ##   ##   # #    # #####   ##   # #    #  #### 
-    // # # # #  #  #  # ##   #   #    #  #  # ##   # #     
-    // #  #  # #    # # # #  #   #   #    # # # #  #  #### 
-    // #     # ###### # #  # #   #   ###### # #  # #      #
-    // #     # #    # # #   ##   #   #    # # #   ## #    #
-    // #     # #    # # #    #   #   #    # # #    #  #### 
     if (item.type === "maintain") {
       const maintainSkis: Skis | undefined = listSkis.find(s => s.id === item.data.idSkis);
       if (!maintainSkis) {
@@ -762,13 +667,6 @@ const Events = () => {
     }
     return null; // Fallback if no type matches
   }
-
-  // #####  ###### ##### #    # #####  #    #
-  // #    # #        #   #    # #    # ##   #
-  // #    # #####    #   #    # #    # # #  #
-  // #####  #        #   #    # #####  #  # #
-  // #   #  #        #   #    # #   #  #   ##
-  // #    # ######   #    ####  #    # #    #
 
   if (dbState !== "done") {
     return <Body><Text>Loading...</Text></Body>;
@@ -913,13 +811,6 @@ const Events = () => {
 
       </Tile>
       {
-        //                         #####                  #######                             
-        // #    # # ###### #    # #     # #    # #  ####  #       # #      ##### ###### ##### 
-        // #    # # #      #    # #       #   #  # #      #       # #        #   #      #    #
-        // #    # # #####  #    #  #####  ####   #  ####  #####   # #        #   #####  #    #
-        // #    # # #      # ## #       # #  #   #      # #       # #        #   #      ##### 
-        //  #  #  # #      ##  ## #     # #   #  # #    # #       # #        #   #      #   # 
-        //   ##   # ###### #    #  #####  #    # #  ####  #       # ######   #   ###### #    #
       }
       <ModalEditor visible={viewSkisFilter}>
         <Text style={appStyles.title}>{t("filter_skis")}</Text>
@@ -952,13 +843,6 @@ const Events = () => {
         <AppButton onPress={handleCancelFilters} caption={t("cancel")} />
       </ModalEditor>
       {
-        //                        #     #                      #######                             
-        // #    # # ###### #    # #     #  ####  ###### #####  #       # #      ##### ###### ##### 
-        // #    # # #      #    # #     # #      #      #    # #       # #        #   #      #    #
-        // #    # # #####  #    # #     #  ####  #####  #    # #####   # #        #   #####  #    #
-        // #    # # #      # ## # #     #      # #      #####  #       # #        #   #      ##### 
-        //  #  #  # #      ##  ## #     # #    # #      #   #  #       # #        #   #      #   # 
-        //   ##   # ###### #    #  #####   ####  ###### #    # #       # ######   #   ###### #    #
       }
       <ModalEditor visible={viewUserFilter}>
         <Text style={appStyles.title}>{t("filter_users")}</Text>
@@ -984,13 +868,6 @@ const Events = () => {
         <AppButton onPress={handleCancelFilters} caption={t("cancel")} />
       </ModalEditor>
       {
-        //                        #######               #######                             
-        // #    # # ###### #    #    #     ####   ####  #       # #      ##### ###### ##### 
-        // #    # # #      #    #    #    #    # #    # #       # #        #   #      #    #
-        // #    # # #####  #    #    #    #    # #    # #####   # #        #   #####  #    #
-        // #    # # #      # ## #    #    #    # #    # #       # #        #   #      ##### 
-        //  #  #  # #      ##  ##    #    #    # #    # #       # #        #   #      #   # 
-        //   ##   # ###### #    #    #     ####   ####  #       # ######   #   ###### #    #
       }
       <ModalEditor visible={viewTooFilter}>
         <Text style={appStyles.title}>{t("filter_too")}</Text>
@@ -1015,13 +892,6 @@ const Events = () => {
         <AppButton onPress={handleCancelFilters} caption={t("cancel")} />
       </ModalEditor>
       {
-        //                       #######                             
-        // ###### #####  # ##### #     # #    # ##### # #    #  #### 
-        // #      #    # #   #   #     # #    #   #   # ##   # #    #
-        // #####  #    # #   #   #     # #    #   #   # # #  # #     
-        // #      #    # #   #   #     # #    #   #   # #  # # #  ###
-        // #      #    # #   #   #     # #    #   #   # #   ## #    #
-        // ###### #####  #   #   #######  ####    #   # #    #  #### 
       }
       <ModalEditor visible={outingVisible}>
         <Row>
@@ -1157,7 +1027,6 @@ const Events = () => {
           </Row>
         }
 
-
         {outingViewToOuting &&
           <Row>
             <AppIcon name={"slope"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
@@ -1272,13 +1141,6 @@ const Events = () => {
 
       </ModalEditor>
       {
-        //                       #     #                                      
-        // ###### #####  # ##### ##   ##   ##   # #    # #####   ##   # #    #
-        // #      #    # #   #   # # # #  #  #  # ##   #   #    #  #  # ##   #
-        // #####  #    # #   #   #  #  # #    # # # #  #   #   #    # # # #  #
-        // #      #    # #   #   #     # ###### # #  # #   #   ###### # #  # #
-        // #      #    # #   #   #     # #    # # #   ##   #   #    # # #   ##
-        // ###### #####  #   #   #     # #    # # #    #   #   #    # # #    #
       }
       <ModalEditor visible={maintainsVisible}>
         <Row>
@@ -1413,13 +1275,6 @@ const Events = () => {
         </Row>
       </ModalEditor>
       {
-        // ######                      #######                 ######
-        // #     #   ##   ##### ######    #    # #    # ###### #     # #  ####  #    # ###### ##### 
-        // #     #  #  #    #   #         #    # ##  ## #      #     # # #    # #   #  #      #    #
-        // #     # #    #   #   #####     #    # # ## # #####  ######  # #      ####   #####  #    #
-        // #     # ######   #   #         #    # #    # #      #       # #      #  #   #      ##### 
-        // #     # #    #   #   #         #    # #    # #      #       # #    # #   #  #      #   # 
-        // ######  #    #   #   ######    #    # #    # ###### #       #  ####  #    # ###### #    #
       }
       {dateTimePickerVisible !== "none" &&
         <DateTimePicker
@@ -1432,13 +1287,6 @@ const Events = () => {
         />
       }
       {
-        // #     #                             #######                                     
-        // ##   ##  ####  #####    ##   #      #       #####  # ###### #    # #####   #### 
-        // # # # # #    # #    #  #  #  #      #       #    # # #      ##   # #    # #     
-        // #  #  # #    # #    # #    # #      #####   #    # # #####  # #  # #    #  #### 
-        // #     # #    # #    # ###### #      #       #####  # #      #  # # #    #      #
-        // #     # #    # #    # #    # #      #       #   #  # #      #   ## #    # #    #
-        // #     #  ####  #####  #    # ###### #       #    # # ###### #    # #####   #### 
       }
       <ModalEditor visible={friendsVisible} center={true} onRequestClose={() => setFriendsVisible(false)}>
         <Tile>
@@ -1465,13 +1313,6 @@ const Events = () => {
         <AppButton onPress={() => setFriendsVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
       </ModalEditor>
       {
-        // #     #                             ####### ####### #######
-        // ##   ##  ####  #####    ##   #         #    #     # #     #
-        // # # # # #    # #    #  #  #  #         #    #     # #     #
-        // #  #  # #    # #    # #    # #         #    #     # #     #
-        // #     # #    # #    # ###### #         #    #     # #     #
-        // #     # #    # #    # #    # #         #    #     # #     #
-        // #     #  ####  #####  #    # ######    #    ####### #######
       }
       <ModalEditor visible={typeOfOutingVisible} center={true} onRequestClose={() => setTypeOfOutingVisible(false)}>
         <Row>
@@ -1512,13 +1353,6 @@ const Events = () => {
         <AppButton onPress={() => setTypeOfOutingVisible(false)} caption={t('cancel')} color={colorsTheme.transparentGray} style={{ marginTop: 16 }} />
       </ModalEditor>
       {
-        // #     #                             #######               ######                       
-        // ##   ##  ####  #####    ##   #      #     # ###### ###### #     # #  ####  ##### ######
-        // # # # # #    # #    #  #  #  #      #     # #      #      #     # # #        #   #     
-        // #  #  # #    # #    # #    # #      #     # #####  #####  ######  #  ####    #   ##### 
-        // #     # #    # #    # ###### #      #     # #      #      #       #      #   #   #     
-        // #     # #    # #    # #    # #      #     # #      #      #       # #    #   #   #     
-        // #     #  ####  #####  #    # ###### ####### #      #      #       #  ####    #   ######
       }
       <ModalEditor visible={offPisteVisible} center={true} onRequestClose={() => setOffPisteVisible(false)}>
         <Row>

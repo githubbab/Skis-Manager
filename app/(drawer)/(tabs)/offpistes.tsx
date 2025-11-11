@@ -14,7 +14,6 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useState } from "react";
 import { Text , FlatList } from 'react-native';
 
-
 export default function Offpistes() {
   const { colorsTheme } = useContext(ThemeContext);
   const appStyles = AppStyles(colorsTheme);
@@ -24,37 +23,17 @@ export default function Offpistes() {
 
   const [listOffPistes, setListOffPistes] = useState<OffPistes[]>([]);
 
-  //                             ######                     
-  // #       ####    ##   #####  #     #   ##   #####   ##  
-  // #      #    #  #  #  #    # #     #  #  #    #    #  # 
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // #      #    # ###### #    # #     # ######   #   ######
-  // #      #    # #    # #    # #     # #    #   #   #    #
-  // ######  ####  #    # #####  ######  #    #   #   #    #
   const loadData = async () => {
     const data = await getSeasonOffPistes(db);
     setListOffPistes(data);
   };
 
-  //                      #######                                  
-  // #    #  ####  ###### #       ###### ###### ######  ####  #####
-  // #    # #      #      #       #      #      #      #    #   #  
-  // #    #  ####  #####  #####   #####  #####  #####  #        #  
-  // #    #      # #      #       #      #      #      #        #  
-  // #    # #    # #      #       #      #      #      #    #   #  
-  //  ####   ####  ###### ####### #      #      ######  ####    #  
   useFocusEffect(
     useCallback(() => {
       loadData();
     }, [])
   );
 
-  // #####  ###### ##### #    # #####  #    #
-  // #    # #        #   #    # #    # ##   #
-  // #    # #####    #   #    # #    # # #  #
-  // #####  #        #   #    # #####  #  # #
-  // #   #  #        #   #    # #   #  #   ##
-  // #    # ######   #    ####  #    # #    #
   return (
     <Body >
       <Text style={appStyles.title}>{t("offpiste")}</Text>
