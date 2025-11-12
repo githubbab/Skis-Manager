@@ -206,7 +206,23 @@ export async function getSeasonSkis(db: SQLiteDatabase, season?: Seasons): Promi
         GROUP BY o2.idOutingType
         ORDER BY COUNT(*) DESC
         LIMIT 1
-      ) AS majorTypeOfOuting
+      ) AS majorTypeOfOuting,
+             (SELECT MAX(m.date)
+         FROM ${TABLES.MAINTAINS} m
+         WHERE m.swr LIKE '%S%' AND m.idSkis = s.id) AS lastSharpDate,
+      (SELECT MAX(m.date)
+         FROM ${TABLES.MAINTAINS} m
+         WHERE m.swr LIKE '%W%' AND m.idSkis = s.id) AS lastWaxDate,
+      (SELECT COUNT(DISTINCT o.date / 86400000)
+          FROM ${TABLES.OUTINGS} o
+          WHERE o.idSkis = s.id AND o.date >= (SELECT MAX(m.date)
+                                                FROM ${TABLES.MAINTAINS} m
+                                                WHERE m.swr LIKE '%S%' AND m.idSkis = s.id)) AS nbOutingsSinceLastSharp,
+      (SELECT COUNT(DISTINCT o.date / 86400000)
+          FROM ${TABLES.OUTINGS} o
+          WHERE o.idSkis = s.id AND o.date >= (SELECT MAX(m.date)
+                                                FROM ${TABLES.MAINTAINS} m
+                                                WHERE m.swr LIKE '%W%' AND m.idSkis = s.id)) AS nbOutingsSinceLastWax
     FROM 
       ${TABLES.SKIS} s
       LEFT JOIN ${TABLES.JOIN_SKIS_USERS} jsu ON s.id = jsu.idSkis

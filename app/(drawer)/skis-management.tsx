@@ -641,12 +641,11 @@ export default function SkisManagement() {
           <Tile flex={1}>
             <TouchableOpacity onPress={() => hideAll("users")} style={styles.modalRow}>
               {skis2Write?.listUsers.length > 0 ?
-                <FlatList
-                  data={listUsers.filter(user => skis2Write?.listUsers.includes(user.id))}
-                  horizontal={true}
-                  renderItem={({ item }) =>
-                    <Pastille name={item.name} size={36} color={item.pcolor} />
-                  } /> :
+                <View style={{ flexDirection: 'row' }}>
+                  {listUsers.filter(user => skis2Write?.listUsers.includes(user.id)).map((item) =>
+                    <Pastille key={item.id} name={item.name} size={36} color={item.pcolor} />
+                  )}
+                </View> :
                 <>
                   <AppIcon name={"point-right"} color={colorsTheme.inactiveText} />
                   <Text style={[appStyles.text, {
@@ -664,22 +663,20 @@ export default function SkisManagement() {
           <Tile flex={1}>
             <TouchableOpacity onPress={() => hideAll("boots")} disabled={skis2Write?.listUsers.length === 0} style={styles.modalRow}>
               {skis2Write?.listBoots.length > 0 ?
-                <FlatList
-                  data={listBoots.filter(boot => skis2Write?.listBoots.includes(boot.id))}
-                  horizontal={false}
-                  renderItem={(item) => (
-                    <Row>
-                      <Image source={{ uri: listBrands.find(brand => brand.id === item.item.idBrand)?.icoUri || "" }}
+                <View style={{ flex: 1, width: '100%' }}>
+                  {listBoots.filter(boot => skis2Write?.listBoots.includes(boot.id)).map((item) => (
+                    <Row key={item.id} style={{ marginBottom: 4 }}>
+                      <Image source={{ uri: listBrands.find(brand => brand.id === item.idBrand)?.icoUri || "" }}
                         style={{ width: 32, height: 32 }} />
-                      <Text style={[appStyles.text, { flex: 1, fontSize: 20, marginLeft: 8, color: item.item.end ? colorsTheme.inactiveText : colorsTheme.text, textDecorationLine: item.item.end ? 'line-through' : 'none' }]}>
-                        {item.item.idBrand === "init-unknown" ? "" : item.item.brand + " "}
-                        {item.item.flex ? item.item.flex + " " : ""}
-                        {item.item.size ? "T" + item.item.size + " " : ""}
-                        {item.item.name}
+                      <Text style={[appStyles.text, { flex: 1, fontSize: 20, marginLeft: 8, color: item.end ? colorsTheme.inactiveText : colorsTheme.text, textDecorationLine: item.end ? 'line-through' : 'none' }]}>
+                        {item.idBrand === "init-unknown" ? "" : item.brand + " "}
+                        {item.flex ? item.flex + " " : ""}
+                        {item.size ? "T" + item.size + " " : ""}
+                        {item.name}
                       </Text>
                     </Row>
-                  )
-                  } /> :
+                  ))}
+                </View> :
                 <>
                   <AppIcon name={skis2Write?.listUsers.length > 0 ? "point-right" : ""} color={colorsTheme.inactiveText} />
                   <Text style={[appStyles.text, {
@@ -800,6 +797,7 @@ export default function SkisManagement() {
           <FlatList
             data={listUsers}
             style={{ maxHeight: 200 }}
+            nestedScrollEnabled={true}
             renderItem={(item) => (
               <Row>
                 <TouchableOpacity
@@ -880,6 +878,7 @@ export default function SkisManagement() {
               : []
             }
             style={{ maxHeight: 200 }}
+            nestedScrollEnabled={true}
             renderItem={(item) => (
               <Row>
                 <TouchableOpacity
@@ -935,6 +934,7 @@ export default function SkisManagement() {
           <FlatList
             data={listTos}
             style={{ maxHeight: 200 }}
+            nestedScrollEnabled={true}
             renderItem={(item) => (
               <Row>
                 <TouchableOpacity
@@ -973,6 +973,7 @@ export default function SkisManagement() {
           <FlatList
             data={listBrands}
             style={{ maxHeight: 200 }}
+            nestedScrollEnabled={true}
             renderItem={(item) => (
               <Row>
                 <TouchableOpacity

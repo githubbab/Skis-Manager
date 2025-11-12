@@ -26,7 +26,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import { FlatList, Image, ListRenderItem, Text, TouchableOpacity, View, TextInput } from 'react-native';
+import { FlatList, Image, ListRenderItem, Text, TouchableOpacity, View, TextInput, ScrollView } from 'react-native';
 
 const iconSize: number = 32;
 const waitSyncTime = 5 * 60 * 1000; // 5 minutes
@@ -156,14 +156,9 @@ export default function Index() {
     });
   };
   const filterMaintainSkis = () => listSkis.sort((a, b) => {
-    const aMaintains = (toSharp.find(s => s.id === 'toSharp-' + a.id)?.nbMaintains || 0) + (toWax.find(s => s.id === 'toWax-' + a.id)?.nbMaintains || 0);
-    const bMaintains = (toSharp.find(s => s.id === 'toSharp-' + b.id)?.nbMaintains || 0) + (toWax.find(s => s.id === 'toWax-' + b.id)?.nbMaintains || 0);
-    if (aMaintains === bMaintains) {
-      const aNb = a.nbOutings || 0;
-      const bNb = b.nbOutings || 0;
-      return bNb - aNb;
-    }
-    return bMaintains - aMaintains;
+    const aScore = (a.nbOutingsSinceLastSharp || 0) * 10 + (a.nbOutingsSinceLastWax || 0);
+    const bScore = (b.nbOutingsSinceLastSharp || 0) * 10 + (b.nbOutingsSinceLastWax || 0);
+    return bScore - aScore;
   });
 
   const loadData = async () => {
@@ -344,7 +339,7 @@ export default function Index() {
             {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
           </Text>
           {item.listUserNames?.map((value: string, index: number) => {
-            return <Pastille key={"SKIS" + value + index} name={value} size={iconSize}
+            return <Pastille key={"SKIS" + value + index} name={value} size={iconSize} color={listUsers.find(u => u.name === value)?.pcolor}
               style={{ marginRight: -10, zIndex: index * -1 }} />;
           })}
           {selectedSkis.id !== item.id &&
@@ -518,7 +513,7 @@ export default function Index() {
   }
   const renderOutingSkis: ListRenderItem<Skis> = ({ item }) => {
     return (
-      <TouchableOpacity onPress={() => {
+      <TouchableOpacity key={item.id} onPress={() => {
         if (outing2write.idSkis === item.id) {
           const skis = filterOutingSkis(outing2write.idUser || "");
           if (skis.length !== 1) {
@@ -560,7 +555,7 @@ export default function Index() {
 
   const renderOutingBoots: ListRenderItem<Boots> = ({ item }) => {
     return (
-      <TouchableOpacity onPress={() => {
+      <TouchableOpacity key={item.id} onPress={() => {
         if (outing2write.idBoots === item.id) {
           // Toujours permettre la désélection pour pouvoir choisir la location
           setOuting2Write({ ...outing2write, idBoots: undefined });
@@ -583,9 +578,11 @@ export default function Index() {
   }
 
   const renderMaintainSkis: ListRenderItem<Skis> = ({ item }) => {
-    const nbMaintains = (toSharp.find(s => s.id === 'toSharp-' + item.id)?.nbMaintains || 0) + (toWax.find(s => s.id === 'toWax-' + item.id)?.nbMaintains || 0);
+    const nbOutingsSinceLastSharp = item.nbOutingsSinceLastSharp || 0;
+    const nbOutingsSinceLastWax = item.nbOutingsSinceLastWax || 0;
     return (
       <TouchableOpacity
+        key={item.id}
         onPress={() => {
           if (maintain2write.idSkis === item.id) {
             setMaintain2Write({ ...maintain2write, idSkis: "not-an-id" });
@@ -610,9 +607,12 @@ export default function Index() {
           <Text numberOfLines={1}
             style={appStyles.inactiveText}
           >
-            {nbMaintains > 0 ? (
-              `(${nbMaintains.toString()})`
+            {nbOutingsSinceLastSharp > 0 ? (
+              `${nbOutingsSinceLastSharp.toString()}`
             ) : "-"}
+            {nbOutingsSinceLastWax > 0 ? (
+              `(${nbOutingsSinceLastWax.toString()})`
+            ) : ""}
 
           </Text>
         </Row>
@@ -823,10 +823,9 @@ export default function Index() {
 
               ) : (
                 <>
-                  <FlatList
-                    data={listUsers}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity onPress={() => {
+                  <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
+                    {listUsers.map((item) => (
+                      <TouchableOpacity key={item.id} onPress={() => {
                         Logger.debug("Selected user:", item);
                         const skis = filterOutingSkis(item.id);
                         if (skis.length === 1) {
@@ -846,9 +845,8 @@ export default function Index() {
                           <Text style={[appStyles.text, { flex: 1 }]}> {item.name}</Text>
                         </Row>
                       </TouchableOpacity>
-                    )}
-                    keyExtractor={(item) => item.id}
-                  />
+                    ))}
+                  </ScrollView>
                   <TouchableOpacity onPress={() => {
                     setOuting2Write({ ...outing2write, idUser: LOAN_USER_ID, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
                   }}>
@@ -892,12 +890,11 @@ export default function Index() {
                 })()
               ) : (
                 <>
-                  <FlatList
-                    data={filterOutingSkis(outing2write.idUser || "")}
-                    renderItem={renderOutingSkis}
-                    keyExtractor={(item) => item.id}
-                    style={{ maxHeight: 200, width: '100%' }}
-                  />
+                  <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+                    {filterOutingSkis(outing2write.idUser || "").map((item) =>
+                      renderOutingSkis({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
+                    )}
+                  </ScrollView>
                   <TouchableOpacity onPress={() => {
                     setOuting2Write({ ...outing2write, idSkis: RENTAL_SKIS_ID, idBoots: undefined, idOutingType: undefined });
                   }}>
@@ -942,12 +939,11 @@ export default function Index() {
                 })()
               ) : (
                 <>
-                  <FlatList
-                    data={filterOutingBoots(outing2write.idUser || "", outing2write.idSkis)}
-                    renderItem={renderOutingBoots}
-                    keyExtractor={(item) => item.id}
-                    style={{ maxHeight: 200, width: '100%' }}
-                  />
+                  <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+                    {filterOutingBoots(outing2write.idUser || "", outing2write.idSkis).map((item) =>
+                      renderOutingBoots({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
+                    )}
+                  </ScrollView>
                   <TouchableOpacity onPress={() => {
                     setOuting2Write({ ...outing2write, idBoots: RENTAL_BOOTS_ID });
                   }}>
@@ -990,10 +986,9 @@ export default function Index() {
                   <AppIcon name={"plus"} color={colorsTheme.primary} />
                 </TouchableOpacity>
                 {(outing2write.listOfOffPistes?.length || 0) > 0 ? (
-                  <FlatList
-                    data={outing2write.listOfOffPistes ? listOffPistes.filter(offpiste => outing2write.listOfOffPistes?.find(op => op.id === offpiste.id)) : []}
-                    renderItem={({ item }) => (
-                      <Row >
+                  <ScrollView style={{ flex: 1, maxHeight: 200 }} nestedScrollEnabled={true}>
+                    {(outing2write.listOfOffPistes ? listOffPistes.filter(offpiste => outing2write.listOfOffPistes?.find(op => op.id === offpiste.id)) : []).map((item) => (
+                      <Row key={item.id}>
                         <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
                         <Card>
                           <TouchableOpacity onPress={() => {
@@ -1034,10 +1029,8 @@ export default function Index() {
                           </TouchableOpacity>
                         </Card>
                       </Row>
-                    )}
-                    keyExtractor={(item) => item.id}
-                    style={{ flex: 1, maxHeight: 200 }}
-                  />
+                    ))}
+                  </ScrollView>
                 ) :
                   <Text style={[appStyles.inactiveText]}>{t('add_offpistes')}</Text>
                 }
@@ -1061,6 +1054,7 @@ export default function Index() {
                         </Row>
                       )}
                       horizontal={true}
+                      nestedScrollEnabled={true}
                       keyExtractor={(item) => item.id}
                     />) : (
                     <Text style={[appStyles.inactiveText]}>{t('add_friends')}</Text>
@@ -1136,12 +1130,11 @@ export default function Index() {
                 return ski ? renderMaintainSkis({ item: ski, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } }) : null;
               })()
             ) : (
-              <FlatList
-                data={filterMaintainSkis()}
-                renderItem={renderMaintainSkis}
-                keyExtractor={(item) => item.id}
-                style={{ maxHeight: 200, width: '100%' }}
-              />
+              <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+                {filterMaintainSkis().map((item) =>
+                  renderMaintainSkis({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
+                )}
+              </ScrollView>
             )}
           </Tile>
         </Row> : <></>
@@ -1226,10 +1219,9 @@ export default function Index() {
       }
       <ModalEditor visible={friendsVisible} center={true} onRequestClose={() => setFriendsVisible(false)}>
         <Tile>
-          <FlatList
-            data={listFriends}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => {
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {listFriends.map((item) => (
+              <TouchableOpacity key={item.id} onPress={() => {
                 if (outing2write.idFriends?.includes(item.id)) {
                   setOuting2Write({ ...outing2write, idFriends: outing2write.idFriends.filter(id => id !== item.id) });
                 } else {
@@ -1241,10 +1233,8 @@ export default function Index() {
                   <Text style={[appStyles.text, { flex: 1, borderRadius: 8, padding: 4, backgroundColor: outing2write.idFriends?.includes(item.id) ? colorsTheme.transparentGray : undefined }]}> {item.name}</Text>
                 </Row>
               </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-            style={{ maxHeight: 300, width: '100%' }}
-          />
+            ))}
+          </ScrollView>
         </Tile>
         <AppButton onPress={() => setFriendsVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
       </ModalEditor>
@@ -1255,10 +1245,9 @@ export default function Index() {
           <Text style={appStyles.title}>{t("add_outing")}</Text>
         </Row>
         <Tile>
-          <FlatList
-            data={listOutingTypes}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => {
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {listOutingTypes.map((item) => (
+              <TouchableOpacity key={item.id} onPress={() => {
                 if (outing2write.idOutingType === item.id) {
                   setOuting2Write({ ...outing2write, idOutingType: undefined });
                 }
@@ -1281,10 +1270,8 @@ export default function Index() {
                   ) : null}
                 </Row>
               </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-            style={{ maxHeight: 300, width: '100%' }}
-          />
+            ))}
+          </ScrollView>
         </Tile>
         <AppButton onPress={() => setOutingVisible(false)} caption={t('cancel')} color={colorsTheme.transparentGray} style={{ marginTop: 16 }} />
       </ModalEditor>
@@ -1295,10 +1282,9 @@ export default function Index() {
           <Text style={appStyles.title}>{t("offpiste")}</Text>
         </Row>
         <Tile>
-          <FlatList
-            data={listOffPistes}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => {
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {listOffPistes.map((item) => (
+              <TouchableOpacity key={item.id} onPress={() => {
                 if (outing2write.listOfOffPistes?.find(offPiste => offPiste.id === item.id)) {
                   setOuting2Write({ ...outing2write, listOfOffPistes: outing2write.listOfOffPistes.filter(offPiste => offPiste.id !== item.id) });
                 } else {
@@ -1313,10 +1299,8 @@ export default function Index() {
                   )}
                 </Row>
               </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-            style={{ maxHeight: 300, width: '100%' }}
-          />
+            ))}
+          </ScrollView>
         </Tile>
         <AppButton onPress={() => setOffPisteVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
       </ModalEditor>

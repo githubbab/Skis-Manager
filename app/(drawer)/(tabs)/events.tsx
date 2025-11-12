@@ -25,7 +25,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import { Alert, Image, ListRenderItem, Text, TextInput, TouchableOpacity, View, FlatList } from 'react-native';
+import { Alert, Image, ListRenderItem, Text, TextInput, TouchableOpacity, View, FlatList, ScrollView } from 'react-native';
 
 const iconSize = 32; // Size for icons in the filter row
 
@@ -469,7 +469,7 @@ const Events = () => {
 
   const renderOutingSkis: ListRenderItem<Skis> = ({ item }) => {
     return (
-      <TouchableOpacity onPress={() => {
+      <TouchableOpacity key={item.id} onPress={() => {
         if (outing2write.idSkis === item.id) {
           const skis = filterOutingSkis(outing2write.idUser || "");
           if (skis.length !== 1) {
@@ -511,7 +511,7 @@ const Events = () => {
 
   const renderOutingBoots: ListRenderItem<Boots> = ({ item }) => {
     return (
-      <TouchableOpacity onPress={() => {
+      <TouchableOpacity key={item.id} onPress={() => {
         if (outing2write.idBoots === item.id) {
           // Toujours permettre la désélection pour pouvoir choisir la location
           setOuting2Write({ ...outing2write, idBoots: undefined });
@@ -536,6 +536,7 @@ const Events = () => {
   const renderMaintainSkis: ListRenderItem<Skis> = ({ item }) => {
     return (
       <TouchableOpacity
+        key={item.id}
         onPress={() => {
           if (maintain2write.idSkis === item.id) {
             setMaintain2Write({ ...maintain2write, idSkis: "not-an-id" });
@@ -917,10 +918,9 @@ const Events = () => {
       <ModalEditor visible={viewSkisFilter}>
         <Text style={appStyles.title}>{t("filter_skis")}</Text>
         <Tile style={{ marginBottom: 16 }}>
-          <FlatList
-            data={skis4filter || []}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => {
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {(skis4filter || []).map((item) => (
+              <TouchableOpacity key={item.id} onPress={() => {
                 setSkisFilter(item);
                 setViewSkisFilter(false);
               }}>
@@ -938,9 +938,8 @@ const Events = () => {
                   </Text>
                 </Row>
               </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-          />
+            ))}
+          </ScrollView>
         </Tile>
         <AppButton onPress={handleCancelFilters} caption={t("cancel")} />
       </ModalEditor>
@@ -949,10 +948,9 @@ const Events = () => {
       <ModalEditor visible={viewUserFilter}>
         <Text style={appStyles.title}>{t("filter_users")}</Text>
         <Tile style={{ marginBottom: 16 }}>
-          <FlatList
-            data={users4filter || []}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => {
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {(users4filter || []).map((item) => (
+              <TouchableOpacity key={item.id} onPress={() => {
                 setUserFilter(item);
                 setViewUserFilter(false);
               }}>
@@ -963,9 +961,8 @@ const Events = () => {
                   </Text>
                 </Row>
               </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-          />
+            ))}
+          </ScrollView>
         </Tile>
         <AppButton onPress={handleCancelFilters} caption={t("cancel")} />
       </ModalEditor>
@@ -974,10 +971,9 @@ const Events = () => {
       <ModalEditor visible={viewTooFilter}>
         <Text style={appStyles.title}>{t("filter_too")}</Text>
         <Tile style={{ marginBottom: 16 }}>
-          <FlatList
-            data={too4filter || []}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => {
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {(too4filter || []).map((item) => (
+              <TouchableOpacity key={item.id} onPress={() => {
                 setTooFilter(item);
                 setViewTooFilter(false);
               }}>
@@ -987,9 +983,8 @@ const Events = () => {
                   </Text>
                 </Row>
               </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-          />
+            ))}
+          </ScrollView>
         </Tile>
         <AppButton onPress={handleCancelFilters} caption={t("cancel")} />
       </ModalEditor>
@@ -1065,10 +1060,9 @@ const Events = () => {
 
               ) : (
                 <>
-                  <FlatList
-                    data={listUsers}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity onPress={() => {
+                  <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
+                    {listUsers.map((item) => (
+                      <TouchableOpacity key={item.id} onPress={() => {
                         Logger.debug("Selected user:", item);
                         const skis = filterOutingSkis(item.id);
                         if (skis.length === 1) {
@@ -1088,9 +1082,8 @@ const Events = () => {
                           <Text style={[appStyles.text, { flex: 1 }]}> {item.name}</Text>
                         </Row>
                       </TouchableOpacity>
-                    )}
-                    keyExtractor={(item) => item.id}
-                  />
+                    ))}
+                  </ScrollView>
                   <TouchableOpacity onPress={() => {
                     setOuting2Write({ ...outing2write, idUser: LOAN_USER_ID, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
                   }}>
@@ -1134,12 +1127,11 @@ const Events = () => {
                 })()
               ) : (
                 <>
-                  <FlatList
-                    data={filterOutingSkis(outing2write.idUser || "")}
-                    renderItem={renderOutingSkis}
-                    keyExtractor={(item) => item.id}
-                    style={{ maxHeight: 200, width: '100%' }}
-                  />
+                  <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+                    {filterOutingSkis(outing2write.idUser || "").map((item) =>
+                      renderOutingSkis({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
+                    )}
+                  </ScrollView>
                   <TouchableOpacity onPress={() => {
                     setOuting2Write({ ...outing2write, idSkis: RENTAL_SKIS_ID, idBoots: undefined, idOutingType: undefined });
                   }}>
@@ -1184,12 +1176,11 @@ const Events = () => {
                 })()
               ) : (
                 <>
-                  <FlatList
-                    data={filterOutingBoots(outing2write.idUser || "", outing2write.idSkis)}
-                    renderItem={renderOutingBoots}
-                    keyExtractor={(item) => item.id}
-                    style={{ maxHeight: 200, width: '100%' }}
-                  />
+                  <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+                    {filterOutingBoots(outing2write.idUser || "", outing2write.idSkis).map((item) =>
+                      renderOutingBoots({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
+                    )}
+                  </ScrollView>
                   <TouchableOpacity onPress={() => {
                     setOuting2Write({ ...outing2write, idBoots: RENTAL_BOOTS_ID });
                   }}>
@@ -1232,10 +1223,9 @@ const Events = () => {
                   <AppIcon name={"plus"} color={colorsTheme.primary} />
                 </TouchableOpacity>
                 {(outing2write.listOfOffPistes?.length || 0) > 0 ? (
-                  <FlatList
-                    data={outing2write.listOfOffPistes ? listOffPistes.filter(offpiste => outing2write.listOfOffPistes?.find(op => op.id === offpiste.id)) : []}
-                    renderItem={({ item }) => (
-                      <Row >
+                  <ScrollView style={{ flex: 1, maxHeight: 200 }} nestedScrollEnabled={true}>
+                    {(outing2write.listOfOffPistes ? listOffPistes.filter(offpiste => outing2write.listOfOffPistes?.find(op => op.id === offpiste.id)) : []).map((item) => (
+                      <Row key={item.id}>
                         <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
                         <Card>
                           <TouchableOpacity onPress={() => {
@@ -1276,10 +1266,8 @@ const Events = () => {
                           </TouchableOpacity>
                         </Card>
                       </Row>
-                    )}
-                    keyExtractor={(item) => item.id}
-                    style={{ flex: 1, maxHeight: 200 }}
-                  />
+                    ))}
+                  </ScrollView>
                 ) :
                   <Text style={[appStyles.inactiveText]}>{t('add_offpistes')}</Text>
                 }
@@ -1303,6 +1291,7 @@ const Events = () => {
                         </Row>
                       )}
                       horizontal={true}
+                      nestedScrollEnabled={true}
                       keyExtractor={(item) => item.id}
                     />) : (
                     <Text style={[appStyles.inactiveText]}>{t('add_friends')}</Text>
@@ -1381,12 +1370,11 @@ const Events = () => {
                 return ski ? renderMaintainSkis({ item: ski, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } }) : null;
               })()
             ) : (
-              <FlatList
-                data={filterMaintainSkis()}
-                renderItem={renderMaintainSkis}
-                keyExtractor={(item) => item.id}
-                style={{ maxHeight: 200, width: '100%' }}
-              />
+              <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+                {filterMaintainSkis().map((item) =>
+                  renderMaintainSkis({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
+                )}
+              </ScrollView>
             )}
           </Tile>
         </Row> : <></>
@@ -1471,10 +1459,9 @@ const Events = () => {
       }
       <ModalEditor visible={friendsVisible} center={true} onRequestClose={() => setFriendsVisible(false)}>
         <Tile>
-          <FlatList
-            data={listFriends}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => {
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {listFriends.map((item) => (
+              <TouchableOpacity key={item.id} onPress={() => {
                 if (outing2write.idFriends?.includes(item.id)) {
                   setOuting2Write({ ...outing2write, idFriends: outing2write.idFriends.filter(id => id !== item.id) });
                 } else {
@@ -1486,10 +1473,8 @@ const Events = () => {
                   <Text style={[appStyles.text, { flex: 1, borderRadius: 8, padding: 4, backgroundColor: outing2write.idFriends?.includes(item.id) ? colorsTheme.transparentGray : undefined }]}> {item.name}</Text>
                 </Row>
               </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-            style={{ maxHeight: 300, width: '100%' }}
-          />
+            ))}
+          </ScrollView>
         </Tile>
         <AppButton onPress={() => setFriendsVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
       </ModalEditor>
@@ -1500,10 +1485,9 @@ const Events = () => {
           <Text style={appStyles.title}>{t("modify_outing")}</Text>
         </Row>
         <Tile>
-          <FlatList
-            data={listOutingTypes}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => {
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {listOutingTypes.map((item) => (
+              <TouchableOpacity key={item.id} onPress={() => {
                 if (outing2write.idOutingType === item.id) {
                   setOuting2Write({ ...outing2write, idOutingType: undefined });
                 }
@@ -1526,10 +1510,8 @@ const Events = () => {
                   ) : null}
                 </Row>
               </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-            style={{ maxHeight: 300, width: '100%' }}
-          />
+            ))}
+          </ScrollView>
         </Tile>
         <AppButton onPress={() => setTypeOfOutingVisible(false)} caption={t('cancel')} color={colorsTheme.transparentGray} style={{ marginTop: 16 }} />
       </ModalEditor>
@@ -1540,10 +1522,9 @@ const Events = () => {
           <Text style={appStyles.title}>{t("offpiste")}</Text>
         </Row>
         <Tile>
-          <FlatList
-            data={listOffPistes}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => {
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {listOffPistes.map((item) => (
+              <TouchableOpacity key={item.id} onPress={() => {
                 if (outing2write.listOfOffPistes?.find(offPiste => offPiste.id === item.id)) {
                   setOuting2Write({ ...outing2write, listOfOffPistes: outing2write.listOfOffPistes.filter(offPiste => offPiste.id !== item.id) });
                 } else {
@@ -1558,10 +1539,8 @@ const Events = () => {
                   )}
                 </Row>
               </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-            style={{ maxHeight: 300, width: '100%' }}
-          />
+            ))}
+          </ScrollView>
         </Tile>
         <AppButton onPress={() => setOffPisteVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
       </ModalEditor>
