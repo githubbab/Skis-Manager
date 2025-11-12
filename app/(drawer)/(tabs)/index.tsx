@@ -98,26 +98,26 @@ export default function Index() {
     // Si c'est un prêt, retourner toutes les chaussures
     if (idUser === LOAN_USER_ID) {
       const allBoots = [...listBoots];
-      
+
       // Si des skis sont sélectionnés, trier pour mettre en premier les chaussures compatibles
       if (idSkis && idSkis !== RENTAL_SKIS_ID) {
         const ski = listSkis.find(ski => ski.id === idSkis);
         const compatibleBootsIds = ski?.listBoots || [];
-        
+
         return allBoots.sort((a, b) => {
           // Priorité 1: Chaussures compatibles avec les skis
           const aCompatible = compatibleBootsIds.includes(a.id || "");
           const bCompatible = compatibleBootsIds.includes(b.id || "");
           if (aCompatible && !bCompatible) return -1;
           if (!aCompatible && bCompatible) return 1;
-          
+
           // Priorité 2: Nombre de sorties
           const aNb = a.nbOutings || 0;
           const bNb = b.nbOutings || 0;
           return bNb - aNb;
         });
       }
-      
+
       // Sinon, trier simplement par nombre de sorties
       return allBoots.sort((a, b) => {
         const aNb = a.nbOutings || 0;
@@ -125,29 +125,29 @@ export default function Index() {
         return bNb - aNb;
       });
     }
-    
+
     // Retourne toutes les chaussures de l'utilisateur
     const userBoots = listBoots.filter(boots => boots.listUsers?.includes(idUser));
-    
+
     // Si des skis sont sélectionnés, trier pour mettre en premier les chaussures compatibles
     if (idSkis && idSkis !== RENTAL_SKIS_ID) {
       const ski = listSkis.find(ski => ski.id === idSkis);
       const compatibleBootsIds = ski?.listBoots || [];
-      
+
       return userBoots.sort((a, b) => {
         // Priorité 1: Chaussures compatibles avec les skis
         const aCompatible = compatibleBootsIds.includes(a.id || "");
         const bCompatible = compatibleBootsIds.includes(b.id || "");
         if (aCompatible && !bCompatible) return -1;
         if (!aCompatible && bCompatible) return 1;
-        
+
         // Priorité 2: Nombre de sorties
         const aNb = a.nbOutings || 0;
         const bNb = b.nbOutings || 0;
         return bNb - aNb;
       });
     }
-    
+
     // Sinon, trier simplement par nombre de sorties
     return userBoots.sort((a, b) => {
       const aNb = a.nbOutings || 0;
@@ -811,10 +811,7 @@ export default function Index() {
                 <TouchableOpacity onPress={() => setOuting2Write({ ...outing2write, idUser: undefined, idSkis: undefined, idBoots: undefined })}>
                   <Row>
                     {outing2write.idUser === LOAN_USER_ID ? (
-                      <>
-                        <AppIcon name={"hand"} color={colorsTheme.text} size={iconSize} />
-                        <Text style={[appStyles.text, { flex: 1, fontStyle: 'italic', marginLeft: 8 }]}>{t('loan_equipment')}</Text>
-                      </>
+                      <Text style={[appStyles.text, { flex: 1, fontStyle: 'italic', marginLeft: 8 }]}>{t('loan_equipment')}</Text>
                     ) : (
                       <>
                         <Pastille name={listUsers.find(user => user.id === outing2write.idUser)?.name || ""} color={listUsers.find(user => user.id === outing2write.idUser)?.pcolor} textColor={colorsTheme.text} size={iconSize} />
@@ -856,7 +853,6 @@ export default function Index() {
                     setOuting2Write({ ...outing2write, idUser: LOAN_USER_ID, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
                   }}>
                     <Row style={{ marginVertical: 2, paddingVertical: 4, borderTopWidth: 1, borderTopColor: colorsTheme.separator }}>
-                      <AppIcon name={"hand"} color={colorsTheme.text} size={iconSize} />
                       <Text numberOfLines={1}
                         style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontStyle: 'italic', marginLeft: 8 }}
                       >

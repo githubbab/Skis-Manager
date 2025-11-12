@@ -618,10 +618,7 @@ const Events = () => {
                 </Text>
                 {!userFilter && (
                   isLoan ? (
-                    <Row>
-                      <AppIcon name={"hand"} color={colorsTheme.text} size={iconSize * 0.7} />
                       <Text style={[appStyles.text, { fontStyle: 'italic', fontSize: 16 }]}>{t('loan_equipment')}</Text>
-                    </Row>
                   ) : (
                     <Pastille size={iconSize} name={outingUser?.name || ""} color={outingUser?.pcolor} />
                   )
@@ -1056,10 +1053,7 @@ const Events = () => {
                 <TouchableOpacity onPress={() => setOuting2Write({ ...outing2write, idUser: undefined, idSkis: undefined, idBoots: undefined })}>
                   <Row>
                     {outing2write.idUser === LOAN_USER_ID ? (
-                      <>
-                        <AppIcon name={"hand"} color={colorsTheme.text} size={iconSize} />
                         <Text style={[appStyles.text, { flex: 1, fontStyle: 'italic', marginLeft: 8 }]}>{t('loan_equipment')}</Text>
-                      </>
                     ) : (
                       <>
                         <Pastille name={listUsers.find(user => user.id === outing2write.idUser)?.name || ""} color={listUsers.find(user => user.id === outing2write.idUser)?.pcolor} textColor={colorsTheme.text} size={iconSize} />
@@ -1101,7 +1095,6 @@ const Events = () => {
                     setOuting2Write({ ...outing2write, idUser: LOAN_USER_ID, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
                   }}>
                     <Row style={{ marginVertical: 2, paddingVertical: 4, borderTopWidth: 1, borderTopColor: colorsTheme.separator }}>
-                      <AppIcon name={"hand"} color={colorsTheme.text} size={iconSize} />
                       <Text numberOfLines={1}
                         style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontStyle: 'italic', marginLeft: 8 }}
                       >
