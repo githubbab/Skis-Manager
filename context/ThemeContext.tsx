@@ -21,7 +21,7 @@ export const ThemeContext = createContext<ThemeContextType>({
 });
 
 const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme: "light" | "dark" = useColorScheme() === 'dark' ? 'dark' : 'light';
   const [theme, setTheme] = useState<"light" | "dark">(colorScheme);
   const [systemTheme, setSystemTheme] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);

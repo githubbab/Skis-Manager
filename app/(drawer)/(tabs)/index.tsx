@@ -31,6 +31,11 @@ import { FlatList, Image, ListRenderItem, Text, TouchableOpacity, View, TextInpu
 const iconSize: number = 32;
 const waitSyncTime = 5 * 60 * 1000; // 5 minutes
 
+// IDs spéciaux pour les locations et prêts
+const RENTAL_SKIS_ID = "RENTAL-SKIS";
+const RENTAL_BOOTS_ID = "RENTAL-BOOTS";
+const LOAN_USER_ID = "LOAN-USER";
+
 const getCountColor = (count: number) => {
   const safeColor = Math.max(0, Math.min(255, 137 - count * 10));
   return `rgb(255,${safeColor},0)`;
@@ -74,16 +79,82 @@ export default function Index() {
 
   const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, lastWebDavSync } = useContext(AppContext)!;
 
-  const filterOutingSkis = (idUser: string) => listSkis.filter(ski => ski.listUsers?.includes(idUser)).sort((a, b) => {
-    const aNb = a.nbOutings || 0;
-    const bNb = b.nbOutings || 0;
-    return bNb - aNb;
-  });
-  const filterOutingBoots = (idSkis: string) => listBoots.filter(boots => listSkis.find(ski => ski.id === idSkis)?.listBoots?.includes(boots.id || "") || false).sort((a, b) => {
-    const aNb = a.nbOutings || 0;
-    const bNb = b.nbOutings || 0;
-    return bNb - aNb;
-  });
+  const filterOutingSkis = (idUser: string) => {
+    // Si c'est un prêt, retourner tous les skis
+    if (idUser === LOAN_USER_ID) {
+      return listSkis.sort((a, b) => {
+        const aNb = a.nbOutings || 0;
+        const bNb = b.nbOutings || 0;
+        return bNb - aNb;
+      });
+    }
+    return listSkis.filter(ski => ski.listUsers?.includes(idUser)).sort((a, b) => {
+      const aNb = a.nbOutings || 0;
+      const bNb = b.nbOutings || 0;
+      return bNb - aNb;
+    });
+  };
+  const filterOutingBoots = (idUser: string, idSkis?: string) => {
+    // Si c'est un prêt, retourner toutes les chaussures
+    if (idUser === LOAN_USER_ID) {
+      const allBoots = [...listBoots];
+      
+      // Si des skis sont sélectionnés, trier pour mettre en premier les chaussures compatibles
+      if (idSkis && idSkis !== RENTAL_SKIS_ID) {
+        const ski = listSkis.find(ski => ski.id === idSkis);
+        const compatibleBootsIds = ski?.listBoots || [];
+        
+        return allBoots.sort((a, b) => {
+          // Priorité 1: Chaussures compatibles avec les skis
+          const aCompatible = compatibleBootsIds.includes(a.id || "");
+          const bCompatible = compatibleBootsIds.includes(b.id || "");
+          if (aCompatible && !bCompatible) return -1;
+          if (!aCompatible && bCompatible) return 1;
+          
+          // Priorité 2: Nombre de sorties
+          const aNb = a.nbOutings || 0;
+          const bNb = b.nbOutings || 0;
+          return bNb - aNb;
+        });
+      }
+      
+      // Sinon, trier simplement par nombre de sorties
+      return allBoots.sort((a, b) => {
+        const aNb = a.nbOutings || 0;
+        const bNb = b.nbOutings || 0;
+        return bNb - aNb;
+      });
+    }
+    
+    // Retourne toutes les chaussures de l'utilisateur
+    const userBoots = listBoots.filter(boots => boots.listUsers?.includes(idUser));
+    
+    // Si des skis sont sélectionnés, trier pour mettre en premier les chaussures compatibles
+    if (idSkis && idSkis !== RENTAL_SKIS_ID) {
+      const ski = listSkis.find(ski => ski.id === idSkis);
+      const compatibleBootsIds = ski?.listBoots || [];
+      
+      return userBoots.sort((a, b) => {
+        // Priorité 1: Chaussures compatibles avec les skis
+        const aCompatible = compatibleBootsIds.includes(a.id || "");
+        const bCompatible = compatibleBootsIds.includes(b.id || "");
+        if (aCompatible && !bCompatible) return -1;
+        if (!aCompatible && bCompatible) return 1;
+        
+        // Priorité 2: Nombre de sorties
+        const aNb = a.nbOutings || 0;
+        const bNb = b.nbOutings || 0;
+        return bNb - aNb;
+      });
+    }
+    
+    // Sinon, trier simplement par nombre de sorties
+    return userBoots.sort((a, b) => {
+      const aNb = a.nbOutings || 0;
+      const bNb = b.nbOutings || 0;
+      return bNb - aNb;
+    });
+  };
   const filterMaintainSkis = () => listSkis.sort((a, b) => {
     const aMaintains = (toSharp.find(s => s.id === 'toSharp-' + a.id)?.nbMaintains || 0) + (toWax.find(s => s.id === 'toWax-' + a.id)?.nbMaintains || 0);
     const bMaintains = (toSharp.find(s => s.id === 'toSharp-' + b.id)?.nbMaintains || 0) + (toWax.find(s => s.id === 'toWax-' + b.id)?.nbMaintains || 0);
@@ -174,8 +245,10 @@ export default function Index() {
     }
     if (outing2write.idSkis) {
       setOutingViewBoots(true);
-      const boots = filterOutingBoots(outing2write.idSkis || "");
-      if (boots.length === 1) {
+      const boots = filterOutingBoots(outing2write.idUser || "", outing2write.idSkis);
+      // Sélection automatique de la première chaussure (la plus compatible/utilisée) uniquement si idSkis vient de changer
+      // Cela évite la resélection automatique après une désélection manuelle
+      if (boots.length >= 1 && outing.idSkis !== outing2write.idSkis) {
         outing = { ...outing, idBoots: boots[0].id };
       }
     } else {
@@ -452,8 +525,8 @@ export default function Index() {
             setOuting2Write({ ...outing2write, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
           }
         } else {
-          const boots = filterOutingBoots(item.id);
-          if (boots.length === 1) {
+          const boots = filterOutingBoots(outing2write.idUser || "", item.id);
+          if (boots.length >= 1) {
             setOuting2Write({ ...outing2write, idSkis: item.id, idBoots: boots[0].id, idOutingType: item.majorTypeOfOuting || undefined });
           } else {
             setOuting2Write({ ...outing2write, idSkis: item.id, idBoots: undefined, idOutingType: item.majorTypeOfOuting || undefined });
@@ -489,10 +562,8 @@ export default function Index() {
     return (
       <TouchableOpacity onPress={() => {
         if (outing2write.idBoots === item.id) {
-          const boots = filterOutingBoots(outing2write.idSkis || "");
-          if (boots.length !== 1) {
-            setOuting2Write({ ...outing2write, idBoots: undefined });
-          }
+          // Toujours permettre la désélection pour pouvoir choisir la location
+          setOuting2Write({ ...outing2write, idBoots: undefined });
         } else {
           setOuting2Write({ ...outing2write, idBoots: item.id })
         }
@@ -589,8 +660,8 @@ export default function Index() {
       if (listUsers.length === 1) {
         const skis = filterOutingSkis(listUsers[0].id);
         if (skis.length === 1) {
-          const boots = filterOutingBoots(skis[0].id);
-          if (boots.length === 1) {
+          const boots = filterOutingBoots(listUsers[0].id, skis[0].id);
+          if (boots.length >= 1) {
             setOuting2Write({ ...outing2write, date: date2Save, idUser: listUsers[0].id, idSkis: skis[0].id, idBoots: boots[0].id });
           } else {
             setOuting2Write({ ...outing2write, date: date2Save, idUser: listUsers[0].id, idSkis: skis[0].id, idBoots: undefined });
@@ -739,38 +810,61 @@ export default function Index() {
               {outing2write.idUser ? (
                 <TouchableOpacity onPress={() => setOuting2Write({ ...outing2write, idUser: undefined, idSkis: undefined, idBoots: undefined })}>
                   <Row>
-                    <Pastille name={listUsers.find(user => user.id === outing2write.idUser)?.name || ""} color={listUsers.find(user => user.id === outing2write.idUser)?.pcolor} textColor={colorsTheme.text} size={iconSize} />
-                    <Text style={[appStyles.text, { flex: 1 }]}>{listUsers.find(user => user.id === outing2write.idUser)?.name || ""}</Text>
+                    {outing2write.idUser === LOAN_USER_ID ? (
+                      <>
+                        <AppIcon name={"hand"} color={colorsTheme.text} size={iconSize} />
+                        <Text style={[appStyles.text, { flex: 1, fontStyle: 'italic', marginLeft: 8 }]}>{t('loan_equipment')}</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Pastille name={listUsers.find(user => user.id === outing2write.idUser)?.name || ""} color={listUsers.find(user => user.id === outing2write.idUser)?.pcolor} textColor={colorsTheme.text} size={iconSize} />
+                        <Text style={[appStyles.text, { flex: 1 }]}>{listUsers.find(user => user.id === outing2write.idUser)?.name || ""}</Text>
+                      </>
+                    )}
                   </Row>
                 </TouchableOpacity>
 
               ) : (
-                <FlatList
-                  data={listUsers}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity onPress={() => {
-                      Logger.debug("Selected user:", item);
-                      const skis = filterOutingSkis(item.id);
-                      if (skis.length === 1) {
-                        const boots = filterOutingBoots(skis[0].id);
-                        if (boots.length === 1) {
-                          setOuting2Write({ ...outing2write, idSkis: skis[0].id, idBoots: boots[0].id, idOutingType: skis[0].majorTypeOfOuting });
-                        } else {
-                          setOuting2Write({ ...outing2write, idSkis: skis[0].id, idBoots: undefined, idOutingType: undefined });
+                <>
+                  <FlatList
+                    data={listUsers}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity onPress={() => {
+                        Logger.debug("Selected user:", item);
+                        const skis = filterOutingSkis(item.id);
+                        if (skis.length === 1) {
+                          const boots = filterOutingBoots(item.id, skis[0].id);
+                          if (boots.length >= 1) {
+                            setOuting2Write({ ...outing2write, idSkis: skis[0].id, idBoots: boots[0].id, idOutingType: skis[0].majorTypeOfOuting });
+                          } else {
+                            setOuting2Write({ ...outing2write, idSkis: skis[0].id, idBoots: undefined, idOutingType: undefined });
+                          }
                         }
-                      }
-                      else {
-                        setOuting2Write({ ...outing2write, idUser: item.id, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
-                      }
-                    }}>
-                      <Row style={{ paddingVertical: 4 }}>
-                        <Pastille name={item.name} color={item.pcolor} textColor={colorsTheme.text} size={iconSize} />
-                        <Text style={[appStyles.text, { flex: 1 }]}> {item.name}</Text>
-                      </Row>
-                    </TouchableOpacity>
-                  )}
-                  keyExtractor={(item) => item.id}
-                />
+                        else {
+                          setOuting2Write({ ...outing2write, idUser: item.id, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
+                        }
+                      }}>
+                        <Row style={{ paddingVertical: 4 }}>
+                          <Pastille name={item.name} color={item.pcolor} textColor={colorsTheme.text} size={iconSize} />
+                          <Text style={[appStyles.text, { flex: 1 }]}> {item.name}</Text>
+                        </Row>
+                      </TouchableOpacity>
+                    )}
+                    keyExtractor={(item) => item.id}
+                  />
+                  <TouchableOpacity onPress={() => {
+                    setOuting2Write({ ...outing2write, idUser: LOAN_USER_ID, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
+                  }}>
+                    <Row style={{ marginVertical: 2, paddingVertical: 4, borderTopWidth: 1, borderTopColor: colorsTheme.separator }}>
+                      <AppIcon name={"hand"} color={colorsTheme.text} size={iconSize} />
+                      <Text numberOfLines={1}
+                        style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontStyle: 'italic', marginLeft: 8 }}
+                      >
+                        {t('loan_equipment')}
+                      </Text>
+                    </Row>
+                  </TouchableOpacity>
+                </>
               )}
             </Tile>
           </Row>
@@ -781,16 +875,46 @@ export default function Index() {
             <Tile flex={1} >
               {outing2write.idSkis ? (
                 (() => {
+                  if (outing2write.idSkis === RENTAL_SKIS_ID) {
+                    return (
+                      <TouchableOpacity onPress={() => {
+                        setOuting2Write({ ...outing2write, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
+                      }}>
+                        <Row style={{ marginVertical: 2 }}>
+                          <AppIcon name={"credit-card"} color={colorsTheme.text} size={20} />
+                          <Text numberOfLines={1}
+                            style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontStyle: 'italic', marginLeft: 8 }}
+                          >
+                            {t('rental_skis')}
+                          </Text>
+                        </Row>
+                      </TouchableOpacity>
+                    );
+                  }
                   const ski = listSkis.find(ski => ski.id === outing2write.idSkis);
                   return ski ? renderOutingSkis({ item: ski, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } }) : null;
                 })()
               ) : (
-                <FlatList
-                  data={filterOutingSkis(outing2write.idUser || "")}
-                  renderItem={renderOutingSkis}
-                  keyExtractor={(item) => item.id}
-                  style={{ maxHeight: 200, width: '100%' }}
-                />
+                <>
+                  <FlatList
+                    data={filterOutingSkis(outing2write.idUser || "")}
+                    renderItem={renderOutingSkis}
+                    keyExtractor={(item) => item.id}
+                    style={{ maxHeight: 200, width: '100%' }}
+                  />
+                  <TouchableOpacity onPress={() => {
+                    setOuting2Write({ ...outing2write, idSkis: RENTAL_SKIS_ID, idBoots: undefined, idOutingType: undefined });
+                  }}>
+                    <Row style={{ marginVertical: 2, paddingVertical: 4, borderTopWidth: 1, borderTopColor: colorsTheme.separator }}>
+                      <AppIcon name={"credit-card"} color={colorsTheme.text} size={20} />
+                      <Text numberOfLines={1}
+                        style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontStyle: 'italic', marginLeft: 8 }}
+                      >
+                        {t('rental_skis')}
+                      </Text>
+                    </Row>
+                  </TouchableOpacity>
+                </>
               )}
             </Tile>
           </Row>
@@ -801,16 +925,46 @@ export default function Index() {
             <Tile flex={1} >
               {outing2write.idBoots ? (
                 (() => {
+                  if (outing2write.idBoots === RENTAL_BOOTS_ID) {
+                    return (
+                      <TouchableOpacity onPress={() => {
+                        setOuting2Write({ ...outing2write, idBoots: undefined });
+                      }}>
+                        <Row style={{ marginVertical: 2 }}>
+                          <AppIcon name={"credit-card"} color={colorsTheme.text} size={20} />
+                          <Text numberOfLines={1}
+                            style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontStyle: 'italic', marginLeft: 8 }}
+                          >
+                            {t('rental_boots')}
+                          </Text>
+                        </Row>
+                      </TouchableOpacity>
+                    );
+                  }
                   const boots = listBoots.find(boots => boots.id === outing2write.idBoots);
                   return boots ? renderOutingBoots({ item: boots, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } }) : null;
                 })()
               ) : (
-                <FlatList
-                  data={filterOutingBoots(outing2write.idSkis || "")}
-                  renderItem={renderOutingBoots}
-                  keyExtractor={(item) => item.id}
-                  style={{ maxHeight: 200, width: '100%' }}
-                />
+                <>
+                  <FlatList
+                    data={filterOutingBoots(outing2write.idUser || "", outing2write.idSkis)}
+                    renderItem={renderOutingBoots}
+                    keyExtractor={(item) => item.id}
+                    style={{ maxHeight: 200, width: '100%' }}
+                  />
+                  <TouchableOpacity onPress={() => {
+                    setOuting2Write({ ...outing2write, idBoots: RENTAL_BOOTS_ID });
+                  }}>
+                    <Row style={{ marginVertical: 2, paddingVertical: 4, borderTopWidth: 1, borderTopColor: colorsTheme.separator }}>
+                      <AppIcon name={"credit-card"} color={colorsTheme.text} size={20} />
+                      <Text numberOfLines={1}
+                        style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontStyle: 'italic', marginLeft: 8 }}
+                      >
+                        {t('rental_boots')}
+                      </Text>
+                    </Row>
+                  </TouchableOpacity>
+                </>
               )}
             </Tile>
           </Row>
