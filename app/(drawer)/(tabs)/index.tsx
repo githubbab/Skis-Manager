@@ -455,7 +455,8 @@ export default function Index() {
         </Text>
         {item.listUserNames?.map((value: string, index: number) => {
           return <Pastille key={"SHARP" + value + index} name={value} size={iconSize}
-            style={{ marginRight: -10, zIndex: index * -1 }} />;
+            style={{ marginRight: -10, zIndex: index * -1 }} 
+            color={listUsers.find(user => user.id === value)?.pcolor} />;
         })}
         {count === 0 ?
           <AppIcon name={"affuteuse"} color={colorsTheme.warning}
@@ -493,7 +494,8 @@ export default function Index() {
         </Text>
         {item.listUserNames?.map((value: string, index: number) => {
           return <Pastille key={"WAX" + value + index} name={value} size={iconSize}
-            style={{ marginRight: -10, zIndex: index * -1 }} />;
+            style={{ marginRight: -10, zIndex: index * -1 }} 
+            color={listUsers.find(user => user.id === value)?.pcolor} />;
         })}
         {count === 0 ?
           <AppIcon name={"fartage"} color={colorsTheme.warning} styles={{ fontSize: 24, flex: 1, textAlign: 'right' }} />
