@@ -217,9 +217,9 @@ export async function syncByState(
       Logger.info("🆕 First sync detected for this device");
     }
 
-    // 2. Download all remote databases
-    const remoteDatabases = await downloadRemoteDatabases(webDavClient);
-    Logger.debug(`Found ${remoteDatabases.length} remote databases`);
+    // 2. Download all remote databases (only from other devices and newer than last sync)
+    const remoteDatabases = await downloadRemoteDatabases(webDavClient, deviceId, metadata.lastSyncTimestamp);
+    Logger.debug(`Found ${remoteDatabases.length} remote databases to process`);
 
     // 3. Check if we're the only device
     const otherDevices = remoteDatabases.filter(db => db.deviceId !== deviceId);
@@ -266,11 +266,15 @@ export async function syncByState(
       await uploadDatabase(db, webDavClient, deviceId);
     }
 
-    // 4. Sync images
+    // 4. Cleanup old database files from all devices
+    onProgress?.("syncing", "Nettoyage des anciens fichiers...");
+    await cleanupAllOldDatabaseFiles(webDavClient);
+
+    // 5. Sync images
     onProgress?.("syncing", "Synchronisation des images...");
     await syncImages(db, webDavClient, deviceId);
 
-    // 5. Update sync metadata
+    // 6. Update sync metadata
     const now = Date.now();
     await db.execAsync(
       `INSERT OR REPLACE INTO syncMetadata (key, value) VALUES ('lastSyncTimestamp', '${now}')`
@@ -307,15 +311,23 @@ export async function syncByState(
 }
 
 /**
- * Télécharge et parse toutes les bases distantes présentes sur le serveur WebDAV.
+ * Télécharge et parse les bases distantes pertinentes présentes sur le serveur WebDAV.
  *
- * Recherche les fichiers nommés `db-XXXX-timestamp.json`, télécharge leur contenu
- * et retourne un tableau d'objets `RemoteDatabase`.
+ * Optimisations :
+ * - Ignore les fichiers du deviceId local (pas besoin de télécharger notre propre base)
+ * - Ignore les fichiers plus anciens que lastSyncTimestamp (déjà traités)
+ * - Ne télécharge que les fichiers des autres appareils qui ont changé
  *
  * @param webDavClient Client WebDAV connecté
+ * @param localDeviceId Identifiant de l'appareil local (pour ignorer nos propres fichiers)
+ * @param lastSyncTimestamp Timestamp de la dernière synchro (pour ignorer les anciens fichiers)
  * @returns Tableau de bases distantes (possiblement vide)
  */
-async function downloadRemoteDatabases(webDavClient: WebDAVClient): Promise<RemoteDatabase[]> {
+async function downloadRemoteDatabases(
+  webDavClient: WebDAVClient,
+  localDeviceId: string,
+  lastSyncTimestamp: number = 0
+): Promise<RemoteDatabase[]> {
   const databases: RemoteDatabase[] = [];
 
   try {
@@ -327,6 +339,8 @@ async function downloadRemoteDatabases(webDavClient: WebDAVClient): Promise<Remo
     }
 
     const contents = await webDavClient.getDirectoryContents("/") as any[];
+    let skippedOwnFiles = 0;
+    let skippedOldFiles = 0;
 
     for (const item of contents) {
       // Look for files like "db-XXXX-timestamp.json"
@@ -336,6 +350,18 @@ async function downloadRemoteDatabases(webDavClient: WebDAVClient): Promise<Remo
 
         const deviceId = match[1];
         const timestamp = parseInt(match[2], 10);
+
+        // Skip our own device's files
+        if (deviceId === localDeviceId) {
+          skippedOwnFiles++;
+          continue;
+        }
+
+        // Skip files older than our last sync (already processed)
+        if (lastSyncTimestamp > 0 && timestamp <= lastSyncTimestamp) {
+          skippedOldFiles++;
+          continue;
+        }
 
         Logger.debug(`Downloading database from device ${deviceId}, timestamp ${timestamp}`);
 
@@ -362,6 +388,10 @@ async function downloadRemoteDatabases(webDavClient: WebDAVClient): Promise<Remo
           continue;
         }
       }
+    }
+
+    if (skippedOwnFiles > 0 || skippedOldFiles > 0) {
+      Logger.info(`Skipped ${skippedOwnFiles} own files and ${skippedOldFiles} already processed files`);
     }
 
   } catch (error) {
@@ -635,6 +665,9 @@ async function uploadDatabase(
     await webDavClient.putFileContents(filename, buffer, { overwrite: true });
     Logger.info(`Database uploaded: ${filename}`);
 
+    // Wait a bit to ensure the file is visible in directory listing
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // Clean up old database files from this device (keep only the latest)
     await cleanupOldDatabaseFiles(webDavClient, deviceId);
 
@@ -658,28 +691,115 @@ async function cleanupOldDatabaseFiles(webDavClient: WebDAVClient, deviceId: str
 
     // Find all database files for this device
     for (const item of contents) {
-      if (item.type === "file" && item.basename.startsWith(`db-${deviceId}-`)) {
-        const match = item.basename.match(/^db-[A-Za-z0-9]{4}-(\d+)\.json$/);
-        if (match) {
+      if (item.type === "file" && item.basename.startsWith(`db-${deviceId}-`) && item.basename.endsWith(".json")) {
+        const match = item.basename.match(/^db-([A-Za-z0-9]{4})-(\d+)\.json$/);
+        if (match && match[1] === deviceId) {
           deviceFiles.push({
             filename: item.filename,
-            timestamp: parseInt(match[1], 10),
+            timestamp: parseInt(match[2], 10),
           });
         }
       }
     }
 
+    Logger.debug(`Found ${deviceFiles.length} database files for device ${deviceId}`);
+
     // Sort by timestamp (newest first)
     deviceFiles.sort((a, b) => b.timestamp - a.timestamp);
 
     // Delete all but the most recent
+    let deletedCount = 0;
     for (let i = 1; i < deviceFiles.length; i++) {
-      Logger.debug(`Deleting old database file: ${deviceFiles[i].filename}`);
-      await webDavClient.deleteFile(deviceFiles[i].filename);
+      try {
+        Logger.debug(`Deleting old database file: ${deviceFiles[i].filename}`);
+        await webDavClient.deleteFile(deviceFiles[i].filename);
+        deletedCount++;
+      } catch (deleteError) {
+        Logger.warn(`Failed to delete ${deviceFiles[i].filename}:`, deleteError);
+      }
+    }
+
+    if (deletedCount > 0) {
+      Logger.info(`Cleaned up ${deletedCount} old files for device ${deviceId}`);
     }
 
   } catch (error) {
     Logger.warn("Error cleaning up old database files:", error);
+    // Non-critical error, continue
+  }
+}
+
+/**
+ * Nettoie tous les anciens fichiers de base de données de tous les appareils.
+ * Conserve uniquement le fichier le plus récent par appareil ET supprime les
+ * fichiers de plus de 7 jours pour éviter l'accumulation.
+ *
+ * @param webDavClient Client WebDAV connecté
+ */
+async function cleanupAllOldDatabaseFiles(webDavClient: WebDAVClient): Promise<void> {
+  try {
+    const contents = await webDavClient.getDirectoryContents("/") as any[];
+    const deviceFilesMap = new Map<string, { filename: string; timestamp: number }[]>();
+    const now = Date.now();
+    const RETENTION_DAYS = 7;
+    const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+    // Group all database files by device
+    for (const item of contents) {
+      if (item.type === "file" && item.basename.startsWith("db-") && item.basename.endsWith(".json")) {
+        const match = item.basename.match(/^db-([A-Za-z0-9]{4})-(\d+)\.json$/);
+        if (match) {
+          const deviceId = match[1];
+          const timestamp = parseInt(match[2], 10);
+
+          if (!deviceFilesMap.has(deviceId)) {
+            deviceFilesMap.set(deviceId, []);
+          }
+
+          deviceFilesMap.get(deviceId)!.push({
+            filename: item.filename,
+            timestamp,
+          });
+        }
+      }
+    }
+
+    let deletedCount = 0;
+
+    // For each device, keep only the most recent file and delete old ones
+    for (const [deviceId, files] of deviceFilesMap.entries()) {
+      // Sort by timestamp (newest first)
+      files.sort((a, b) => b.timestamp - a.timestamp);
+
+      // Delete all but the most recent
+      for (let i = 1; i < files.length; i++) {
+        try {
+          await webDavClient.deleteFile(files[i].filename);
+          deletedCount++;
+          Logger.debug(`Deleted old file: ${files[i].filename}`);
+        } catch (error) {
+          Logger.warn(`Failed to delete ${files[i].filename}:`, error);
+        }
+      }
+
+      // Also delete the most recent file if it's older than retention period
+      if (files.length > 0 && (now - files[0].timestamp) > RETENTION_MS) {
+        try {
+          await webDavClient.deleteFile(files[0].filename);
+          deletedCount++;
+          Logger.debug(`Deleted expired file: ${files[0].filename} (older than ${RETENTION_DAYS} days)`);
+        } catch (error) {
+          Logger.warn(`Failed to delete expired ${files[0].filename}:`, error);
+        }
+      }
+    }
+
+    if (deletedCount > 0) {
+      Logger.info(`Cleanup completed: deleted ${deletedCount} old database files`);
+    }
+
+  } catch (error) {
+    Logger.warn("Error cleaning up all old database files:", error);
     // Non-critical error, continue
   }
 }
@@ -920,6 +1040,68 @@ export async function getDeviceList(webDavClient: WebDAVClient): Promise<DeviceI
   }
 
   return devices;
+}
+
+/**
+ * Nettoie manuellement tous les fichiers dupliqués pour tous les appareils.
+ * Utile pour corriger une situation où plusieurs fichiers existent par appareil.
+ *
+ * @param webDavClient Client WebDAV connecté
+ * @returns Le nombre total de fichiers supprimés
+ */
+export async function cleanupAllDuplicateFiles(webDavClient: WebDAVClient): Promise<number> {
+  try {
+    const contents = await webDavClient.getDirectoryContents("/") as any[];
+    const deviceFilesMap = new Map<string, { filename: string; timestamp: number }[]>();
+
+    // Group all database files by device
+    for (const item of contents) {
+      if (item.type === "file" && item.basename.startsWith("db-") && item.basename.endsWith(".json")) {
+        const match = item.basename.match(/^db-([A-Za-z0-9]{4})-(\d+)\.json$/);
+        if (match) {
+          const deviceId = match[1];
+          const timestamp = parseInt(match[2], 10);
+
+          if (!deviceFilesMap.has(deviceId)) {
+            deviceFilesMap.set(deviceId, []);
+          }
+
+          deviceFilesMap.get(deviceId)!.push({
+            filename: item.filename,
+            timestamp,
+          });
+        }
+      }
+    }
+
+    let totalDeleted = 0;
+
+    // For each device, keep only the most recent file
+    for (const [deviceId, files] of deviceFilesMap.entries()) {
+      Logger.info(`Device ${deviceId}: found ${files.length} files`);
+
+      // Sort by timestamp (newest first)
+      files.sort((a, b) => b.timestamp - a.timestamp);
+
+      // Delete all but the most recent
+      for (let i = 1; i < files.length; i++) {
+        try {
+          Logger.info(`Deleting duplicate: ${files[i].filename}`);
+          await webDavClient.deleteFile(files[i].filename);
+          totalDeleted++;
+        } catch (error) {
+          Logger.warn(`Failed to delete ${files[i].filename}:`, error);
+        }
+      }
+    }
+
+    Logger.info(`Cleanup completed: deleted ${totalDeleted} duplicate files`);
+    return totalDeleted;
+
+  } catch (error) {
+    Logger.error("Error cleaning up duplicate files:", error);
+    throw error;
+  }
 }
 
 /**
