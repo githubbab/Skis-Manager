@@ -73,7 +73,7 @@ export function formatSQL(sql: string, values: any[]): string {
   return sql.replace(/\?/g, () => {
     const val = values[i++];
     if (val === null) return 'NULL';
-    if (typeof val === 'string') return `'${val.replace(/'/g, "'$&'")}'`;
+    if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
     return val.toString();
   });
 }
