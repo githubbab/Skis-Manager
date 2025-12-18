@@ -98,7 +98,13 @@ export default function Index() {
   const filterOutingBoots = (idUser: string, idSkis?: string) => {
     // Si c'est un prêt, retourner toutes les chaussures
     if (idUser === LOAN_USER_ID) {
-      const allBoots = [...listBoots];
+      const allBoots = [...listBoots].filter(boots => {
+        // Exclure les chaussures dont la date de fin est antérieure à la date de l'événement
+        if (boots.end && outing2write.date > 0 && boots.end < outing2write.date) {
+          return false;
+        }
+        return true;
+      });
 
       // Si des skis sont sélectionnés, trier pour mettre en premier les chaussures compatibles
       if (idSkis && idSkis !== RENTAL_SKIS_ID) {
@@ -127,8 +133,16 @@ export default function Index() {
       });
     }
 
-    // Retourne toutes les chaussures de l'utilisateur
-    const userBoots = listBoots.filter(boots => boots.listUsers?.includes(idUser));
+    // Retourne toutes les chaussures de l'utilisateur, en excluant celles dont la date de fin est dépassée
+    const userBoots = listBoots.filter(boots => {
+      if (!boots.listUsers?.includes(idUser)) return false;
+
+      // Exclure les chaussures dont la date de fin est antérieure à la date de l'événement
+      if (boots.end && outing2write.date > 0 && boots.end < outing2write.date) {
+        return false;
+      }
+      return true;
+    });
 
     // Si des skis sont sélectionnés, trier pour mettre en premier les chaussures compatibles
     if (idSkis && idSkis !== RENTAL_SKIS_ID) {
