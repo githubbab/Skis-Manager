@@ -85,6 +85,13 @@ export default function (colors: typeof AppColors['light']) {
         paddingBottom: 4,
         paddingStart: 4,
       },
+      lightTitle: {
+        fontSize: appFontSize,
+        fontWeight: '400',
+        color: colors.text,
+        paddingBottom: 4,
+        paddingStart: 4,
+      },
     }
     )
   )

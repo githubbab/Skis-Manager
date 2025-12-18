@@ -91,3 +91,74 @@ class Logger {
 }
 
 export { Logger };
+
+// Types pour les moments de la journée
+export type PartOfDay = "morning" | "noon" | "afternoon" | "evening";
+
+// Utilitaires pour les moments de la journée
+export const PartOfDayUtils = {
+  /**
+   * Convertit un moment de la journée en heure fixe
+   */
+  getHourFromPartOfDay: (part: PartOfDay): number => {
+    switch (part) {
+      case "morning": return 9;  // 9h00
+      case "noon": return 12;     // 12h00
+      case "afternoon": return 14; // 14h00
+      case "evening": return 18;   // 18h00
+    }
+  },
+
+  /**
+   * Détermine le moment de la journée à partir d'une heure
+   */
+  getPartOfDayFromHour: (hour: number): PartOfDay => {
+    if (hour < 11) return "morning";
+    if (hour < 13) return "noon";
+    if (hour < 17) return "afternoon";
+    return "evening";
+  },
+
+  /**
+   * Retourne le nom de l'icône Feather pour un moment de la journée
+   */
+  getPartOfDayIcon: (part: PartOfDay): "sunrise" | "sun" | "sunset" | "moon" => {
+    switch (part) {
+      case "morning": return "sunrise";    // Lever du soleil
+      case "noon": return "sun";           // Soleil
+      case "afternoon": return "sunset";   // Coucher du soleil
+      case "evening": return "moon";       // Lune
+    }
+  },
+
+  /**
+   * Retourne le label en français pour un moment de la journée
+   */
+  getPartOfDayLabel: (part: PartOfDay): string => {
+    switch (part) {
+      case "morning": return "Matin";
+      case "noon": return "Midi";
+      case "afternoon": return "Après-midi";
+      case "evening": return "Soir";
+    }
+  },
+
+  /**
+   * Crée une nouvelle date avec le moment de la journée spécifié
+   */
+  setPartOfDayToDate: (date: Date, part: PartOfDay): Date => {
+    const hour = PartOfDayUtils.getHourFromPartOfDay(part);
+    return new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      hour,
+      0 // Minutes à 0
+    );
+  },
+
+  /**
+   * Liste de tous les moments de la journée
+   */
+  allParts: ["morning", "noon", "afternoon", "evening"] as const,
+};

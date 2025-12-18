@@ -18,7 +18,7 @@ export default function Tile({ children, isRow = false, flex, style }: TileProps
         width: "100%",
         paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 10,
+        borderRadius: 8,
         marginTop: 4,
         flex: flex,
         backgroundColor: colorsTheme.tileBG,

@@ -21,7 +21,8 @@ import { initOuting, insertOuting, Outings } from "@/hooks/dbOutings";
 import { getSeasonSkis, getSkis2Sharp, getSkis2Wax, getTopSkis, initSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, getTopUsers, Users } from "@/hooks/dbUsers";
-import { Logger, smDate } from "@/hooks/ToolsBox";
+import { Logger, smDate, PartOfDay, PartOfDayUtils } from "@/hooks/ToolsBox";
+import PartOfDaySelector from "@/components/PartOfDaySelector";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -67,7 +68,7 @@ export default function Index() {
   const [outingVisible, setOutingVisible] = useState<boolean>(false);
   const [offPisteVisible, setOffPisteVisible] = useState<boolean>(false);
   const [selectedSkis, setSelectedSkis] = useState<Skis>(initSkis(0));
-  const [partOfDay, setPartOfDay] = useState<"am" | "noon" | "pm">("am");
+  const [partOfDay, setPartOfDay] = useState<PartOfDay>("morning");
   const [outingViewUser, setOutingViewUser] = useState<boolean>(false);
   const [outingViewSkis, setOutingViewSkis] = useState<boolean>(false);
   const [outingViewBoots, setOutingViewBoots] = useState<boolean>(false);
@@ -652,11 +653,18 @@ export default function Index() {
     setOutingViewToOuting(false);
     setOutingViewUser(false);
     setEffectActive(false);
-    setPartOfDay("am");
+    setPartOfDay("morning");
+  }
+
+  function changePartOfDay(part: PartOfDay, type: "outing" | "maintain") {
+    const currentDate = new Date(type === "outing" ? outing2write.date || Date.now() : maintain2write.date || Date.now());
+    const newDate = PartOfDayUtils.setPartOfDayToDate(currentDate, part);
+    changeDate(newDate, type);
+    setPartOfDay(part);
   }
 
   function changeDate(date: Date, type: "outing" | "maintain") {
-    const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : 16));
+    const date2Save = smDate(date);
 
     if (type === "outing") {
       if (listUsers.length === 1) {
@@ -742,10 +750,14 @@ export default function Index() {
         </Tile></> : <></>}
 
       <Row style={{ width: "100%" }}>
-        <AppButton flex={1} onPress={() => setAddOutingMode(true)} color={colorsTheme.activeButton} icon={"plus"} caption={""} style={{ height: 68 }}>
+        <AppButton flex={1} onPress={() => {
+          setPartOfDay("morning");
+          setAddOutingMode(true);
+        }} color={colorsTheme.activeButton} icon={"plus"} caption={""} style={{ height: 68 }}>
           <AppIcon name={"sortie"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={40} />
         </AppButton>
         <AppButton flex={1} onPress={() => {
+          setPartOfDay("evening");
           if (selectedSkis.id !== "not-an-id") {
             setMaintain2Write({ ...maintain2write, idSkis: selectedSkis.id.replace("topSkis-", "") });// in case user clicked on a ski
           }
@@ -771,39 +783,23 @@ export default function Index() {
             </View>)
             : (
               <Tile flex={1}>
-                <Row>
-                  <TouchableOpacity onPress={() => setDateTimePickerVisible("outing")}>
-
-                    <Text style={appStyles.text}>{localeDate(outing2write.date, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
-                  </TouchableOpacity>
-                  {partOfDay !== 'am' ?
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPartOfDay(partOfDay === 'pm' ? 'noon' : 'am');
-                        changeDate(new Date(outing2write.date), "outing");
-                      }}
-                    >
-                      <Card>
-                        <Text style={appStyles.text}>-</Text>
-                      </Card>
-                    </TouchableOpacity> : null}
-                  <Card><Text style={appStyles.text}>{t(partOfDay)}</Text></Card>
-                  {partOfDay !== 'pm' ?
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPartOfDay(partOfDay === 'am' ? 'noon' : 'pm');
-                        changeDate(new Date(outing2write.date), "outing");
-                      }}>
-                      <Card>
-                        <Text style={appStyles.text}>+</Text>
-                      </Card>
-                    </TouchableOpacity> : null}
-                </Row>
+                <TouchableOpacity onPress={() => setDateTimePickerVisible("outing")}>
+                  <Text style={appStyles.text}>{localeDate(outing2write.date, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
+                </TouchableOpacity>
               </Tile>
-
             )
           }
         </Row>
+        {outing2write.date !== 0 && (
+          <Row style={{ marginTop: 8 }}>
+            <AppIcon name="clock" color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <PartOfDaySelector
+              selectedPart={partOfDay}
+              onSelect={(part) => changePartOfDay(part, "outing")}
+              style={{ flex: 1 }}
+            />
+          </Row>
+        )}
 
         {outing2write.date !== 0 && outingViewUser &&
           <Row>
@@ -1090,39 +1086,23 @@ export default function Index() {
             </View>)
             : (
               <Tile flex={1}>
-                <Row>
-                  <TouchableOpacity onPress={() => setDateTimePickerVisible("maintain")}>
-
-                    <Text style={appStyles.text}>{localeDate(maintain2write.date, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
-                  </TouchableOpacity>
-                  {partOfDay !== 'am' ?
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPartOfDay(partOfDay === 'pm' ? 'noon' : 'am');
-                        changeDate(new Date(maintain2write.date), "maintain");
-                      }}
-                    >
-                      <Card>
-                        <Text style={appStyles.text}>-</Text>
-                      </Card>
-                    </TouchableOpacity> : null}
-                  <Card><Text style={appStyles.text}>{t(partOfDay)}</Text></Card>
-                  {partOfDay !== 'pm' ?
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPartOfDay(partOfDay === 'am' ? 'noon' : 'pm');
-                        changeDate(new Date(maintain2write.date), "maintain");
-                      }}>
-                      <Card>
-                        <Text style={appStyles.text}>+</Text>
-                      </Card>
-                    </TouchableOpacity> : null}
-                </Row>
+                <TouchableOpacity onPress={() => setDateTimePickerVisible("maintain")}>
+                  <Text style={appStyles.text}>{localeDate(maintain2write.date, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
+                </TouchableOpacity>
               </Tile>
-
             )
           }
         </Row>
+        {maintain2write.date !== 0 && (
+          <Row style={{ marginTop: 8 }}>
+            <AppIcon name="clock" color={colorsTheme.text} styles={{ marginRight: 8 }} />
+            <PartOfDaySelector
+              selectedPart={partOfDay}
+              onSelect={(part) => changePartOfDay(part, "maintain")}
+              style={{ flex: 1 }}
+            />
+          </Row>
+        )}
         {maintain2write.date !== 0 ? <Row>
           <AppIcon name={"skis"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
           <Tile flex={1} >

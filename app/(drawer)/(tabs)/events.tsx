@@ -20,12 +20,14 @@ import { deleteOuting, getAllOutings, initOuting, insertOuting, Outings, updateO
 import { getSeasonSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
-import { Logger, smDate } from "@/hooks/ToolsBox";
+import { Logger, smDate, PartOfDay, PartOfDayUtils } from "@/hooks/ToolsBox";
+import PartOfDaySelector from "@/components/PartOfDaySelector";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, Image, ListRenderItem, Text, TextInput, TouchableOpacity, View, FlatList, ScrollView } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 const iconSize = 32; // Size for icons in the filter row
 
@@ -64,7 +66,7 @@ const Events = () => {
   const [typeOfOutingVisible, setTypeOfOutingVisible] = useState<boolean>(false);
   const [maintainsVisible, setMaintainsVisible] = useState<boolean>(false);
   const [offPisteVisible, setOffPisteVisible] = useState<boolean>(false);
-  const [partOfDay, setPartOfDay] = useState<"am" | "noon" | "pm">("am");
+  const [partOfDay, setPartOfDay] = useState<PartOfDay>("morning");
   const [outingViewUser, setOutingViewUser] = useState<boolean>(false);
   const [outingViewSkis, setOutingViewSkis] = useState<boolean>(false);
   const [outingViewBoots, setOutingViewBoots] = useState<boolean>(false);
@@ -138,26 +140,26 @@ const Events = () => {
         }
         return true;
       });
-    
+
       // Si des skis sont sélectionnés, trier pour mettre en premier les chaussures compatibles
       if (idSkis && idSkis !== RENTAL_SKIS_ID) {
         const ski = listSkis.find(ski => ski.id === idSkis);
         const compatibleBootsIds = ski?.listBoots || [];
-        
+
         return allBoots.sort((a, b) => {
           // Priorité 1: Chaussures compatibles avec les skis
           const aCompatible = compatibleBootsIds.includes(a.id || "");
           const bCompatible = compatibleBootsIds.includes(b.id || "");
           if (aCompatible && !bCompatible) return -1;
           if (!aCompatible && bCompatible) return 1;
-          
+
           // Priorité 2: Nombre de sorties
           const aNb = a.nbOutings || 0;
           const bNb = b.nbOutings || 0;
           return bNb - aNb;
         });
       }
-      
+
       // Sinon, trier simplement par nombre de sorties
       return allBoots.sort((a, b) => {
         const aNb = a.nbOutings || 0;
@@ -165,37 +167,37 @@ const Events = () => {
         return bNb - aNb;
       });
     }
-    
+
     // Retourne toutes les chaussures de l'utilisateur, en excluant celles dont la date de fin est dépassée
     const userBoots = listBoots.filter(boots => {
       if (!boots.listUsers?.includes(idUser)) return false;
-      
+
       // Exclure les chaussures dont la date de fin est antérieure à la date de l'événement
       if (boots.end && outing2write.date > 0 && boots.end < outing2write.date) {
         return false;
       }
       return true;
     });
-    
+
     // Si des skis sont sélectionnés, trier pour mettre en premier les chaussures compatibles
     if (idSkis && idSkis !== RENTAL_SKIS_ID) {
       const ski = listSkis.find(ski => ski.id === idSkis);
       const compatibleBootsIds = ski?.listBoots || [];
-      
+
       return userBoots.sort((a, b) => {
         // Priorité 1: Chaussures compatibles avec les skis
         const aCompatible = compatibleBootsIds.includes(a.id || "");
         const bCompatible = compatibleBootsIds.includes(b.id || "");
         if (aCompatible && !bCompatible) return -1;
         if (!aCompatible && bCompatible) return 1;
-        
+
         // Priorité 2: Nombre de sorties
         const aNb = a.nbOutings || 0;
         const bNb = b.nbOutings || 0;
         return bNb - aNb;
       });
     }
-    
+
     // Sinon, trier simplement par nombre de sorties
     return userBoots.sort((a, b) => {
       const aNb = a.nbOutings || 0;
@@ -291,7 +293,7 @@ const Events = () => {
     if (outing2write.date) {
       setOutingViewUser(true);
       const hours = new Date(outing2write.date).getHours();
-      setPartOfDay(hours < 10 ? "am" : hours < 14 ? "noon" : "pm");
+      setPartOfDay(PartOfDayUtils.getPartOfDayFromHour(hours));
     }
     else {
       setOutingViewUser(false);
@@ -357,9 +359,15 @@ const Events = () => {
     setEffectActive(false);
   }, [outing2write])
 
+  function changePartOfDay(part: PartOfDay, type: "outing" | "maintain") {
+    const currentDate = new Date(type === "outing" ? outing2write.date || Date.now() : maintain2write.date || Date.now());
+    const newDate = PartOfDayUtils.setPartOfDayToDate(currentDate, part);
+    changeDate(newDate, type);
+    setPartOfDay(part);
+  }
+
   function changeDate(date: Date, type: "outing" | "maintain") {
-    if (type === "maintain") setPartOfDay("pm");
-    const date2Save = smDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), partOfDay === "am" ? 8 : partOfDay === "noon" ? 12 : type === "outing" ? 16 : 18));
+    const date2Save = smDate(date);
 
     if (type === "outing") {
       if (listUsers.length === 1) {
@@ -383,9 +391,23 @@ const Events = () => {
     }
   }
 
+  function openDateTimeModal(type: "outing" | "maintain") {
+    setDateTimePickerVisible(type);
+  }
+
   function onDateChange(event: any, selectedDate: Date | undefined) {
     if (event.type === "set" && selectedDate) {
-      changeDate(selectedDate, dateTimePickerVisible as "outing" | "maintain");
+      const currentEventDate = new Date(dateTimePickerVisible === "outing" ? outing2write.date || Date.now() : maintain2write.date || Date.now());
+      
+      // Mise à jour de la date en gardant l'heure actuelle
+      const finalDate = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        currentEventDate.getHours(),
+        currentEventDate.getMinutes()
+      );
+      changeDate(finalDate, dateTimePickerVisible as "outing" | "maintain");
     }
     setDateTimePickerVisible("none");
   }
@@ -624,8 +646,13 @@ const Events = () => {
             <AppIcon name={"sortie"} color={colorsTheme.primary} styles={{ marginLeft: 4 }} />
             <View style={{ flex: 1 }}>
               <Row style={{ marginVertical: 2 }}>
-                <Card>
+                <Card >
                   <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
+                  <Feather
+                    name={PartOfDayUtils.getPartOfDayIcon(PartOfDayUtils.getPartOfDayFromHour(new Date(item.data.date).getHours()))}
+                    size={20}
+                    color={colorsTheme.text}
+                  />
                 </Card>
                 <Text style={[appStyles.text]}>
                   {outingType?.name || ""}
@@ -633,7 +660,7 @@ const Events = () => {
                 </Text>
                 {!userFilter && (
                   isLoan ? (
-                      <Text style={[appStyles.text, { fontStyle: 'italic', fontSize: 16 }]}>{t('loan_equipment')}</Text>
+                    <Text style={[appStyles.text, { fontStyle: 'italic', fontSize: 16 }]}>{t('loan_equipment')}</Text>
                   ) : (
                     <Pastille size={iconSize} name={outingUser?.name || ""} color={outingUser?.pcolor} />
                   )
@@ -758,6 +785,11 @@ const Events = () => {
               <Row isFlex={true}>
                 <Card>
                   <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
+                  <Feather
+                    name={PartOfDayUtils.getPartOfDayIcon(PartOfDayUtils.getPartOfDayFromHour(new Date(item.data.date).getHours()))}
+                    size={20}
+                    color={colorsTheme.text}
+                  />
                 </Card>
 
                 <Text style={appStyles.text}>{description()}</Text>
@@ -785,7 +817,7 @@ const Events = () => {
     return null; // Fallback if no type matches
   }
 
-  if (dbState !== "done") {
+  if (dbState !== "done" && listEvents.length === 0) {
     return <Body><Text>Loading...</Text></Body>;
   }
 
@@ -1012,46 +1044,21 @@ const Events = () => {
         </Row>
         <Row>
           <AppIcon name="calendar" color={colorsTheme.text} styles={{ marginRight: 8 }} />
-          {outing2write.date === 0 ? (
-            <View style={{ flex: 1 }}>
-              <AppButton onPress={() => changeDate(new Date(), "outing")} caption={t('today')} />
-              <AppButton onPress={() => changeDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "outing")} caption={t('yesterday')} />
-              <AppButton onPress={() => setDateTimePickerVisible("outing")} caption={t('anotherday')} />
-            </View>)
-            : (
-              <Tile flex={1}>
-                <Row>
-                  <TouchableOpacity onPress={() => setDateTimePickerVisible("outing")}>
-
-                    <Text style={appStyles.text}>{localeDate(outing2write.date, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
-                  </TouchableOpacity>
-                  {partOfDay !== 'am' ?
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPartOfDay(partOfDay === 'pm' ? 'noon' : 'am');
-                        changeDate(new Date(outing2write.date), "outing");
-                      }}
-                    >
-                      <Card>
-                        <Text style={appStyles.text}>-</Text>
-                      </Card>
-                    </TouchableOpacity> : null}
-                  <Card><Text style={appStyles.text}>{t(partOfDay)}</Text></Card>
-                  {partOfDay !== 'pm' ?
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPartOfDay(partOfDay === 'am' ? 'noon' : 'pm');
-                        changeDate(new Date(outing2write.date), "outing");
-                      }}>
-                      <Card>
-                        <Text style={appStyles.text}>+</Text>
-                      </Card>
-                    </TouchableOpacity> : null}
-                </Row>
-              </Tile>
-
-            )
-          }
+          <Tile flex={1}>
+            <TouchableOpacity onPress={() => openDateTimeModal("outing")} >
+              <Text style={[appStyles.text, { textAlign: 'center' }]}>
+                {localeDate(outing2write.date, { day: 'numeric', month: 'short', year: 'numeric' })}
+              </Text>
+            </TouchableOpacity>
+          </Tile>
+        </Row>
+        <Row style={{ marginTop: 8 }}>
+          <AppIcon name="clock" color={colorsTheme.text} styles={{ marginRight: 8 }} />
+          <PartOfDaySelector
+            selectedPart={partOfDay}
+            onSelect={(part) => changePartOfDay(part, "outing")}
+            style={{ flex: 1 }}
+          />
         </Row>
 
         {outingViewUser &&
@@ -1062,7 +1069,7 @@ const Events = () => {
                 <TouchableOpacity onPress={() => setOuting2Write({ ...outing2write, idUser: undefined, idSkis: undefined, idBoots: undefined })}>
                   <Row>
                     {outing2write.idUser === LOAN_USER_ID ? (
-                        <Text style={[appStyles.text, { flex: 1, fontStyle: 'italic', marginLeft: 8 }]}>{t('loan_equipment')}</Text>
+                      <Text style={[appStyles.text, { flex: 1, fontStyle: 'italic', marginLeft: 8 }]}>{t('loan_equipment')}</Text>
                     ) : (
                       <>
                         <Pastille name={listUsers.find(user => user.id === outing2write.idUser)?.name || ""} color={listUsers.find(user => user.id === outing2write.idUser)?.pcolor} textColor={colorsTheme.text} size={iconSize} />
@@ -1334,46 +1341,21 @@ const Events = () => {
         </Row>
         <Row>
           <AppIcon name="calendar" color={colorsTheme.text} styles={{ marginRight: 8 }} />
-          {maintain2write.date === 0 ? (
-            <View style={{ flex: 1 }}>
-              <AppButton onPress={() => changeDate(new Date(), "maintain")} caption={t('today')} />
-              <AppButton onPress={() => changeDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "maintain")} caption={t('yesterday')} />
-              <AppButton onPress={() => setDateTimePickerVisible("maintain")} caption={t('anotherday')} />
-            </View>)
-            : (
-              <Tile flex={1}>
-                <Row>
-                  <TouchableOpacity onPress={() => setDateTimePickerVisible("maintain")}>
-
-                    <Text style={appStyles.text}>{localeDate(maintain2write.date, { day: 'numeric', month: 'short', year: 'numeric' })} </Text>
-                  </TouchableOpacity>
-                  {partOfDay !== 'am' ?
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPartOfDay(partOfDay === 'pm' ? 'noon' : 'am');
-                        changeDate(new Date(maintain2write.date), "maintain");
-                      }}
-                    >
-                      <Card>
-                        <Text style={appStyles.text}>-</Text>
-                      </Card>
-                    </TouchableOpacity> : null}
-                  <Card><Text style={appStyles.text}>{t(partOfDay)}</Text></Card>
-                  {partOfDay !== 'pm' ?
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPartOfDay(partOfDay === 'am' ? 'noon' : 'pm');
-                        changeDate(new Date(maintain2write.date), "maintain");
-                      }}>
-                      <Card>
-                        <Text style={appStyles.text}>+</Text>
-                      </Card>
-                    </TouchableOpacity> : null}
-                </Row>
-              </Tile>
-
-            )
-          }
+          <Tile flex={1}>
+            <TouchableOpacity onPress={() => openDateTimeModal("maintain")} style={{ flex: 1 }}>
+              <Text style={[appStyles.text, { textAlign: 'center' }]}>
+                {localeDate(maintain2write.date, { day: 'numeric', month: 'short', year: 'numeric' })}
+              </Text>
+            </TouchableOpacity>
+          </Tile>
+        </Row>
+        <Row style={{ marginTop: 8 }}>
+          <AppIcon name="clock" color={colorsTheme.text} styles={{ marginRight: 8 }} />
+          <PartOfDaySelector
+            selectedPart={partOfDay}
+            onSelect={(part) => changePartOfDay(part, "maintain")}
+            style={{ flex: 1 }}
+          />
         </Row>
         {maintain2write.date ? <Row>
           <AppIcon name={"skis"} color={colorsTheme.text} styles={{ marginRight: 8 }} />
@@ -1461,11 +1443,11 @@ const Events = () => {
       }
       {dateTimePickerVisible !== "none" &&
         <DateTimePicker
-          value={new Date()}
+          value={dateTimePickerVisible === "outing" ? new Date(outing2write.date || Date.now()) : new Date(maintain2write.date || Date.now())}
           maximumDate={new Date()}
           minimumDate={seasonDate}
           mode="date"
-          display="default"
+          display="calendar"
           onChange={onDateChange}
         />
       }
