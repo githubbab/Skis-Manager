@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
 import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DataManager';
+import { Logger } from './ToolsBox';
 
 export type Maintains = {
   id: string;
@@ -40,7 +41,7 @@ export async function updateMaintain(db: SQLiteDatabase, m: Maintains) {
     return;
   }
   const query = updateQuery(TABLES.MAINTAINS, ["date", "idSkis", "swr", "description"],
-    [m.date, m.idSkis, m.swr, m.description, m.id], "id = ?", [m.id]);
+    [m.date, m.idSkis, m.swr, m.description], "id = ?", [m.id]);
   await execQuery(db, query);
 }
 

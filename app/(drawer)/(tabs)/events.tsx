@@ -223,7 +223,7 @@ const Events = () => {
       for (const maintain of maintains) {
         events.push({ type: "maintain", data: maintain });
       }
-      setListEvents(events.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()));
+      setListEvents(events.sort((a, b) => b.data.date - a.data.date));
       setListUsers(await getAllUsers(db, smDate(seasonDate)));
       setListSkis(await getSeasonSkis(db));
       setListBoots(await getAllBoots(db, smDate(seasonDate)));
@@ -770,6 +770,8 @@ const Events = () => {
           }}
           onDelete={() => handleDeleteMaintain(item.data)}
           onEdit={() => {
+            setPartOfDay(PartOfDayUtils.getPartOfDayFromHour(new Date(item.data.date).getHours()));
+            setMaintain2Write(item.data);
             setMaintainsVisible(true);
           }}
           style={{ backgroundColor: colorsTheme.transparentGreen }}
