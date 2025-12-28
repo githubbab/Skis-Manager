@@ -355,7 +355,7 @@ export default function SkisManagement() {
     if (editMode) {
       updateSki(db, {
         id: skis2Write?.id,
-        name: skis2Write.name,
+        name: skis2Write.name.trim(),
         idBrand: skis2Write.idBrand || "init-unknown",
         idTypeOfSkis: skis2Write.idTypeOfSkis,
         begin: skis2Write.begin,
@@ -631,7 +631,7 @@ export default function SkisManagement() {
                 setBootsVisible(false);
               }}
               onChangeText={(text) => {
-                setSkis2Write({ ...skis2Write, name: text.trim() });
+                setSkis2Write({ ...skis2Write, name: text });
               }}
             />
           </Tile>

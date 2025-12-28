@@ -316,6 +316,9 @@ export default function BootsManagement() {
       });
       return;
     }
+    else {
+      boots2Write.name = boots2Write.name.trim();
+    }
 
     if (boots2Write?.listUsers?.length === 0) {
       showMessage({
@@ -526,7 +529,7 @@ export default function BootsManagement() {
                 setUsersVisible(false);
               }}
               onChangeText={(text) => {
-                setBoots2Write({ ...boots2Write, name: text.trim() })
+                setBoots2Write({ ...boots2Write, name: text })
               }}
             />
           </Tile>

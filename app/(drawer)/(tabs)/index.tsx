@@ -249,10 +249,7 @@ export default function Index() {
         outing = { ...outing, idSkis: skis[0].id };
       }
     }
-    else if (selectedSkis.id !== "not-an-id") {
-      setOutingViewSkis(true);
-      outing = { ...outing, idSkis: selectedSkis.id.replace("topSkis-", ""), idUser: selectedSkis.listUsers ? selectedSkis.listUsers[0] : "" };
-    }
+
     if (outing2write.idSkis) {
       setOutingViewBoots(true);
       const boots = filterOutingBoots(outing2write.idUser || "", outing2write.idSkis);
@@ -704,7 +701,7 @@ export default function Index() {
 
   function onDateChange(event: any, selectedDate: Date | undefined) {
     if (event.type === "set" && selectedDate) {
-      changeDate(selectedDate, dateTimePickerVisible as "outing" | "maintain");
+      changeDate(PartOfDayUtils.setPartOfDayToDate(selectedDate, partOfDay), dateTimePickerVisible as "outing" | "maintain");
     }
     setDateTimePickerVisible("none");
   }
@@ -791,8 +788,8 @@ export default function Index() {
           <AppIcon name="calendar" color={colorsTheme.text} styles={{ marginRight: 8 }} />
           {outing2write.date === 0 ? (
             <View style={{ flex: 1 }}>
-              <AppButton onPress={() => changeDate(new Date(), "outing")} caption={t('today')} />
-              <AppButton onPress={() => changeDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "outing")} caption={t('yesterday')} />
+              <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(),"morning"), "outing")} caption={t('today')} />
+              <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(Date.now() - 24 * 60 * 60 * 1000),"morning"), "outing")} caption={t('yesterday')} />
               <AppButton onPress={() => setDateTimePickerVisible("outing")} caption={t('anotherday')} />
             </View>)
             : (
