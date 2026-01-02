@@ -2,7 +2,7 @@
   "expo": {
     "name": "Skis-Manager",
     "slug": "Skis-Manager",
-    "version": "0.9.6",
+    "version": "0.9.8",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "skismanager",

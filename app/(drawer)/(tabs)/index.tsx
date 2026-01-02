@@ -245,7 +245,7 @@ export default function Index() {
     if (outing2write.idUser) {
       setOutingViewSkis(true);
       const skis = filterOutingSkis(outing2write.idUser || "");
-      if (skis.length === 1) {
+      if (skis.length === 1 && outing.idSkis == undefined) {
         outing = { ...outing, idSkis: skis[0].id };
       }
     }
@@ -255,7 +255,7 @@ export default function Index() {
       const boots = filterOutingBoots(outing2write.idUser || "", outing2write.idSkis);
       // Sélection automatique de la première chaussure (la plus compatible/utilisée) uniquement si idSkis vient de changer
       // Cela évite la resélection automatique après une désélection manuelle
-      if (boots.length >= 1 && outing.idSkis !== outing2write.idSkis) {
+      if (boots.length === 1 && outing.idBoots == undefined ) {
         outing = { ...outing, idBoots: boots[0].id };
       }
     } else {
@@ -265,7 +265,7 @@ export default function Index() {
       if (viewOuting) {
         setOutingViewToOuting(true);
         const majorType = listSkis.find(ski => ski.id === outing2write.idSkis)?.majorTypeOfOuting;
-        if (majorType) {
+        if (majorType && outing.idOutingType == undefined) {
           outing = { ...outing, idOutingType: majorType };
         }
         if (outing2write.idOutingType) {
@@ -769,9 +769,6 @@ export default function Index() {
         </AppButton>
         <AppButton flex={1} onPress={() => {
           setPartOfDay("evening");
-          if (selectedSkis.id !== "not-an-id") {
-            setMaintain2Write({ ...maintain2write, idSkis: selectedSkis.id.replace("topSkis-", "") });// in case user clicked on a ski
-          }
           setAddMaintainMode(true);
         }} color={colorsTheme.activeButton} icon={"plus"} caption={""} style={{ height: 68 }}>
           <AppIcon name={"entretien"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={40} />
@@ -1091,8 +1088,8 @@ export default function Index() {
           <AppIcon name="calendar" color={colorsTheme.text} styles={{ marginRight: 8 }} />
           {maintain2write.date === 0 ? (
             <View style={{ flex: 1 }}>
-              <AppButton onPress={() => changeDate(new Date(), "maintain")} caption={t('today')} />
-              <AppButton onPress={() => changeDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "maintain")} caption={t('yesterday')} />
+              <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(),"evening"), "maintain")} caption={t('today')} />
+              <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "evening"), "maintain")} caption={t('yesterday')} />
               <AppButton onPress={() => setDateTimePickerVisible("maintain")} caption={t('anotherday')} />
             </View>)
             : (
