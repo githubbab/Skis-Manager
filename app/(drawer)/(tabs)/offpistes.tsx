@@ -21,10 +21,13 @@ export default function Offpistes() {
   const { t } = useContext(AppContext)!;
 
   const [listOffPistes, setListOffPistes] = useState<OffPistes[]>([]);
+  const [numberOfOffPistes, setNumberOfOffPistes] = useState<number>(0);
 
   const loadData = async () => {
     const data = await getSeasonOffPistes(db);
     setListOffPistes(data);
+    const total = data.reduce((acc, offPiste) => acc + offPiste.count, 0);
+    setNumberOfOffPistes(total);
   };
 
   useFocusEffect(
@@ -38,7 +41,8 @@ export default function Offpistes() {
       <Text style={appStyles.title}>{t("offpiste")}</Text>
       <Separator />
       <Tile flex={1}>
-        <TileIconTitle usersIconName={"hors-piste"} littleIconName={"star-full"} textColor={colorsTheme.text} />
+        <TileIconTitle usersIconName={"hors-piste"} littleIconName={"star-full"} textColor={colorsTheme.text} 
+        pastilleColor={colorsTheme.pastille} pastilleValue={numberOfOffPistes.toString()}/>
         <FlatList
           data={listOffPistes}
           keyExtractor={(item) => item.id}
