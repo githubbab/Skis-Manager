@@ -80,27 +80,27 @@ export default function Index() {
 
   const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, lastWebDavSync } = useContext(AppContext)!;
 
-  const filterOutingSkis = (idUser: string) => {
+  const filterOutingSkis = (idUser: string, date: number) => {
     // Si c'est un prêt, retourner tous les skis
     if (idUser === LOAN_USER_ID) {
-      return listSkis.sort((a, b) => {
+      return listSkis.filter(ski => !ski.end || ski.end > date).sort((a, b) => {
         const aNb = a.nbOutings || 0;
         const bNb = b.nbOutings || 0;
         return bNb - aNb;
       });
     }
-    return listSkis.filter(ski => ski.listUsers?.includes(idUser)).sort((a, b) => {
+    return listSkis.filter(ski => ski.listUsers?.includes(idUser) && (!ski.end || ski.end > date)).sort((a, b) => {
       const aNb = a.nbOutings || 0;
       const bNb = b.nbOutings || 0;
       return bNb - aNb;
     });
   };
-  const filterOutingBoots = (idUser: string, idSkis?: string) => {
+  const filterOutingBoots = (idUser: string, date: number, idSkis?: string) => {
     // Si c'est un prêt, retourner toutes les chaussures
     if (idUser === LOAN_USER_ID) {
       const allBoots = [...listBoots].filter(boots => {
         // Exclure les chaussures dont la date de fin est antérieure à la date de l'événement
-        if (boots.end && outing2write.date > 0 && boots.end < outing2write.date) {
+        if (boots.end && date > 0 && boots.end < date) {
           return false;
         }
         return true;
@@ -138,7 +138,7 @@ export default function Index() {
       if (!boots.listUsers?.includes(idUser)) return false;
 
       // Exclure les chaussures dont la date de fin est antérieure à la date de l'événement
-      if (boots.end && outing2write.date > 0 && boots.end < outing2write.date) {
+      if (boots.end && date > 0 && boots.end < date) {
         return false;
       }
       return true;
@@ -244,7 +244,7 @@ export default function Index() {
     let outing = outing2write
     if (outing2write.idUser) {
       setOutingViewSkis(true);
-      const skis = filterOutingSkis(outing2write.idUser || "");
+      const skis = filterOutingSkis(outing2write.idUser || "", outing2write.date);
       if (skis.length === 1 && outing.idSkis == undefined) {
         outing = { ...outing, idSkis: skis[0].id };
       }
@@ -252,7 +252,7 @@ export default function Index() {
 
     if (outing2write.idSkis) {
       setOutingViewBoots(true);
-      const boots = filterOutingBoots(outing2write.idUser || "", outing2write.idSkis);
+      const boots = filterOutingBoots(outing2write.idUser || "", outing2write.date, outing2write.idSkis);
       // Sélection automatique de la première chaussure (la plus compatible/utilisée) uniquement si idSkis vient de changer
       // Cela évite la resélection automatique après une désélection manuelle
       if (boots.length === 1 && outing.idBoots == undefined ) {
@@ -529,12 +529,12 @@ export default function Index() {
     return (
       <TouchableOpacity key={item.id} onPress={() => {
         if (outing2write.idSkis === item.id) {
-          const skis = filterOutingSkis(outing2write.idUser || "");
+          const skis = filterOutingSkis(outing2write.idUser || "", outing2write.date);
           if (skis.length !== 1) {
             setOuting2Write({ ...outing2write, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
           }
         } else {
-          const boots = filterOutingBoots(outing2write.idUser || "", item.id);
+          const boots = filterOutingBoots(outing2write.idUser || "", outing2write.date, item.id);
           if (boots.length >= 1) {
             setOuting2Write({ ...outing2write, idSkis: item.id, idBoots: boots[0].id, idOutingType: item.majorTypeOfOuting || undefined });
           } else {
@@ -679,9 +679,9 @@ export default function Index() {
 
     if (type === "outing") {
       if (listUsers.length === 1) {
-        const skis = filterOutingSkis(listUsers[0].id);
+        const skis = filterOutingSkis(listUsers[0].id, outing2write.date || Date.now());
         if (skis.length === 1) {
-          const boots = filterOutingBoots(listUsers[0].id, skis[0].id);
+          const boots = filterOutingBoots(listUsers[0].id, outing2write.date || Date.now(), skis[0].id);
           if (boots.length >= 1) {
             setOuting2Write({ ...outing2write, date: date2Save, idUser: listUsers[0].id, idSkis: skis[0].id, idBoots: boots[0].id });
           } else {
@@ -833,9 +833,9 @@ export default function Index() {
                     {listUsers.map((item) => (
                       <TouchableOpacity key={item.id} onPress={() => {
                         Logger.debug("Selected user:", item);
-                        const skis = filterOutingSkis(item.id);
+                        const skis = filterOutingSkis(item.id, outing2write.date || Date.now());
                         if (skis.length === 1) {
-                          const boots = filterOutingBoots(item.id, skis[0].id);
+                          const boots = filterOutingBoots(item.id, outing2write.date || Date.now(), skis[0].id);
                           if (boots.length >= 1) {
                             setOuting2Write({ ...outing2write, idSkis: skis[0].id, idBoots: boots[0].id, idOutingType: skis[0].majorTypeOfOuting });
                           } else {
@@ -897,7 +897,7 @@ export default function Index() {
               ) : (
                 <>
                   <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
-                    {filterOutingSkis(outing2write.idUser || "").map((item) =>
+                    {filterOutingSkis(outing2write.idUser || "", outing2write.date || Date.now()).map((item) =>
                       renderOutingSkis({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
                     )}
                   </ScrollView>
@@ -946,7 +946,7 @@ export default function Index() {
               ) : (
                 <>
                   <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
-                    {filterOutingBoots(outing2write.idUser || "", outing2write.idSkis).map((item) =>
+                    {filterOutingBoots(outing2write.idUser || "", outing2write.date, outing2write.idSkis).map((item) =>
                       renderOutingBoots({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
                     )}
                   </ScrollView>
