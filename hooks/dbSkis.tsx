@@ -386,6 +386,7 @@ export async function getSkis2Sharp(db: SQLiteDatabase): Promise<Skis[]> {
          FROM ${TABLES.MAINTAINS} m
          WHERE m.swr LIKE '%S%' AND m.idSkis = s.id),0)
         AND tos.sharpNeed > 0
+        AND s
       GROUP BY s.id
       HAVING nbMaintains >= 0
       ORDER BY nbMaintains DESC`
@@ -425,6 +426,7 @@ export async function getSkis2Wax(db: SQLiteDatabase): Promise<Skis[]> {
          FROM ${TABLES.MAINTAINS} m
          WHERE m.swr LIKE '%W%' AND m.idSkis = s.id),0)
         AND tos.waxNeed > 0
+        AND s.end IS NULL
       GROUP BY s.id
       HAVING nbMaintains >= 0
       ORDER BY nbMaintains DESC`
