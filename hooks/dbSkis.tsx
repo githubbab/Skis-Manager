@@ -386,7 +386,7 @@ export async function getSkis2Sharp(db: SQLiteDatabase): Promise<Skis[]> {
          FROM ${TABLES.MAINTAINS} m
          WHERE m.swr LIKE '%S%' AND m.idSkis = s.id),0)
         AND tos.sharpNeed > 0
-        AND s
+        AND s.end IS NULL
       GROUP BY s.id
       HAVING nbMaintains >= 0
       ORDER BY nbMaintains DESC`
