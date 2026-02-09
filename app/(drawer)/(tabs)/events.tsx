@@ -115,27 +115,27 @@ const Events = () => {
     return ret;
   }) || [];
 
-  const filterOutingSkis = (idUser: string) => {
+  const filterOutingSkis = (idUser: string, date: number) => {
     // Si c'est un prêt, retourner tous les skis
     if (idUser === LOAN_USER_ID) {
-      return listSkis.sort((a, b) => {
+      return listSkis.filter(ski => !ski.end || ski.end > date).sort((a, b) => {
         const aNb = a.nbOutings || 0;
         const bNb = b.nbOutings || 0;
         return bNb - aNb;
       });
     }
-    return listSkis.filter(ski => ski.listUsers?.includes(idUser)).sort((a, b) => {
+    return listSkis.filter(ski => ski.listUsers?.includes(idUser) && (!ski.end || ski.end > date)).sort((a, b) => {
       const aNb = a.nbOutings || 0;
       const bNb = b.nbOutings || 0;
       return bNb - aNb;
     });
   };
-  const filterOutingBoots = (idUser: string, idSkis?: string) => {
+  const filterOutingBoots = (idUser: string, date: number, idSkis?: string) => {
     // Si c'est un prêt, retourner toutes les chaussures
     if (idUser === LOAN_USER_ID) {
       const allBoots = [...listBoots].filter(boots => {
         // Exclure les chaussures dont la date de fin est antérieure à la date de l'événement
-        if (boots.end && outing2write.date > 0 && boots.end < outing2write.date) {
+        if (boots.end && date > 0 && boots.end < date) {
           return false;
         }
         return true;
@@ -173,7 +173,7 @@ const Events = () => {
       if (!boots.listUsers?.includes(idUser)) return false;
 
       // Exclure les chaussures dont la date de fin est antérieure à la date de l'événement
-      if (boots.end && outing2write.date > 0 && boots.end < outing2write.date) {
+      if (boots.end && date > 0 && boots.end < date) {
         return false;
       }
       return true;
@@ -301,7 +301,7 @@ const Events = () => {
     let outing = outing2write
     if (outing2write.idUser) {
       setOutingViewSkis(true);
-      const skis = filterOutingSkis(outing2write.idUser || "");
+      const skis = filterOutingSkis(outing2write.idUser || "", outing2write.date || Date.now());
       if (skis.length === 1 && !outing.idSkis) {
         outing = { ...outing, idSkis: skis[0].id };
       }
@@ -311,7 +311,7 @@ const Events = () => {
     }
     if (outing2write.idSkis) {
       setOutingViewBoots(true);
-      const boots = filterOutingBoots(outing2write.idSkis || "");
+      const boots = filterOutingBoots(outing2write.idUser || "", outing2write.date || Date.now(), outing2write.idSkis || "");
       if (boots.length === 1 && !outing.idBoots) {
         outing = { ...outing, idBoots: boots[0].id };
       }
@@ -371,9 +371,9 @@ const Events = () => {
 
     if (type === "outing") {
       if (listUsers.length === 1) {
-        const skis = filterOutingSkis(listUsers[0].id);
+        const skis = filterOutingSkis(listUsers[0].id, outing2write.date || Date.now());
         if (skis.length === 1) {
-          const boots = filterOutingBoots(skis[0].id);
+          const boots = filterOutingBoots(listUsers[0].id, outing2write.date || Date.now(), skis[0].id);
           if (boots.length === 1) {
             setOuting2Write({ ...outing2write, date: date2Save, idUser: listUsers[0].id, idSkis: skis[0].id, idBoots: boots[0].id });
           } else {
@@ -507,12 +507,12 @@ const Events = () => {
     return (
       <TouchableOpacity key={item.id} onPress={() => {
         if (outing2write.idSkis === item.id) {
-          const skis = filterOutingSkis(outing2write.idUser || "");
+          const skis = filterOutingSkis(outing2write.idUser || "", outing2write.date || Date.now());
           if (skis.length !== 1) {
             setOuting2Write({ ...outing2write, idSkis: undefined, idBoots: undefined, idOutingType: undefined });
           }
         } else {
-          const boots = filterOutingBoots(outing2write.idUser || "", item.id);
+          const boots = filterOutingBoots(outing2write.idUser || "", outing2write.date || Date.now(), item.id);
           if (boots.length >= 1) {
             setOuting2Write({ ...outing2write, idSkis: item.id, idBoots: boots[0].id, idOutingType: item.majorTypeOfOuting || undefined });
           } else {
@@ -1087,9 +1087,9 @@ const Events = () => {
                     {listUsers.map((item) => (
                       <TouchableOpacity key={item.id} onPress={() => {
                         Logger.debug("Selected user:", item);
-                        const skis = filterOutingSkis(item.id);
+                        const skis = filterOutingSkis(item.id, outing2write.date || Date.now());
                         if (skis.length === 1) {
-                          const boots = filterOutingBoots(skis[0].id);
+                          const boots = filterOutingBoots(item.id, outing2write.date || Date.now(), skis[0].id);
                           if (boots.length === 1) {
                             setOuting2Write({ ...outing2write, idSkis: skis[0].id, idBoots: boots[0].id, idOutingType: skis[0].majorTypeOfOuting });
                           } else {
@@ -1151,7 +1151,7 @@ const Events = () => {
               ) : (
                 <>
                   <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
-                    {filterOutingSkis(outing2write.idUser || "").map((item) =>
+                    {filterOutingSkis(outing2write.idUser || "", outing2write.date || Date.now()).map((item) =>
                       renderOutingSkis({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
                     )}
                   </ScrollView>
@@ -1200,7 +1200,7 @@ const Events = () => {
               ) : (
                 <>
                   <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
-                    {filterOutingBoots(outing2write.idUser || "", outing2write.idSkis).map((item) =>
+                    {filterOutingBoots(outing2write.idUser || "", outing2write.date || Date.now(), outing2write.idSkis).map((item) =>
                       renderOutingBoots({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
                     )}
                   </ScrollView>
