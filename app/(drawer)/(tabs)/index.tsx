@@ -67,7 +67,6 @@ export default function Index() {
   const [friendsVisible, setFriendsVisible] = useState<boolean>(false);
   const [outingVisible, setOutingVisible] = useState<boolean>(false);
   const [offPisteVisible, setOffPisteVisible] = useState<boolean>(false);
-  const [selectedSkis, setSelectedSkis] = useState<Skis>(initSkis(0));
   const [partOfDay, setPartOfDay] = useState<PartOfDay>("morning");
   const [outingViewUser, setOutingViewUser] = useState<boolean>(false);
   const [outingViewSkis, setOutingViewSkis] = useState<boolean>(false);
@@ -77,6 +76,10 @@ export default function Index() {
   const [outingViewFriends, setOutingViewFriends] = useState<boolean>(false);
   const [effectActive, setEffectActive] = useState<boolean>(false);
   const [lastSyncDate, setLastSyncDate] = useState<number>(Date.now());
+  const [toSharpVisible, setToSharpVisible] = useState<boolean>(false);
+  const [toWaxVisible, setToWaxVisible] = useState<boolean>(false);
+  const [fabOpen, setFabOpen] = useState<boolean>(false);
+  const [fabNotifOpen, setFabNotifOpen] = useState<boolean>(false);
 
   const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, lastWebDavSync } = useContext(AppContext)!;
 
@@ -319,26 +322,18 @@ export default function Index() {
   )
 
   const renderSkis: ListRenderItem<Skis> = ({ item }) => {
+    const needsSharp = toSharp.find(s => s.id === 'toSharp-' + item.id.replace('topSkis-', ''));
+    const needsWax = toWax.find(w => w.id === 'toWax-' + item.id.replace('topSkis-', ''));
+    
     return (
-      <RowItem onSelect={() => {
-        if (selectedSkis.id !== item.id) {
-          setSelectedSkis(item);
-        }
-        else {
-          setSelectedSkis(initSkis(0));
-        }
-      }}
-        isActive={selectedSkis.id === item.id}
-        style={{
-          borderLeftColor: colorsTheme.primary,
-          borderLeftWidth: selectedSkis.id === item.id ? 1 : 0,
-          borderRightColor: colorsTheme.primary,
-          borderRightWidth: selectedSkis.id === item.id ? 1 : 0,
-          paddingLeft: selectedSkis.id === item.id ? 3 : 4,
-          paddingRight: selectedSkis.id === item.id ? 3 : 4
-        }}
-      >
-        <Row style={{ marginRight: 10 }}>
+      <View style={{ 
+        marginVertical: 4, 
+        padding: 8, 
+        backgroundColor: colorsTheme.cardBG,
+        borderRadius: 8 
+      }}>
+        {/* Ligne principale avec infos du ski */}
+        <Row style={{ marginBottom: 6 }}>
           {item.icoTypeOfSkisUri ?
             <Image source={{ uri: item.icoTypeOfSkisUri }} style={{ width: iconSize, height: iconSize }} /> :
             <Pastille size={iconSize} name={item.typeOfSkis || ""} color={"#fbe2cb"} />
@@ -346,106 +341,75 @@ export default function Index() {
           <Image source={{ uri: item.icoBrandUri }}
             style={{ width: iconSize, height: iconSize }} />
           <Text numberOfLines={1}
-            style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontWeight: 'bold' }}
+            style={{ color: colorsTheme.text, fontSize: 18, flex: 1, fontWeight: 'bold' }}
           >
             {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
           </Text>
           {item.listUserNames?.map((value: string, index: number) => {
-            return <Pastille key={"SKIS" + value + index} name={value} size={iconSize} color={listUsers.find(u => u.name === value)?.pcolor}
-              style={{ marginRight: -10, zIndex: index * -1 }} />;
+            return <Pastille key={"SKIS" + value + index} name={value} size={28} color={listUsers.find(u => u.name === value)?.pcolor}
+              style={{ marginRight: -8, zIndex: index * -1 }} />;
           })}
-          {selectedSkis.id !== item.id &&
-            <>
-              <Text numberOfLines={1}
-                style={{ color: colorsTheme.text, fontSize: 20, flex: 1, textAlign: 'right' }}>{item.nbOutings?.toString()}</Text>
-              <AppIcon name={'sortie'} color={colorsTheme.text} styles={{ fontSize: 20 }} />
-              {((item.nbOutingsSinceLastSharp || 0) + (item.nbOutingsSinceLastWax || 0)) === 0 ?
-                <AppIcon name={'checkmark'} color={colorsTheme.primaryGreen} styles={{ fontSize: 14, marginBottom: -6, marginLeft: -10, marginRight: -12 }} /> :
-                toSharp.find(s => s.id === 'toSharp-' + item.id.replace('topSkis-', '')) || toWax.find(w => w.id === 'toWax-' + item.id.replace('topSkis-', '')) ? <AppIcon name={'notification'} color={colorsTheme.warning} styles={{ fontSize: 14, marginBottom: -6, marginLeft: -10, marginRight: -12 }} /> : null}
-            </>
-          }
         </Row>
-        {selectedSkis.id === item.id && (
-          <Row>
-            {/* <AppIcon name={'none'} color={colorsTheme.text} /> */}
-            <Card flex={1} >
-              <View style={{ marginHorizontal: 'auto' }}>
-                <Row style={{ marginHorizontal: 'auto' }}>
-                  <AppIcon name={'play3'} color={colorsTheme.text} size={18} />
-                  <Text numberOfLines={1}
-                    style={[appStyles.text, { fontSize: 18 }]}>
-                    {item.nbOutings?.toString()}
+        
+        {/* Ligne des statistiques compactes */}
+        <Row style={{ gap: 8, paddingLeft: 4 }}>
+          {/* Sorties totales */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <AppIcon name={'sortie'} color={colorsTheme.text} size={16} />
+            <Text style={[appStyles.text, { fontSize: 14, fontWeight: 'bold' }]}>
+              {item.nbOutings?.toString() || "0"}
+            </Text>
+            {item.lastOutingDate && (
+              <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
+                ({localeDate(item.lastOutingDate, { month: 'short', day: 'numeric' })})
+              </Text>
+            )}
+          </View>
+          
+          <Text style={{ color: colorsTheme.separator }}>|</Text>
+          
+          {/* Affûtage */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <AppIcon name={'affuteuse'} color={needsSharp ? colorsTheme.warning : colorsTheme.text} size={16} />
+            {item.nbOutingsSinceLastSharp === 0 ? (
+              <AppIcon name={'checkmark'} color={colorsTheme.primaryGreen} size={16} />
+            ) : (
+              <>
+                <Text style={[appStyles.text, { fontSize: 14, color: needsSharp ? colorsTheme.warning : colorsTheme.text }]}>
+                  {item.nbOutingsSinceLastSharp?.toString() || "0"}
+                </Text>
+                {item.lastSharpDate && (
+                  <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
+                    ({localeDate(item.lastSharpDate, { month: 'short', day: 'numeric' })})
                   </Text>
-                  <AppIcon name={'sortie'} color={colorsTheme.text} size={18} />
-                </Row>
-                {selectedSkis.id === item.id && (
-                  <Row style={{ marginHorizontal: 'auto' }}>
-                    <AppIcon name={'calendar'} color={colorsTheme.text} size={18} />
-                    <Text numberOfLines={1}
-                      style={[appStyles.text, { fontSize: 18 }]}>
-                      {item.lastOutingDate !== undefined ? localeDate(item.lastOutingDate, { month: 'short', day: 'numeric' }) : "N/A"}
-                    </Text>
-                  </Row>
                 )}
-              </View>
-            </Card>
-            <Card flex={1}>
-              <View style={{ marginHorizontal: 'auto' }}>
-                {item.nbOutingsSinceLastSharp === 0 ?
-                  <Text numberOfLines={1}
-                    style={[appStyles.text, { fontSize: 18, color: colorsTheme.primaryGreen, marginHorizontal: 'auto' }]}>
-                    {t('sharpened')}
-                  </Text> :
-                  <Row style={{ marginHorizontal: 'auto' }}>
-                    <AppIcon name={'affuteuse'} color={colorsTheme.text} size={18} />
-                    <AppIcon name={'arrow-left2'} color={colorsTheme.text} size={18} styles={{ marginRight: -8 }} />
-                    <AppIcon name={'arrow-right2'} color={colorsTheme.text} size={18} styles={{ marginLeft: -8 }} />
-                    <Text numberOfLines={1}
-                      style={[appStyles.text, { fontSize: 18, color: toSharp.find(s => s.id === 'toSharp-' + item.id.replace('topSkis-', '')) ? colorsTheme.warning : colorsTheme.text }]}>
-                      {item.nbOutingsSinceLastSharp?.toString()}
-                    </Text>
-                  </Row>
-                }
-                <Row style={{ marginHorizontal: 'auto' }}>
-                  <AppIcon name={'calendar'} color={colorsTheme.text} size={18} />
-                  <Text numberOfLines={1}
-                    style={[appStyles.text, { fontSize: 18 }]}>
-                    {item.lastSharpDate !== undefined ? localeDate(item.lastSharpDate, { month: 'short', day: 'numeric' }) : "N/A"}
+              </>
+            )}
+          </View>
+          
+          <Text style={{ color: colorsTheme.separator }}>|</Text>
+          
+          {/* Fartage */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
+            <AppIcon name={'fartage'} color={needsWax ? colorsTheme.warning : colorsTheme.text} size={16} />
+            {item.nbOutingsSinceLastWax === 0 ? (
+              <AppIcon name={'checkmark'} color={colorsTheme.primaryGreen} size={16} />
+            ) : (
+              <>
+                <Text style={[appStyles.text, { fontSize: 14, color: needsWax ? colorsTheme.warning : colorsTheme.text }]}>
+                  {item.nbOutingsSinceLastWax?.toString() || "0"}
+                </Text>
+                {item.lastWaxDate && (
+                  <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
+                    ({localeDate(item.lastWaxDate, { month: 'short', day: 'numeric' })})
                   </Text>
-                </Row>
-              </View>
-            </Card>
-            <Card flex={1}>
-              <View style={{ marginHorizontal: 'auto' }}>
-                {item.nbOutingsSinceLastWax === 0 ?
-                  <Text numberOfLines={1}
-                    style={[appStyles.text, { fontSize: 18, color: colorsTheme.primaryGreen, marginHorizontal: 'auto' }]}>
-                    {t('waxed')}
-                  </Text> :
-                  <Row style={{ marginHorizontal: 'auto' }}>
-                    <AppIcon name={'fartage'} color={colorsTheme.text} size={18} />
-                    <AppIcon name={'arrow-left2'} color={colorsTheme.text} size={18} styles={{ marginRight: -8 }} />
-                    <AppIcon name={'arrow-right2'} color={colorsTheme.text} size={18} styles={{ marginLeft: -8 }} />
-                    <Text numberOfLines={1}
-                      style={[appStyles.text, { fontSize: 18, color: toWax.find(s => s.id === 'toWax-' + item.id.replace('topSkis-', '')) ? colorsTheme.warning : colorsTheme.text }]}>
-                      {item.nbOutingsSinceLastWax?.toString()}
-                    </Text>
-
-                  </Row>
-                }
-                <Row style={{ marginHorizontal: 'auto' }}>
-                  <AppIcon name={'calendar'} color={colorsTheme.text} size={18} />
-                  <Text numberOfLines={1}
-                    style={[appStyles.text, { fontSize: 18 }]}>
-                    {item.lastWaxDate !== undefined ? localeDate(item.lastWaxDate, { month: 'short', day: 'numeric' }) : "N/A"}
-                  </Text>
-                </Row>
-              </View>
-            </Card>
-          </Row>
-        )}
-      </RowItem>
-    )
+                )}
+              </>
+            )}
+          </View>
+        </Row>
+      </View>
+    );
   }
 
   const renderToSharp: ListRenderItem<Skis> = ({ item }) => {
@@ -734,46 +698,6 @@ export default function Index() {
           /> : <></>
         }
       </Tile>
-      {(toSharp.length > 0) ? <>
-        <Separator />
-        <Tile style={{ maxHeight: 112 }}>
-          <TileIconTitle littleIconName={"warning"} usersIconName={"affuteuse"} textColor={colorsTheme.text}
-            pastilleValue={toSharp.length.toString()} pastilleColor={colorsTheme.notification} />
-          <FlatList data={toSharp}
-            keyExtractor={(item) => item.id}
-            style={{ width: "100%", padding: 4 }}
-            renderItem={renderToSharp}
-
-          />
-        </Tile></> : <></>
-      }
-      {(toWax.length > 0) ? <>
-        <Separator />
-        <Tile style={{ maxHeight: 112 }}>
-          <TileIconTitle littleIconName={"warning"} usersIconName={"fartage"} textColor={colorsTheme.text}
-            pastilleValue={toWax.length.toString()} pastilleColor={colorsTheme.notification} />
-          <FlatList data={toWax}
-            keyExtractor={(item) => item.id}
-            style={{ width: "100%", padding: 4 }}
-            renderItem={renderToWax}
-
-          />
-        </Tile></> : <></>}
-
-      <Row style={{ width: "100%" }}>
-        <AppButton flex={1} onPress={() => {
-          setPartOfDay("morning");
-          setAddOutingMode(true);
-        }} color={colorsTheme.activeButton} icon={"plus"} caption={""} style={{ height: 68 }}>
-          <AppIcon name={"sortie"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={40} />
-        </AppButton>
-        <AppButton flex={1} onPress={() => {
-          setPartOfDay("evening");
-          setAddMaintainMode(true);
-        }} color={colorsTheme.activeButton} icon={"plus"} caption={""} style={{ height: 68 }}>
-          <AppIcon name={"entretien"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={40} />
-        </AppButton>
-      </Row>
 
       {
       }
@@ -1294,6 +1218,342 @@ export default function Index() {
         </Tile>
         <AppButton onPress={() => setOffPisteVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
       </ModalEditor>
+      {
+      }
+      <ModalEditor visible={toSharpVisible} center={true} onRequestClose={() => setToSharpVisible(false)}>
+        <Row>
+          <AppIcon name={"affuteuse"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={32} />
+          <Text style={appStyles.title}>{t("sharpening")}</Text>
+        </Row>
+        <Tile style={{ marginTop: 16 }}>
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {toSharp.map((item) => (
+              <View key={item.id}>
+                {renderToSharp({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })}
+              </View>
+            ))}
+          </ScrollView>
+        </Tile>
+        <AppButton onPress={() => setToSharpVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
+      </ModalEditor>
+      {
+      }
+      <ModalEditor visible={toWaxVisible} center={true} onRequestClose={() => setToWaxVisible(false)}>
+        <Row>
+          <AppIcon name={"fartage"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={32} />
+          <Text style={appStyles.title}>{t("waxing")}</Text>
+        </Row>
+        <Tile style={{ marginTop: 16 }}>
+          <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
+            {toWax.map((item) => (
+              <View key={item.id}>
+                {renderToWax({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })}
+              </View>
+            ))}
+          </ScrollView>
+        </Tile>
+        <AppButton onPress={() => setToWaxVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
+      </ModalEditor>
+      
+      {/* Overlay semi-transparent quand un FAB est ouvert */}
+      {(fabOpen || fabNotifOpen) && (
+        <TouchableOpacity 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          }}
+          onPress={() => {
+            setFabOpen(false);
+            setFabNotifOpen(false);
+          }}
+          activeOpacity={1}
+        />
+      )}
+      
+      {/* Menu d'ajout (sortie/entretien) */}
+      {fabOpen && (
+        <View style={{
+          position: 'absolute',
+          bottom: 90,
+          right: 16,
+          alignItems: 'flex-end',
+          gap: 12,
+        }}>
+          {/* Bouton Ajouter sortie */}
+          <TouchableOpacity 
+            onPress={() => {
+              setFabOpen(false);
+              setPartOfDay("morning");
+              setAddOutingMode(true);
+            }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <View style={{
+              backgroundColor: colorsTheme.cardBG,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 4,
+              elevation: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            }}>
+              <Text style={[appStyles.text, { fontSize: 14 }]}>{t('add_outing')}</Text>
+            </View>
+            <View style={{
+              backgroundColor: colorsTheme.activeButton,
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              alignItems: 'center',
+              justifyContent: 'center',
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            }}>
+              <AppIcon name={"sortie"} color={colorsTheme.text} size={24} />
+            </View>
+          </TouchableOpacity>
+          
+          {/* Bouton Ajouter entretien */}
+          <TouchableOpacity 
+            onPress={() => {
+              setFabOpen(false);
+              setPartOfDay("evening");
+              setAddMaintainMode(true);
+            }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <View style={{
+              backgroundColor: colorsTheme.cardBG,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 4,
+              elevation: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            }}>
+              <Text style={[appStyles.text, { fontSize: 14 }]}>{t('add_maintain')}</Text>
+            </View>
+            <View style={{
+              backgroundColor: colorsTheme.activeButton,
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              alignItems: 'center',
+              justifyContent: 'center',
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            }}>
+              <AppIcon name={"entretien"} color={colorsTheme.text} size={24} />
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+      
+      {/* Menu des notifications (affûtage/fartage) */}
+      {fabNotifOpen && (toSharp.length > 0 || toWax.length > 0) && (
+        <View style={{
+          position: 'absolute',
+          bottom: 90,
+          left: 16,
+          alignItems: 'flex-start',
+          gap: 12,
+        }}>
+          {/* Bouton Affûtage */}
+          {toSharp.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => {
+                setFabNotifOpen(false);
+                setToSharpVisible(true);
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <View style={{
+                backgroundColor: colorsTheme.notification,
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                alignItems: 'center',
+                justifyContent: 'center',
+                elevation: 4,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+              }}>
+                <AppIcon name={"affuteuse"} color={colorsTheme.text} size={24} />
+                <Pastille 
+                  size={16} 
+                  name={toSharp.length.toString()} 
+                  color={colorsTheme.pastille} 
+                  textColor={colorsTheme.text}
+                  style={{ position: 'absolute', top: -4, right: -4 }}
+                />
+              </View>
+              <View style={{
+                backgroundColor: colorsTheme.cardBG,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 4,
+                elevation: 2,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+              }}>
+                <Text style={[appStyles.text, { fontSize: 14 }]}>{t('sharpening')}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+          
+          {/* Bouton Fartage */}
+          {toWax.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => {
+                setFabNotifOpen(false);
+                setToWaxVisible(true);
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <View style={{
+                backgroundColor: colorsTheme.notification,
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                alignItems: 'center',
+                justifyContent: 'center',
+                elevation: 4,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+              }}>
+                <AppIcon name={"fartage"} color={colorsTheme.text} size={24} />
+                <Pastille 
+                  size={16} 
+                  name={toWax.length.toString()} 
+                  color={colorsTheme.pastille} 
+                  textColor={colorsTheme.text}
+                  style={{ position: 'absolute', top: -4, right: -4 }}
+                />
+              </View>
+              <View style={{
+                backgroundColor: colorsTheme.cardBG,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 4,
+                elevation: 2,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+              }}>
+                <Text style={[appStyles.text, { fontSize: 14 }]}>{t('waxing')}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+      
+      {/* FAB notifications (gauche) - uniquement si nécessaire */}
+      {(toSharp.length > 0 || toWax.length > 0) && (
+        <TouchableOpacity 
+          onPress={() => {
+            setFabNotifOpen(!fabNotifOpen);
+            setFabOpen(false);
+          }}
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            left: 16,
+            backgroundColor: colorsTheme.notification,
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            alignItems: 'center',
+            justifyContent: 'center',
+            elevation: 6,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.27,
+            shadowRadius: 4.65,
+          }}
+        >
+          <AppIcon 
+            name={fabNotifOpen ? "cross" : "notification"} 
+            color={colorsTheme.text} 
+            size={28} 
+          />
+          {!fabNotifOpen && (
+            <Pastille 
+              size={20} 
+              name={(toSharp.length + toWax.length).toString()} 
+              color={colorsTheme.pastille} 
+              textColor={colorsTheme.text}
+              style={{ position: 'absolute', top: -4, right: -4 }}
+            />
+          )}
+        </TouchableOpacity>
+      )}
+      
+      {/* FAB principal (droite) - toujours visible */}
+      <TouchableOpacity 
+        onPress={() => {
+          setFabOpen(!fabOpen);
+          setFabNotifOpen(false);
+        }}
+        style={{
+          position: 'absolute',
+          bottom: 16,
+          right: 16,
+          backgroundColor: colorsTheme.primary,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          alignItems: 'center',
+          justifyContent: 'center',
+          elevation: 6,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.27,
+          shadowRadius: 4.65,
+        }}
+      >
+        <AppIcon 
+          name={fabOpen ? "cross" : "plus"} 
+          color={colorsTheme.text} 
+          size={28} 
+        />
+      </TouchableOpacity>
     </Body>
 
   );
