@@ -37,6 +37,7 @@ const RENTAL_BOOTS_ID = "RENTAL-BOOTS";
 const LOAN_USER_ID = "LOAN-USER";
 
 type EventsType = { type: "outing" | "maintain"; data: Outings | Maintains };
+type ListItemType = EventsType | { type: "separator"; date: number; dateString: string };
 
 const Events = () => {
   const { colorsTheme } = useContext(ThemeContext);
@@ -89,7 +90,7 @@ const Events = () => {
   const skis4filter = listSkis.filter(s => listEvents.some(o => o.data.idSkis === s.id));
   const users4filter = listUsers.filter(u => listEvents.some(o => 'idUser' in o.data && o.data.idUser === u.id));
   const too4filter = listOutingTypes.filter(t => listEvents.some(o => 'idOutingType' in o.data && o.data.idOutingType === t.id));
-  const list2View = listEvents.filter(s => {
+  const filteredEvents = listEvents.filter(s => {
     let ret = true;
     if ('idOutingType' in s.data && tooFilter) {
       ret = s.data.idOutingType === tooFilter.id;
@@ -102,18 +103,47 @@ const Events = () => {
     }
     // Check if s is a Maintains object by checking for a property unique to Maintains
     if ('swr' in s.data) {
-      if (!maintainViewSharp && /S/.test(s.data.swr)) {
+      if (tooFilter || userFilter) {
         ret = false;
       }
-      if (!maintainViewWax && /W/.test(s.data.swr)) {
-        ret = false;
-      }
-      if (!maintainViewRepair && /R/.test(s.data.swr)) {
-        ret = false;
+      if (s.data.swr !== "") {
+        let ret2 = false;
+        if (maintainViewSharp && /S/.test(s.data.swr)) {
+          ret2 = true;
+        }
+        if (maintainViewWax && /W/.test(s.data.swr)) {
+          ret2 = true;
+        }
+        if (maintainViewRepair && /R/.test(s.data.swr)) {
+          ret2 = true;
+        }
+        if (!ret2) {
+          ret = false;
+        }
       }
     }
     return ret;
   }) || [];
+
+  // Ajouter les séparateurs de jour
+  const list2View: ListItemType[] = [];
+  let lastDate: string | null = null;
+
+  filteredEvents.forEach((event) => {
+    const eventDate = new Date(event.data.date);
+    const dateString = localeDate(event.data.date, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    if (dateString !== lastDate) {
+      list2View.push({
+        type: "separator",
+        date: event.data.date,
+        dateString: dateString
+      });
+      lastDate = dateString;
+    }
+
+    list2View.push(event);
+  });
 
   const filterOutingSkis = (idUser: string, date: number) => {
     // Si c'est un prêt, retourner tous les skis
@@ -398,7 +428,7 @@ const Events = () => {
   function onDateChange(event: any, selectedDate: Date | undefined) {
     if (event.type === "set" && selectedDate) {
       const currentEventDate = new Date(dateTimePickerVisible === "outing" ? outing2write.date || Date.now() : maintain2write.date || Date.now());
-      
+
       // Mise à jour de la date en gardant l'heure actuelle
       const finalDate = new Date(
         selectedDate.getFullYear(),
@@ -600,6 +630,22 @@ const Events = () => {
   }
 
   const renderItem: ListRenderItem<any> = ({ item }) => {
+    if (item.type === "separator") {
+      return (
+        <View style={{
+          paddingTop: 0,
+          paddingBottom: 0,
+          paddingHorizontal: 0,
+          borderTopWidth: 1,
+          borderTopColor: colorsTheme.separator,
+          marginTop: 16
+        }}>
+          <Text style={appStyles.textItalic}>
+            {item.dateString}
+          </Text>
+        </View>
+      );
+    }
     if (item.type === "outing") {
       const outingSkis: Skis | undefined = listSkis.find(s => s.id === item.data.idSkis);
       const isRentalSkis = item.data.idSkis === RENTAL_SKIS_ID;
@@ -643,29 +689,15 @@ const Events = () => {
 
         >
           <Row>
+            <Feather
+              name={PartOfDayUtils.getPartOfDayIcon(PartOfDayUtils.getPartOfDayFromHour(new Date(item.data.date).getHours()))}
+              size={16}
+              color={colorsTheme.text}
+              style={{ position: 'absolute', right: 4, bottom: 2 }}
+            />
             <AppIcon name={"sortie"} color={colorsTheme.primary} styles={{ marginLeft: 4 }} />
             <View style={{ flex: 1 }}>
-              <Row style={{ marginVertical: 2 }}>
-                <Card >
-                  <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
-                  <Feather
-                    name={PartOfDayUtils.getPartOfDayIcon(PartOfDayUtils.getPartOfDayFromHour(new Date(item.data.date).getHours()))}
-                    size={20}
-                    color={colorsTheme.text}
-                  />
-                </Card>
-                <Text style={[appStyles.text]}>
-                  {outingType?.name || ""}
-                  {outingOffPistes.length > 0 && `(${outingOffPistes.reduce((sum, off) => sum + (off.count || 0), 0)})`}
-                </Text>
-                {!userFilter && (
-                  isLoan ? (
-                    <Text style={[appStyles.text, { fontStyle: 'italic', fontSize: 16 }]}>{t('loan_equipment')}</Text>
-                  ) : (
-                    <Pastille size={iconSize} name={outingUser?.name || ""} color={outingUser?.pcolor} />
-                  )
-                )}
-              </Row>
+
               {!skisFilter &&
                 <Row>
                   <AppIcon name={"skis"} color={colorsTheme.text} />
@@ -693,6 +725,13 @@ const Events = () => {
                       </Text>
                     </>
                   ) : null}
+                  {!userFilter && (
+                    isLoan ? (
+                      <Text style={[appStyles.text, { fontStyle: 'italic', fontSize: 16 }]}>{t('loan_equipment')}</Text>
+                    ) : (
+                      <Pastille size={iconSize} name={outingUser?.name || ""} color={outingUser?.pcolor} />
+                    )
+                  )}
                 </Row>
               }
               <Row>
@@ -724,6 +763,15 @@ const Events = () => {
                   </Card>
                 )}
               </Row>
+              {outingType && !tooFilter &&
+                <Row>
+                  <AppIcon name={"slope"} color={colorsTheme.text} />
+                  <Text style={{ color: colorsTheme.text, fontSize: 20, flex: 1, fontStyle: 'italic' }}>
+                    {outingType?.name || ""}
+                    {outingOffPistes.length > 0 && `(${outingOffPistes.reduce((sum, off) => sum + (off.count || 0), 0)})`}
+                  </Text>
+                </Row>
+              }
               {outingOffPistes.length > 0 &&
                 <Row>
                   <AppIcon name={"hors-piste"} color={colorsTheme.text} />
@@ -777,6 +825,12 @@ const Events = () => {
           style={{ backgroundColor: colorsTheme.transparentGreen }}
         >
           <Row>
+            <Feather
+              name={PartOfDayUtils.getPartOfDayIcon(PartOfDayUtils.getPartOfDayFromHour(new Date(item.data.date).getHours()))}
+              size={16}
+              color={colorsTheme.text}
+              style={{ position: 'absolute', right: 4, bottom: 2 }}
+            />
             <View style={{ width: iconSize, alignItems: 'center' }}>
               {/S/.test(item.data.swr) && <AppIcon name={"affuteuse"} color={colorsTheme.primaryGreen} size={maintainIconSize} />}
               {/W/.test(item.data.swr) && <AppIcon name={"fartage"} color={colorsTheme.primaryGreen} size={maintainIconSize} />}
@@ -784,18 +838,7 @@ const Events = () => {
             </View>
             <View style={{ flex: 1 }}>
 
-              <Row isFlex={true}>
-                <Card>
-                  <Text style={appStyles.title}>{localeDate(item.data.date, { month: 'short', day: '2-digit' })}</Text>
-                  <Feather
-                    name={PartOfDayUtils.getPartOfDayIcon(PartOfDayUtils.getPartOfDayFromHour(new Date(item.data.date).getHours()))}
-                    size={20}
-                    color={colorsTheme.text}
-                  />
-                </Card>
 
-                <Text style={appStyles.text}>{description()}</Text>
-              </Row>
               {!skisFilter &&
                 <Row>
                   {maintainSkis.icoTypeOfSkisUri ?
@@ -811,6 +854,10 @@ const Events = () => {
                   </Text>
                 </Row>
               }
+              <Row isFlex={true}>
+                <AppIcon name={"entretien"} color={colorsTheme.primaryGreen} />
+                <Text style={{ color: colorsTheme.text, fontSize: 20, flex: 4, fontStyle: 'italic' }}>{description()}</Text>
+              </Row>
             </View>
           </Row>
         </RowItem>
@@ -948,7 +995,7 @@ const Events = () => {
           littleIconName={"calendar"}
           usersIconName={"slope"}
           pastilleColor={colorsTheme.pastille}
-          pastilleValue={list2View.length.toString()}
+          pastilleValue={filteredEvents.length.toString()}
           textColor={colorsTheme.text}
         />
 
@@ -957,7 +1004,7 @@ const Events = () => {
           renderItem={renderItem}
           onRefresh={loadData}
           refreshing={false}
-          keyExtractor={(item) => item.data.id}
+          keyExtractor={(item) => item.type === "separator" ? `sep-${item.date}` : item.data.id}
         />
 
       </Tile>
