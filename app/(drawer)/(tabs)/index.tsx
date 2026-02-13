@@ -79,7 +79,7 @@ export default function Index() {
   const [toSharpVisible, setToSharpVisible] = useState<boolean>(false);
   const [toWaxVisible, setToWaxVisible] = useState<boolean>(false);
   const [fabOpen, setFabOpen] = useState<boolean>(false);
-  const [fabNotifOpen, setFabNotifOpen] = useState<boolean>(false);
+  const [maintenanceDrawerOpen, setMaintenanceDrawerOpen] = useState<boolean>(false);
 
   const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, lastWebDavSync } = useContext(AppContext)!;
 
@@ -330,7 +330,9 @@ export default function Index() {
         marginVertical: 4, 
         padding: 8, 
         backgroundColor: colorsTheme.cardBG,
-        borderRadius: 8 
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colorsTheme.separator
       }}>
         {/* Ligne principale avec infos du ski */}
         <Row style={{ marginBottom: 6 }}>
@@ -346,8 +348,9 @@ export default function Index() {
             {item.size ? item.size + " " : ""}{item.radius ? item.radius + "m " : ""}{item.name}
           </Text>
           {item.listUserNames?.map((value: string, index: number) => {
+            const totalUsers = item.listUserNames?.length || 0;
             return <Pastille key={"SKIS" + value + index} name={value} size={28} color={listUsers.find(u => u.name === value)?.pcolor}
-              style={{ marginRight: -8, zIndex: index * -1 }} />;
+              style={{ marginLeft: index > 0 ? -12 : 0, zIndex: totalUsers - index }} />;
           })}
         </Row>
         
@@ -378,9 +381,9 @@ export default function Index() {
                 <Text style={[appStyles.text, { fontSize: 14, color: needsSharp ? colorsTheme.warning : colorsTheme.text }]}>
                   {item.nbOutingsSinceLastSharp?.toString() || "0"}
                 </Text>
-                {item.lastSharpDate && (
+                {(item.lastSharpDate || item.begin) && (
                   <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
-                    ({localeDate(item.lastSharpDate, { month: 'short', day: 'numeric' })})
+                    ({localeDate(item.lastSharpDate || item.begin, { month: 'short', day: 'numeric' })})
                   </Text>
                 )}
               </>
@@ -399,9 +402,9 @@ export default function Index() {
                 <Text style={[appStyles.text, { fontSize: 14, color: needsWax ? colorsTheme.warning : colorsTheme.text }]}>
                   {item.nbOutingsSinceLastWax?.toString() || "0"}
                 </Text>
-                {item.lastWaxDate && (
+                {(item.lastWaxDate || item.begin) && (
                   <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
-                    ({localeDate(item.lastWaxDate, { month: 'short', day: 'numeric' })})
+                    ({localeDate(item.lastWaxDate || item.begin, { month: 'short', day: 'numeric' })})
                   </Text>
                 )}
               </>
@@ -1256,7 +1259,7 @@ export default function Index() {
       </ModalEditor>
       
       {/* Overlay semi-transparent quand un FAB est ouvert */}
-      {(fabOpen || fabNotifOpen) && (
+      {fabOpen && (
         <TouchableOpacity 
           style={{
             position: 'absolute',
@@ -1268,7 +1271,6 @@ export default function Index() {
           }}
           onPress={() => {
             setFabOpen(false);
-            setFabNotifOpen(false);
           }}
           activeOpacity={1}
         />
@@ -1370,132 +1372,145 @@ export default function Index() {
           </TouchableOpacity>
         </View>
       )}
-      
-      {/* Menu des notifications (affûtage/fartage) */}
-      {fabNotifOpen && (toSharp.length > 0 || toWax.length > 0) && (
-        <View style={{
-          position: 'absolute',
-          bottom: 90,
-          left: 16,
-          alignItems: 'flex-start',
-          gap: 12,
-        }}>
-          {/* Bouton Affûtage */}
-          {toSharp.length > 0 && (
-            <TouchableOpacity 
-              onPress={() => {
-                setFabNotifOpen(false);
-                setToSharpVisible(true);
-              }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-              }}
-            >
-              <View style={{
-                backgroundColor: colorsTheme.notification,
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                alignItems: 'center',
-                justifyContent: 'center',
-                elevation: 4,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-              }}>
-                <AppIcon name={"affuteuse"} color={colorsTheme.text} size={24} />
-                <Pastille 
-                  size={16} 
-                  name={toSharp.length.toString()} 
-                  color={colorsTheme.pastille} 
-                  textColor={colorsTheme.text}
-                  style={{ position: 'absolute', top: -4, right: -4 }}
-                />
-              </View>
-              <View style={{
-                backgroundColor: colorsTheme.cardBG,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 4,
-                elevation: 2,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-              }}>
-                <Text style={[appStyles.text, { fontSize: 14 }]}>{t('sharpening')}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
+      {/* Modale coulissante depuis la gauche */}
+      {maintenanceDrawerOpen && (
+        <>
+          {/* Overlay */}
+          <TouchableOpacity 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 5,
+            }}
+            onPress={() => setMaintenanceDrawerOpen(false)}
+            activeOpacity={1}
+          />
           
-          {/* Bouton Fartage */}
-          {toWax.length > 0 && (
-            <TouchableOpacity 
-              onPress={() => {
-                setFabNotifOpen(false);
-                setToWaxVisible(true);
-              }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-              }}
-            >
-              <View style={{
-                backgroundColor: colorsTheme.notification,
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                alignItems: 'center',
-                justifyContent: 'center',
-                elevation: 4,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-              }}>
-                <AppIcon name={"fartage"} color={colorsTheme.text} size={24} />
-                <Pastille 
-                  size={16} 
-                  name={toWax.length.toString()} 
-                  color={colorsTheme.pastille} 
-                  textColor={colorsTheme.text}
-                  style={{ position: 'absolute', top: -4, right: -4 }}
-                />
-              </View>
-              <View style={{
-                backgroundColor: colorsTheme.cardBG,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 4,
-                elevation: 2,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-              }}>
-                <Text style={[appStyles.text, { fontSize: 14 }]}>{t('waxing')}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        </View>
+          {/* Drawer */}
+          <View style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: '80%',
+            maxWidth: 400,
+            maxHeight: '100%',
+            backgroundColor: colorsTheme.background,
+            borderRightWidth: 4,
+            borderRightColor: colorsTheme.notification,
+            borderTopWidth: 4,
+            borderTopColor: colorsTheme.notification,
+            borderTopRightRadius: 8,
+            borderBottomRightRadius: 8,
+            elevation: 8,
+            zIndex: 6,
+            shadowColor: '#000',
+            shadowOffset: { width: 2, height: 0 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            padding: 16,
+          }}>
+            <ScrollView style={{ marginTop: 8 }}>
+              {/* Liste des skis à affûter */}
+              {toSharp.length > 0 && (
+                <Tile style={{ marginBottom: 16 }}>
+                  <Row style={{ marginBottom: 12 }}>
+                    <AppIcon name={"affuteuse"} color={colorsTheme.text} size={28} styles={{ marginRight: 8 }} />
+                    <Text style={[appStyles.title, { flex: 1 }]}>{t("sharpening")}</Text>
+                    <Pastille 
+                      size={24} 
+                      name={toSharp.length.toString()} 
+                      color={colorsTheme.pastille} 
+                      textColor={colorsTheme.text}
+                    />
+                  </Row>
+                  {toSharp.map((item) => (
+                    <View key={item.id} style={{ marginBottom: 8 }}>
+                      {renderToSharp({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })}
+                    </View>
+                  ))}
+                </Tile>
+              )}
+
+              {/* Séparateur si les deux listes sont présentes */}
+              {toSharp.length > 0 && toWax.length > 0 && (
+                <Separator />
+              )}
+
+              {/* Liste des skis à farter */}
+              {toWax.length > 0 && (
+                <Tile style={{ marginTop: toSharp.length > 0 ? 16 : 0 }}>
+                  <Row style={{ marginBottom: 12 }}>
+                    <AppIcon name={"fartage"} color={colorsTheme.text} size={28} styles={{ marginRight: 8 }} />
+                    <Text style={[appStyles.title, { flex: 1 }]}>{t("waxing")}</Text>
+                    <Pastille 
+                      size={24} 
+                      name={toWax.length.toString()} 
+                      color={colorsTheme.pastille} 
+                      textColor={colorsTheme.text}
+                    />
+                  </Row>
+                  {toWax.map((item) => (
+                    <View key={item.id} style={{ marginBottom: 8 }}>
+                      {renderToWax({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })}
+                    </View>
+                  ))}
+                </Tile>
+              )}
+            </ScrollView>
+          </View>
+        </>
       )}
-      
-      {/* FAB notifications (gauche) - uniquement si nécessaire */}
+
+      {/* Onglet latéral pour les notifications d'entretien - au-dessus de tout */}
       {(toSharp.length > 0 || toWax.length > 0) && (
         <TouchableOpacity 
+          onPress={() => setMaintenanceDrawerOpen(!maintenanceDrawerOpen)}
+          style={{
+            position: 'absolute',
+            left: maintenanceDrawerOpen ? '80%' : 0,
+            bottom: 16,
+            backgroundColor: colorsTheme.notification,
+            paddingVertical: 8,
+            paddingHorizontal: 6,
+            paddingLeft: 8,
+            borderTopRightRadius: 8,
+            borderBottomRightRadius: 8,
+            elevation: 10,
+            zIndex: 7,
+            shadowColor: '#000',
+            shadowOffset: { width: 2, height: 0 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <AppIcon name={"entretien"} color={colorsTheme.text} size={22} />
+          <Pastille 
+            size={28} 
+            name={(toSharp.length + toWax.length).toString()} 
+            color={colorsTheme.pastille} 
+            textColor={colorsTheme.text}
+          />
+        </TouchableOpacity>
+      )}
+      
+      {/* FAB principal (droite) - visible seulement si la modale n'est pas ouverte */}
+      {!maintenanceDrawerOpen && (
+        <TouchableOpacity 
           onPress={() => {
-            setFabNotifOpen(!fabNotifOpen);
-            setFabOpen(false);
+            setFabOpen(!fabOpen);
           }}
           style={{
             position: 'absolute',
             bottom: 16,
-            left: 16,
-            backgroundColor: colorsTheme.notification,
+            right: 16,
+            backgroundColor: colorsTheme.primary,
             width: 56,
             height: 56,
             borderRadius: 28,
@@ -1509,51 +1524,12 @@ export default function Index() {
           }}
         >
           <AppIcon 
-            name={fabNotifOpen ? "cross" : "notification"} 
+            name={fabOpen ? "cross" : "plus"} 
             color={colorsTheme.text} 
-            size={28} 
+            size={24} 
           />
-          {!fabNotifOpen && (
-            <Pastille 
-              size={20} 
-              name={(toSharp.length + toWax.length).toString()} 
-              color={colorsTheme.pastille} 
-              textColor={colorsTheme.text}
-              style={{ position: 'absolute', top: -4, right: -4 }}
-            />
-          )}
         </TouchableOpacity>
       )}
-      
-      {/* FAB principal (droite) - toujours visible */}
-      <TouchableOpacity 
-        onPress={() => {
-          setFabOpen(!fabOpen);
-          setFabNotifOpen(false);
-        }}
-        style={{
-          position: 'absolute',
-          bottom: 16,
-          right: 16,
-          backgroundColor: colorsTheme.primary,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          alignItems: 'center',
-          justifyContent: 'center',
-          elevation: 6,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.27,
-          shadowRadius: 4.65,
-        }}
-      >
-        <AppIcon 
-          name={fabOpen ? "cross" : "plus"} 
-          color={colorsTheme.text} 
-          size={28} 
-        />
-      </TouchableOpacity>
     </Body>
 
   );

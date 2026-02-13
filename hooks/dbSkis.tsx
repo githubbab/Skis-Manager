@@ -207,22 +207,22 @@ export async function getSeasonSkis(db: SQLiteDatabase, season?: Seasons): Promi
         ORDER BY COUNT(*) DESC
         LIMIT 1
       ) AS majorTypeOfOuting,
-             (SELECT MAX(m.date)
-         FROM ${TABLES.MAINTAINS} m
-         WHERE m.swr LIKE '%S%' AND m.idSkis = s.id) AS lastSharpDate,
-      (SELECT MAX(m.date)
-         FROM ${TABLES.MAINTAINS} m
-         WHERE m.swr LIKE '%W%' AND m.idSkis = s.id) AS lastWaxDate,
+       (SELECT MAX(m.date)
+          FROM ${TABLES.MAINTAINS} m
+          WHERE m.swr LIKE '%S%' AND m.idSkis = s.id) AS lastSharpDate,
+       (SELECT MAX(m.date)
+          FROM ${TABLES.MAINTAINS} m
+          WHERE m.swr LIKE '%W%' AND m.idSkis = s.id) AS lastWaxDate,
+       (SELECT COUNT(DISTINCT o.date / 86400000)
+          FROM ${TABLES.OUTINGS} o
+          WHERE o.idSkis = s.id AND o.date >= COALESCE((SELECT MAX(m.date)
+                                                FROM ${TABLES.MAINTAINS} m
+                                                WHERE m.swr LIKE '%S%' AND m.idSkis = s.id), s.begin)) AS nbOutingsSinceLastSharp,
       (SELECT COUNT(DISTINCT o.date / 86400000)
           FROM ${TABLES.OUTINGS} o
-          WHERE o.idSkis = s.id AND o.date >= (SELECT MAX(m.date)
+          WHERE o.idSkis = s.id AND o.date >= COALESCE((SELECT MAX(m.date)
                                                 FROM ${TABLES.MAINTAINS} m
-                                                WHERE m.swr LIKE '%S%' AND m.idSkis = s.id)) AS nbOutingsSinceLastSharp,
-      (SELECT COUNT(DISTINCT o.date / 86400000)
-          FROM ${TABLES.OUTINGS} o
-          WHERE o.idSkis = s.id AND o.date >= (SELECT MAX(m.date)
-                                                FROM ${TABLES.MAINTAINS} m
-                                                WHERE m.swr LIKE '%W%' AND m.idSkis = s.id)) AS nbOutingsSinceLastWax
+                                                WHERE m.swr LIKE '%W%' AND m.idSkis = s.id), s.begin)) AS nbOutingsSinceLastWax
     FROM 
       ${TABLES.SKIS} s
       LEFT JOIN ${TABLES.JOIN_SKIS_USERS} jsu ON s.id = jsu.idSkis
@@ -320,23 +320,23 @@ export async function getTopSkis(db: SQLiteDatabase): Promise<Skis[]> {
       GROUP_CONCAT(DISTINCT jsu.idUser) AS listUsers,
       GROUP_CONCAT(DISTINCT jsb.idBoots) AS listBoots,
       GROUP_CONCAT(DISTINCT u.name) AS listUserNames,
-      MAX(o.date) AS lastOutingDate,
-      (SELECT MAX(m.date)
-         FROM ${TABLES.MAINTAINS} m
-         WHERE m.swr LIKE '%S%' AND m.idSkis = s.id) AS lastSharpDate,
-      (SELECT MAX(m.date)
-         FROM ${TABLES.MAINTAINS} m
-         WHERE m.swr LIKE '%W%' AND m.idSkis = s.id) AS lastWaxDate,
+       MAX(o.date) AS lastOutingDate,
+       (SELECT MAX(m.date)
+          FROM ${TABLES.MAINTAINS} m
+          WHERE m.swr LIKE '%S%' AND m.idSkis = s.id) AS lastSharpDate,
+       (SELECT MAX(m.date)
+          FROM ${TABLES.MAINTAINS} m
+          WHERE m.swr LIKE '%W%' AND m.idSkis = s.id) AS lastWaxDate,
+       (SELECT COUNT(DISTINCT o.date / 86400000)
+          FROM ${TABLES.OUTINGS} o
+          WHERE o.idSkis = s.id AND o.date >= COALESCE((SELECT MAX(m.date)
+                                                FROM ${TABLES.MAINTAINS} m
+                                                WHERE m.swr LIKE '%S%' AND m.idSkis = s.id), s.begin)) AS nbOutingsSinceLastSharp,
       (SELECT COUNT(DISTINCT o.date / 86400000)
           FROM ${TABLES.OUTINGS} o
-          WHERE o.idSkis = s.id AND o.date >= (SELECT MAX(m.date)
+          WHERE o.idSkis = s.id AND o.date >= COALESCE((SELECT MAX(m.date)
                                                 FROM ${TABLES.MAINTAINS} m
-                                                WHERE m.swr LIKE '%S%' AND m.idSkis = s.id)) AS nbOutingsSinceLastSharp,
-      (SELECT COUNT(DISTINCT o.date / 86400000)
-          FROM ${TABLES.OUTINGS} o
-          WHERE o.idSkis = s.id AND o.date >= (SELECT MAX(m.date)
-                                                FROM ${TABLES.MAINTAINS} m
-                                                WHERE m.swr LIKE '%W%' AND m.idSkis = s.id)) AS nbOutingsSinceLastWax
+                                                WHERE m.swr LIKE '%W%' AND m.idSkis = s.id), s.begin)) AS nbOutingsSinceLastWax
     FROM 
       ${TABLES.SKIS} s
       LEFT JOIN ${TABLES.JOIN_SKIS_USERS} jsu ON s.id = jsu.idSkis
@@ -381,10 +381,10 @@ export async function getSkis2Sharp(db: SQLiteDatabase): Promise<Skis[]> {
          JOIN ${TABLES.TYPE_OF_SKIS} tos ON s.idTypeOfSkis = tos.id
          LEFT JOIN ${TABLES.JOIN_SKIS_USERS} jsu ON jsu.idSkis = s.id
          LEFT JOIN ${TABLES.USERS} u ON u.id = jsu.idUser
-      WHERE eo.date >= IFNULL(
+      WHERE eo.date >= COALESCE(
         (SELECT MAX(m.date)
          FROM ${TABLES.MAINTAINS} m
-         WHERE m.swr LIKE '%S%' AND m.idSkis = s.id),0)
+         WHERE m.swr LIKE '%S%' AND m.idSkis = s.id), s.begin)
         AND tos.sharpNeed > 0
         AND s.end IS NULL
       GROUP BY s.id
@@ -421,10 +421,10 @@ export async function getSkis2Wax(db: SQLiteDatabase): Promise<Skis[]> {
          JOIN ${TABLES.TYPE_OF_SKIS} tos ON s.idTypeOfSkis = tos.id
          LEFT JOIN ${TABLES.JOIN_SKIS_USERS} jsu ON jsu.idSkis = s.id
          LEFT JOIN ${TABLES.USERS} u ON u.id = jsu.idUser
-      WHERE eo.date >= IFNULL(
+      WHERE eo.date >= COALESCE(
         (SELECT MAX(m.date)
          FROM ${TABLES.MAINTAINS} m
-         WHERE m.swr LIKE '%W%' AND m.idSkis = s.id),0)
+         WHERE m.swr LIKE '%W%' AND m.idSkis = s.id), s.begin)
         AND tos.waxNeed > 0
         AND s.end IS NULL
       GROUP BY s.id

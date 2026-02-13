@@ -636,8 +636,8 @@ const Events = () => {
           paddingTop: 0,
           paddingBottom: 0,
           paddingHorizontal: 0,
-          borderTopWidth: 1,
-          borderTopColor: colorsTheme.separator,
+          borderBottomWidth: 1,
+          borderBottomColor: colorsTheme.separator,
           marginTop: 16
         }}>
           <Text style={appStyles.textItalic}>
