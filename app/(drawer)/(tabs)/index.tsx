@@ -258,7 +258,7 @@ export default function Index() {
       const boots = filterOutingBoots(outing2write.idUser || "", outing2write.date, outing2write.idSkis);
       // Sélection automatique de la première chaussure (la plus compatible/utilisée) uniquement si idSkis vient de changer
       // Cela évite la resélection automatique après une désélection manuelle
-      if (boots.length === 1 && outing.idBoots == undefined ) {
+      if (boots.length === 1 && outing.idBoots == undefined) {
         outing = { ...outing, idBoots: boots[0].id };
       }
     } else {
@@ -323,12 +323,13 @@ export default function Index() {
 
   const renderSkis: ListRenderItem<Skis> = ({ item }) => {
     const needsSharp = toSharp.find(s => s.id === 'toSharp-' + item.id.replace('topSkis-', ''));
+    const colorSharp = needsSharp ? getCountColor(needsSharp.nbMaintains || 0) : colorsTheme.text;
     const needsWax = toWax.find(w => w.id === 'toWax-' + item.id.replace('topSkis-', ''));
-    
+    const colorWax = needsWax ? getCountColor(needsWax.nbMaintains || 0) : colorsTheme.text;
     return (
-      <View style={{ 
-        marginVertical: 4, 
-        padding: 8, 
+      <View style={{
+        marginVertical: 4,
+        padding: 8,
         backgroundColor: colorsTheme.cardBG,
         borderRadius: 8,
         borderWidth: 1,
@@ -353,7 +354,7 @@ export default function Index() {
               style={{ marginLeft: index > 0 ? -12 : 0, zIndex: totalUsers - index }} />;
           })}
         </Row>
-        
+
         {/* Ligne des statistiques compactes */}
         <Row style={{ gap: 8, paddingLeft: 4 }}>
           {/* Sorties totales */}
@@ -368,18 +369,21 @@ export default function Index() {
               </Text>
             )}
           </View>
-          
+
           <Text style={{ color: colorsTheme.separator }}>|</Text>
-          
+
           {/* Affûtage */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <AppIcon name={'affuteuse'} color={needsSharp ? colorsTheme.warning : colorsTheme.text} size={16} />
+            <AppIcon name={'affuteuse'} color={colorSharp} size={16} />
             {item.nbOutingsSinceLastSharp === 0 ? (
               <AppIcon name={'checkmark'} color={colorsTheme.primaryGreen} size={16} />
             ) : (
               <>
-                <Text style={[appStyles.text, { fontSize: 14, color: needsSharp ? colorsTheme.warning : colorsTheme.text }]}>
+                <Text style={[appStyles.text, { fontSize: 14, color: colorSharp }]}>
                   {item.nbOutingsSinceLastSharp?.toString() || "0"}
+                  <Text style={{ fontSize: 12 }}>
+                    {needsSharp?.nbMaintains ? "(+" + needsSharp.nbMaintains.toString() + ")" : ""}
+                  </Text>
                 </Text>
                 {(item.lastSharpDate || item.begin) && (
                   <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
@@ -389,18 +393,21 @@ export default function Index() {
               </>
             )}
           </View>
-          
+
           <Text style={{ color: colorsTheme.separator }}>|</Text>
-          
+
           {/* Fartage */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
-            <AppIcon name={'fartage'} color={needsWax ? colorsTheme.warning : colorsTheme.text} size={16} />
+            <AppIcon name={'fartage'} color={colorWax} size={16} />
             {item.nbOutingsSinceLastWax === 0 ? (
               <AppIcon name={'checkmark'} color={colorsTheme.primaryGreen} size={16} />
             ) : (
               <>
-                <Text style={[appStyles.text, { fontSize: 14, color: needsWax ? colorsTheme.warning : colorsTheme.text }]}>
+                <Text style={[appStyles.text, { fontSize: 14, color: colorWax }]}>
                   {item.nbOutingsSinceLastWax?.toString() || "0"}
+                  <Text style={{ fontSize: 12 }}>
+                    {needsWax?.nbMaintains ? "(+" + needsWax.nbMaintains.toString() + ")" : ""}
+                  </Text>
                 </Text>
                 {(item.lastWaxDate || item.begin) && (
                   <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
@@ -434,21 +441,23 @@ export default function Index() {
         </Text>
         {item.listUserNames?.map((value: string, index: number) => {
           return <Pastille key={"SHARP" + value + index} name={value} size={iconSize}
-            style={{ marginRight: -10, zIndex: index * -1 }} 
+            style={{ marginRight: -10, zIndex: index * -1 }}
             color={listUsers.find(user => user.name === value)?.pcolor} />;
         })}
-        {count === 0 ?
-          <AppIcon name={"affuteuse"} color={colorsTheme.warning}
-            styles={{ fontSize: iconSize, flex: 1, textAlign: 'right' }} />
-          :
-          <>
-            <AppIcon name={"affuteuse"} color={countColor} styles={{ fontSize: 20, flex: 1, textAlign: 'right' }} />
-            <Text numberOfLines={1}
-              style={{ color: countColor, fontSize: 14, marginLeft: -12, marginBottom: -12, textAlign: 'right' }}>
-              +{count.toString()}
-            </Text>
-          </>
-        }
+        <View style={{ width: 28, alignItems: 'flex-end', justifyContent: 'center' }}>
+          {count === 0 ?
+            <AppIcon name={"affuteuse"} color={colorsTheme.warning}
+              styles={{ fontSize: 24 }} />
+            :
+            <>
+              <AppIcon name={"affuteuse"} color={countColor} styles={{ fontSize: 20 }} />
+              <Text numberOfLines={1}
+                style={{ color: countColor, fontSize: 14, marginTop: -12 }}>
+                +{count.toString()}
+              </Text>
+            </>
+          }
+        </View>
 
       </Row>
     )
@@ -473,21 +482,23 @@ export default function Index() {
         </Text>
         {item.listUserNames?.map((value: string, index: number) => {
           return <Pastille key={"WAX" + value + index} name={value} size={iconSize}
-            style={{ marginRight: -10, zIndex: index * -1 }} 
+            style={{ marginRight: -10, zIndex: index * -1 }}
             color={listUsers.find(user => user.name === value)?.pcolor} />;
         })}
-        {count === 0 ?
-          <AppIcon name={"fartage"} color={colorsTheme.warning} styles={{ fontSize: 24, flex: 1, textAlign: 'right' }} />
-          :
-          <>
-            <AppIcon name={"fartage"} color={countColor}
-              styles={{ fontSize: 20, flex: 1, marginTop: -10, textAlign: 'right' }} />
-            <Text numberOfLines={1}
-              style={{ color: countColor, fontSize: 14, marginLeft: -12, marginBottom: -10, textAlign: 'right' }}>
-              +{count.toString()}
-            </Text>
-          </>
-        }
+        <View style={{ width: 28, alignItems: 'flex-end', justifyContent: 'center' }}>
+          {count === 0 ?
+            <AppIcon name={"fartage"} color={colorsTheme.warning} styles={{ fontSize: 24 }} />
+            :
+            <>
+              <AppIcon name={"fartage"} color={countColor}
+                styles={{ fontSize: 20 }} />
+              <Text numberOfLines={1}
+                style={{ color: countColor, fontSize: 14, marginTop: -10 }}>
+                +{count.toString()}
+              </Text>
+            </>
+          }
+        </View>
 
       </Row>
     )
@@ -712,8 +723,8 @@ export default function Index() {
           <AppIcon name="calendar" color={colorsTheme.text} styles={{ marginRight: 8 }} />
           {outing2write.date === 0 ? (
             <View style={{ flex: 1 }}>
-              <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(),"morning"), "outing")} caption={t('today')} />
-              <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(Date.now() - 24 * 60 * 60 * 1000),"morning"), "outing")} caption={t('yesterday')} />
+              <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(), "morning"), "outing")} caption={t('today')} />
+              <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "morning"), "outing")} caption={t('yesterday')} />
               <AppButton onPress={() => setDateTimePickerVisible("outing")} caption={t('anotherday')} />
             </View>)
             : (
@@ -1015,7 +1026,7 @@ export default function Index() {
           <AppIcon name="calendar" color={colorsTheme.text} styles={{ marginRight: 8 }} />
           {maintain2write.date === 0 ? (
             <View style={{ flex: 1 }}>
-              <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(),"evening"), "maintain")} caption={t('today')} />
+              <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(), "evening"), "maintain")} caption={t('today')} />
               <AppButton onPress={() => changeDate(PartOfDayUtils.setPartOfDayToDate(new Date(Date.now() - 24 * 60 * 60 * 1000), "evening"), "maintain")} caption={t('yesterday')} />
               <AppButton onPress={() => setDateTimePickerVisible("maintain")} caption={t('anotherday')} />
             </View>)
@@ -1257,10 +1268,10 @@ export default function Index() {
         </Tile>
         <AppButton onPress={() => setToWaxVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
       </ModalEditor>
-      
+
       {/* Overlay semi-transparent quand un FAB est ouvert */}
       {fabOpen && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={{
             position: 'absolute',
             top: 0,
@@ -1275,7 +1286,7 @@ export default function Index() {
           activeOpacity={1}
         />
       )}
-      
+
       {/* Menu d'ajout (sortie/entretien) */}
       {fabOpen && (
         <View style={{
@@ -1286,7 +1297,7 @@ export default function Index() {
           gap: 12,
         }}>
           {/* Bouton Ajouter sortie */}
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => {
               setFabOpen(false);
               setPartOfDay("morning");
@@ -1327,9 +1338,9 @@ export default function Index() {
               <AppIcon name={"sortie"} color={colorsTheme.text} size={24} />
             </View>
           </TouchableOpacity>
-          
+
           {/* Bouton Ajouter entretien */}
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => {
               setFabOpen(false);
               setPartOfDay("evening");
@@ -1376,7 +1387,7 @@ export default function Index() {
       {maintenanceDrawerOpen && (
         <>
           {/* Overlay */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={{
               position: 'absolute',
               top: 0,
@@ -1389,7 +1400,7 @@ export default function Index() {
             onPress={() => setMaintenanceDrawerOpen(false)}
             activeOpacity={1}
           />
-          
+
           {/* Drawer */}
           <View style={{
             position: 'absolute',
@@ -1420,10 +1431,10 @@ export default function Index() {
                   <Row style={{ marginBottom: 12 }}>
                     <AppIcon name={"affuteuse"} color={colorsTheme.text} size={28} styles={{ marginRight: 8 }} />
                     <Text style={[appStyles.title, { flex: 1 }]}>{t("sharpening")}</Text>
-                    <Pastille 
-                      size={24} 
-                      name={toSharp.length.toString()} 
-                      color={colorsTheme.pastille} 
+                    <Pastille
+                      size={24}
+                      name={toSharp.length.toString()}
+                      color={colorsTheme.pastille}
                       textColor={colorsTheme.text}
                     />
                   </Row>
@@ -1446,10 +1457,10 @@ export default function Index() {
                   <Row style={{ marginBottom: 12 }}>
                     <AppIcon name={"fartage"} color={colorsTheme.text} size={28} styles={{ marginRight: 8 }} />
                     <Text style={[appStyles.title, { flex: 1 }]}>{t("waxing")}</Text>
-                    <Pastille 
-                      size={24} 
-                      name={toWax.length.toString()} 
-                      color={colorsTheme.pastille} 
+                    <Pastille
+                      size={24}
+                      name={toWax.length.toString()}
+                      color={colorsTheme.pastille}
                       textColor={colorsTheme.text}
                     />
                   </Row>
@@ -1467,7 +1478,7 @@ export default function Index() {
 
       {/* Onglet latéral pour les notifications d'entretien - au-dessus de tout */}
       {(toSharp.length > 0 || toWax.length > 0) && (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => setMaintenanceDrawerOpen(!maintenanceDrawerOpen)}
           style={{
             position: 'absolute',
@@ -1491,18 +1502,18 @@ export default function Index() {
           }}
         >
           <AppIcon name={"entretien"} color={colorsTheme.text} size={22} />
-          <Pastille 
-            size={28} 
-            name={(toSharp.length + toWax.length).toString()} 
-            color={colorsTheme.pastille} 
+          <Pastille
+            size={28}
+            name={(toSharp.length + toWax.length).toString()}
+            color={colorsTheme.pastille}
             textColor={colorsTheme.text}
           />
         </TouchableOpacity>
       )}
-      
+
       {/* FAB principal (droite) - visible seulement si la modale n'est pas ouverte */}
       {!maintenanceDrawerOpen && (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => {
             setFabOpen(!fabOpen);
           }}
@@ -1523,10 +1534,10 @@ export default function Index() {
             shadowRadius: 4.65,
           }}
         >
-          <AppIcon 
-            name={fabOpen ? "cross" : "plus"} 
-            color={colorsTheme.text} 
-            size={24} 
+          <AppIcon
+            name={fabOpen ? "cross" : "plus"}
+            color={colorsTheme.text}
+            size={24}
           />
         </TouchableOpacity>
       )}
