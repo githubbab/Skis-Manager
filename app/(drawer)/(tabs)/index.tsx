@@ -385,11 +385,6 @@ export default function Index() {
                     {needsSharp?.nbMaintains ? "(+" + needsSharp.nbMaintains.toString() + ")" : ""}
                   </Text>
                 </Text>
-                {(item.lastSharpDate || item.begin) && (
-                  <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
-                    ({localeDate(item.lastSharpDate || item.begin, { month: 'short', day: 'numeric' })})
-                  </Text>
-                )}
               </>
             )}
           </View>
@@ -409,11 +404,6 @@ export default function Index() {
                     {needsWax?.nbMaintains ? "(+" + needsWax.nbMaintains.toString() + ")" : ""}
                   </Text>
                 </Text>
-                {(item.lastWaxDate || item.begin) && (
-                  <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
-                    ({localeDate(item.lastWaxDate || item.begin, { month: 'short', day: 'numeric' })})
-                  </Text>
-                )}
               </>
             )}
           </View>
