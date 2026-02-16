@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
 import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DataManager';
+import { Seasons } from './dbSeasons';
 
 export type Friends = {
   id: string;
@@ -55,6 +56,21 @@ export async function getFriendsWithOutingsCountByTypeOfOuting(db: SQLiteDatabas
     JOIN ${TABLES.OUTINGS} o ON jo.idOuting = o.id
     JOIN ${TABLES.TYPE_OF_OUTINGS} too ON o.idOutingType = too.id
     GROUP BY f.id, too.id
+    ORDER BY nbOutings DESC, f.name, too.name
+  `);
+  return data;
+}
+
+export async function getFriendsForSeason(db: SQLiteDatabase, season: Seasons): Promise<Friends[]> {
+  const data: Friends[] = await db.getAllAsync(`
+    SELECT f.id as id, f.name as name, too.id as typeOfOuting, COUNT(jo.idOuting) as nbOutings
+    FROM ${TABLES.FRIENDS} f
+    JOIN ${TABLES.JOIN_OUTINGS_FRIENDS} jo ON f.id = jo.idFriend
+    JOIN ${TABLES.OUTINGS} o ON jo.idOuting = o.id
+    JOIN ${TABLES.TYPE_OF_OUTINGS} too ON o.idOutingType = too.id
+    WHERE o.date >= ${season.begin} AND o.date < ${season.end ?? 4102444800000}
+    GROUP BY f.id, too.id
+    HAVING nbOutings > 0
     ORDER BY nbOutings DESC, f.name, too.name
   `);
   return data;

@@ -14,11 +14,14 @@ import { ThemeContext } from "@/context/ThemeContext";
 import { getAllSeasons, initSeason, Seasons } from "@/hooks/dbSeasons";
 import { getTopSkis4Stats, Skis } from "@/hooks/dbSkis";
 import { getTopUsers, Users } from "@/hooks/dbUsers";
+import { getOffPistesForSeason, OffPistes } from "@/hooks/dbOffPistes";
+import { getFriendsForSeason, Friends } from "@/hooks/dbFriends";
+import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { Logger } from "@/hooks/ToolsBox";
 import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { useContext, useEffect, useState } from "react";
-import { ListRenderItem, Pressable, Text, View, Image } from "react-native";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { ListRenderItem, Pressable, Text, View, Image, TouchableOpacity, ScrollView } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 
 const iconSize: number = 32;
@@ -33,8 +36,32 @@ export default function SeasonsStatistics() {
   const [selectedSeason, setSelectedSeason] = useState<Seasons>(initSeason());
   const [seasonUsersStats, setSeasonUsersStats] = useState<Users[]>([]);
   const [seasonSkisStats, setSeasonSkisStats] = useState<Skis[]>([]);
+  const [seasonOffPistesStats, setSeasonOffPistesStats] = useState<OffPistes[]>([]);
+  const [seasonFriendsStats, setSeasonFriendsStats] = useState<Friends[]>([]);
+  const [typeOfOutingList, setTypeOfOutingList] = useState<TOO[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [modaleVisible, setModaleVisible] = useState<boolean>(false);
+  const [offPistesDrawerOpen, setOffPistesDrawerOpen] = useState<boolean>(false);
+  const [friendsDrawerOpen, setFriendsDrawerOpen] = useState<boolean>(false);
+
+  // Créer un mapping nom d'utilisateur -> couleur
+  const userColorMap = useMemo(() => {
+    const map = new Map<string, string | undefined>();
+    seasonUsersStats.forEach(user => {
+      map.set(user.name, user.pcolor);
+    });
+    return map;
+  }, [seasonUsersStats]);
+
+  // Calculer le nombre total de hors-pistes
+  const numberOfOffPistes = useMemo(() => {
+    return seasonOffPistesStats.reduce((acc, offPiste) => acc + offPiste.count, 0);
+  }, [seasonOffPistesStats]);
+
+  // Calculer le nombre d'amis uniques
+  const uniqueFriendIds = useMemo(() => {
+    return Array.from(new Set(seasonFriendsStats.map(f => f.id)));
+  }, [seasonFriendsStats]);
 
   const loadSeasons = async () => {
     try {
@@ -61,6 +88,15 @@ export default function SeasonsStatistics() {
       setSeasonUsersStats(seasonUsers);
       const seasonSkis = await getTopSkis4Stats(db, season);
       setSeasonSkisStats(seasonSkis);
+      const seasonOffPistes = await getOffPistesForSeason(db, season);
+      setSeasonOffPistesStats(seasonOffPistes);
+      const seasonFriends = await getFriendsForSeason(db, season);
+      setSeasonFriendsStats(seasonFriends);
+      const tooData = await getAllTypeOfOutings(db);
+      // Filtre uniquement les types de sorties utilisés par les amis
+      const usedTooIds = new Set(seasonFriends.map(f => f.typeOfOuting).filter(id => id !== undefined));
+      const filteredTooData = tooData.filter(too => usedTooIds.has(too.id));
+      setTypeOfOutingList(filteredTooData);
     } catch (error) {
       Logger.error("Error fetching season statistics:", error);
     } finally {
@@ -123,7 +159,9 @@ export default function SeasonsStatistics() {
         </Text>
 
         {item.listUserNames?.map((value: string, index: number) => {
+          const userColor = userColorMap.get(value);
           return <Pastille key={"SKIS" + value + index} name={value} size={iconSize}
+            color={userColor}
             style={{ marginRight: -10, zIndex: index * -1 }} />;
         })}
       </Row>
@@ -226,15 +264,236 @@ export default function SeasonsStatistics() {
       <ModalEditor visible={modaleVisible}>
         <Text style={appStyles.title}>{t('choose_season')}</Text>
         <Tile>
-          <FlatList
-            data={seasons}
-            keyExtractor={(item) => item.id}
-            onRefresh={loadSeasons}
-            refreshing={false}
-            renderItem={renderSeason}
-          />
+          {seasons.map((item) => (
+            <View key={item.id}>
+              {renderSeason({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })}
+            </View>
+          ))}
         </Tile>
       </ModalEditor>
+
+      {/* Drawer des amis coulissant depuis la gauche */}
+      {friendsDrawerOpen && (
+        <>
+          {/* Overlay */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 5,
+            }}
+            onPress={() => setFriendsDrawerOpen(false)}
+            activeOpacity={1}
+          />
+
+          {/* Drawer */}
+          <View style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: '80%',
+            maxWidth: 400,
+            maxHeight: '100%',
+            backgroundColor: colorsTheme.background,
+            borderRightWidth: 4,
+            borderRightColor: '#B8A4D4',
+            borderTopWidth: 4,
+            borderTopColor: '#B8A4D4',
+            borderTopRightRadius: 8,
+            borderBottomRightRadius: 8,
+            elevation: 8,
+            zIndex: 6,
+            shadowColor: '#000',
+            shadowOffset: { width: 2, height: 0 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            padding: 16,
+          }}>
+            <ScrollView style={{ marginTop: 8 }}>
+              {/* Liste des amis */}
+              {seasonFriendsStats.length > 0 && (
+                <Tile>
+                  <Row style={{ marginBottom: 12 }}>
+                    <AppIcon name={"accessibility"} color={colorsTheme.text} size={28} styles={{ marginRight: 8 }} />
+                    <Text style={[appStyles.title, { flex: 1 }]}>{t("menu_friends")}</Text>
+                    <Pastille
+                      size={24}
+                      name={uniqueFriendIds.length.toString()}
+                      color={colorsTheme.pastille}
+                      textColor={colorsTheme.text}
+                    />
+                  </Row>
+                  {uniqueFriendIds.map((friendId) => {
+                    const friendOutings = seasonFriendsStats.filter(f => f.id === friendId);
+                    const friendName = friendOutings[0]?.name || '';
+                    return (
+                      <RowItem key={friendId} isActive={false}>
+                        <View style={{ marginBottom: 8 }}>
+                          {friendOutings.map((f, index) => (
+                            <Row key={f.typeOfOuting ?? "no-type"}>
+                              <Text style={[appStyles.text, { marginHorizontal: 4, flex: 1 }]}>
+                                {index === 0 ? friendName : ""}
+                              </Text>
+                              <Text style={[appStyles.text, { flex: 2 }]}>
+                                {f.typeOfOuting ? typeOfOutingList.find(too => too.id === f.typeOfOuting)?.name : t("type_of_outing_all")}
+                              </Text>
+                              <Text style={appStyles.text}>{f.nbOutings}</Text>
+                            </Row>
+                          ))}
+                        </View>
+                      </RowItem>
+                    );
+                  })}
+                </Tile>
+              )}
+            </ScrollView>
+          </View>
+        </>
+      )}
+
+      {/* Drawer des hors-pistes coulissant depuis la gauche */}
+      {offPistesDrawerOpen && (
+        <>
+          {/* Overlay */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 5,
+            }}
+            onPress={() => setOffPistesDrawerOpen(false)}
+            activeOpacity={1}
+          />
+
+          {/* Drawer */}
+          <View style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: '80%',
+            maxWidth: 400,
+            maxHeight: '100%',
+            backgroundColor: colorsTheme.background,
+            borderRightWidth: 4,
+            borderRightColor: colorsTheme.primary,
+            borderTopWidth: 4,
+            borderTopColor: colorsTheme.primary,
+            borderTopRightRadius: 8,
+            borderBottomRightRadius: 8,
+            elevation: 8,
+            zIndex: 6,
+            shadowColor: '#000',
+            shadowOffset: { width: 2, height: 0 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            padding: 16,
+          }}>
+            <ScrollView style={{ marginTop: 8 }}>
+              {/* Liste des hors-pistes */}
+              {seasonOffPistesStats.length > 0 && (
+                <Tile>
+                  <Row style={{ marginBottom: 12 }}>
+                    <AppIcon name={"hors-piste"} color={colorsTheme.text} size={28} styles={{ marginRight: 8 }} />
+                    <Text style={[appStyles.title, { flex: 1 }]}>{t("offpiste")}</Text>
+                    <Pastille
+                      size={24}
+                      name={numberOfOffPistes.toString()}
+                      color={colorsTheme.pastille}
+                      textColor={colorsTheme.text}
+                    />
+                  </Row>
+                  {seasonOffPistesStats.map((item) => (
+                    <RowItem key={item.id} isActive={false}>
+                      <Row>
+                        <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
+                        <Text style={appStyles.text}>{item.count > 0 ? item.count : ""}</Text>
+                      </Row>
+                    </RowItem>
+                  ))}
+                </Tile>
+              )}
+            </ScrollView>
+          </View>
+        </>
+      )}
+
+      {/* Onglet latéral pour les amis */}
+      {seasonFriendsStats.length > 0 && uniqueFriendIds.length > 0 && !offPistesDrawerOpen && (
+        <TouchableOpacity
+          onPress={() => setFriendsDrawerOpen(!friendsDrawerOpen)}
+          style={{
+            position: 'absolute',
+            left: friendsDrawerOpen ? '80%' : 0,
+            bottom: friendsDrawerOpen ? 16 : 100,
+            backgroundColor: '#B8A4D4',
+            paddingVertical: 8,
+            paddingHorizontal: 6,
+            paddingLeft: 8,
+            borderTopRightRadius: 8,
+            borderBottomRightRadius: 8,
+            elevation: 10,
+            zIndex: 7,
+            shadowColor: '#000',
+            shadowOffset: { width: 2, height: 0 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <AppIcon name={"accessibility"} color={colorsTheme.text} size={22} />
+          <Pastille
+            size={28}
+            name={uniqueFriendIds.length.toString()}
+            color={colorsTheme.pastille}
+            textColor={colorsTheme.text}
+          />
+        </TouchableOpacity>
+      )}
+
+      {/* Onglet latéral pour les hors-pistes */}
+      {seasonOffPistesStats.length > 0 && numberOfOffPistes > 0 && !friendsDrawerOpen && (
+        <TouchableOpacity
+          onPress={() => setOffPistesDrawerOpen(!offPistesDrawerOpen)}
+          style={{
+            position: 'absolute',
+            left: offPistesDrawerOpen ? '80%' : 0,
+            bottom: 16,
+            backgroundColor: colorsTheme.primary,
+            paddingVertical: 8,
+            paddingHorizontal: 6,
+            paddingLeft: 8,
+            borderTopRightRadius: 8,
+            borderBottomRightRadius: 8,
+            elevation: 10,
+            zIndex: 7,
+            shadowColor: '#000',
+            shadowOffset: { width: 2, height: 0 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <AppIcon name={"hors-piste"} color={colorsTheme.text} size={22} />
+          <Pastille
+            size={28}
+            name={numberOfOffPistes.toString()}
+            color={colorsTheme.pastille}
+            textColor={colorsTheme.text}
+          />
+        </TouchableOpacity>
+      )}
     </Body>
   );
 }

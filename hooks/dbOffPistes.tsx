@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
 import { createId, deleteQuery, execQuery, insertQuery, TABLES, updateQuery } from './DataManager';
+import { Seasons } from './dbSeasons';
 
 export type OffPistes = {
   id: string;
@@ -63,6 +64,23 @@ export async function getSeasonOffPistes(db: SQLiteDatabase): Promise<OffPistes[
         LEFT JOIN ${TABLES.OUTINGS} o ON joop.idOuting = o.id
       WHERE o.date >= (SELECT begin FROM itemsSeasons ORDER BY begin DESC LIMIT 1)
       GROUP BY op.id
+      ORDER BY count DESC, op.name
+    `);
+  return result;
+}
+
+export async function getOffPistesForSeason(db: SQLiteDatabase, season: Seasons): Promise<OffPistes[]> {
+  const result: OffPistes[] = await db.getAllAsync(`
+      SELECT 
+        op.id, 
+        op.name, 
+        COALESCE(SUM(joop.count), 0) as count
+      FROM ${TABLES.OFFPISTES} op
+        LEFT JOIN ${TABLES.JOIN_OUTINGS_OFFPISTES} joop ON op.id = joop.idOffPiste 
+        LEFT JOIN ${TABLES.OUTINGS} o ON joop.idOuting = o.id
+      WHERE o.date >= ${season.begin} AND o.date < ${season.end ?? 4102444800000}
+      GROUP BY op.id
+      HAVING count > 0
       ORDER BY count DESC, op.name
     `);
   return result;
