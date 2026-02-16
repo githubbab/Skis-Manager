@@ -362,12 +362,12 @@ export default function Index() {
             <AppIcon name={'sortie'} color={colorsTheme.text} size={16} />
             <Text style={[appStyles.text, { fontSize: 14, fontWeight: 'bold' }]}>
               {item.nbOutings?.toString() || "0"}
+              {item.lastOutingDate && (
+                <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
+                  {" (" + localeDate(item.lastOutingDate, { month: 'short', day: 'numeric' }) + ")"}
+                </Text>
+              )}
             </Text>
-            {item.lastOutingDate && (
-              <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
-                ({localeDate(item.lastOutingDate, { month: 'short', day: 'numeric' })})
-              </Text>
-            )}
           </View>
 
           <Text style={{ color: colorsTheme.separator }}>|</Text>
@@ -378,14 +378,17 @@ export default function Index() {
             {item.nbOutingsSinceLastSharp === 0 ? (
               <AppIcon name={'checkmark'} color={colorsTheme.primaryGreen} size={16} />
             ) : (
-              <>
-                <Text style={[appStyles.text, { fontSize: 14, color: colorSharp }]}>
-                  {item.nbOutingsSinceLastSharp?.toString() || "0"}
-                  <Text style={{ fontSize: 12 }}>
-                    {needsSharp?.nbMaintains ? "(+" + needsSharp.nbMaintains.toString() + ")" : ""}
-                  </Text>
+              <Text style={{ fontSize: 14, color: colorSharp }}>
+                {item.nbOutingsSinceLastSharp?.toString() || "0"}
+                <Text style={{ fontSize: 12 }}>
+                  {needsSharp?.nbMaintains ? "(+" + needsSharp.nbMaintains.toString() + ")" : ""}
                 </Text>
-              </>
+                {(item.lastSharpDate || item.begin) && (
+                  <Text style={[appStyles.text, { fontSize: 12, color: colorsTheme.inactiveText }]}>
+                    {" (" + localeDate(item.lastSharpDate || item.begin, { month: 'short', day: 'numeric' }) + ")"}
+                  </Text>
+                )}
+              </Text>
             )}
           </View>
 
@@ -397,14 +400,17 @@ export default function Index() {
             {item.nbOutingsSinceLastWax === 0 ? (
               <AppIcon name={'checkmark'} color={colorsTheme.primaryGreen} size={16} />
             ) : (
-              <>
-                <Text style={[appStyles.text, { fontSize: 14, color: colorWax }]}>
-                  {item.nbOutingsSinceLastWax?.toString() || "0"}
-                  <Text style={{ fontSize: 12 }}>
-                    {needsWax?.nbMaintains ? "(+" + needsWax.nbMaintains.toString() + ")" : ""}
-                  </Text>
+              <Text style={{ fontSize: 14, color: colorWax }}>
+                {item.nbOutingsSinceLastWax?.toString() || "0"}
+                <Text style={{ fontSize: 12 }}>
+                  {needsWax?.nbMaintains ? "(+" + needsWax.nbMaintains.toString() + ")" : ""}
                 </Text>
-              </>
+                {(item.lastWaxDate || item.begin) && (
+                  <Text style={{ fontSize: 12, color: colorsTheme.inactiveText }}>
+                    {" (" + localeDate(item.lastWaxDate || item.begin, { month: 'short', day: 'numeric' }) + ")"}
+                  </Text>
+                )}
+              </Text>
             )}
           </View>
         </Row>
