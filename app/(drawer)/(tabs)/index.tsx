@@ -80,6 +80,7 @@ export default function Index() {
   const [toWaxVisible, setToWaxVisible] = useState<boolean>(false);
   const [fabOpen, setFabOpen] = useState<boolean>(false);
   const [maintenanceDrawerOpen, setMaintenanceDrawerOpen] = useState<boolean>(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, lastWebDavSync } = useContext(AppContext)!;
 
@@ -178,6 +179,24 @@ export default function Index() {
     const bScore = (b.nbOutingsSinceLastSharp || 0) * 10 + (b.nbOutingsSinceLastWax || 0);
     return bScore - aScore;
   });
+
+  // Filter skis by selected user
+  const filterSkisBySelectedUser = (skis: Skis[]): Skis[] => {
+    if (!selectedUserId) {
+      return skis;
+    }
+    // Check in topUsers first, then in listUsers
+    const selectedUser = topUsers.find(u => u.id === selectedUserId) || listUsers.find(u => u.id === selectedUserId);
+    if (!selectedUser) {
+      return skis;
+    }
+    return skis.filter(ski => ski.listUserNames?.includes(selectedUser.name));
+  };
+
+  // Filtered lists based on selected user
+  const filteredTopSkis = filterSkisBySelectedUser(topSkis);
+  const filteredToSharp = filterSkisBySelectedUser(toSharp);
+  const filteredToWax = filterSkisBySelectedUser(toWax);
 
   const loadData = async () => {
     if (dbState === "loading") {
@@ -305,21 +324,39 @@ export default function Index() {
     setEffectActive(false);
   }, [outing2write])
 
-  const renderSkiers: ListRenderItem<Users> = ({ item }) => (
-    <View style={{ alignItems: 'center', justifyContent: 'center', width: 85 }}>
-      <Pastille size={iconSize + 8} name={item.name} color={item.pcolor} />
-      <Pastille size={iconSize} name={item.nbOutings?.toString() || "0"} color={colorsTheme.pastille} textColor={colorsTheme.text}
-        style={{ marginTop: -16, marginRight: -40 }} />
-      <AppIcon name={'sortie'} color={currentTheme === "light" ? colorsTheme.transparentBlack : colorsTheme.transparentWhite} styles={{ fontSize: 16, marginTop: -16, marginRight: -64 }} />
-      <Text numberOfLines={1} style={{
-        color: colorsTheme.text,
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginTop: -8,
-        marginRight: -16
-      }}>{item.name}</Text>
-    </View>
-  )
+  const renderSkiers: ListRenderItem<Users> = ({ item }) => {
+    const isSelected = selectedUserId === item.id;
+    return (
+      <TouchableOpacity 
+        onPress={() => {
+          // Toggle selection: if already selected, deselect
+          setSelectedUserId(isSelected ? null : item.id);
+        }}
+        style={{ 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          width: 85,
+          backgroundColor: isSelected ? colorsTheme.transparentGray : 'transparent',
+          borderRadius: 8,
+          borderWidth: isSelected ? 2 : 0,
+          borderColor: isSelected ? colorsTheme.primary : 'transparent',
+          padding: 4
+        }}
+      >
+        <Pastille size={iconSize + 8} name={item.name} color={item.pcolor} />
+        <Pastille size={iconSize} name={item.nbOutings?.toString() || "0"} color={colorsTheme.pastille} textColor={colorsTheme.text}
+          style={{ marginTop: -16, marginRight: -40 }} />
+        <AppIcon name={'sortie'} color={currentTheme === "light" ? colorsTheme.transparentBlack : colorsTheme.transparentWhite} styles={{ fontSize: 16, marginTop: -16, marginRight: -64 }} />
+        <Text numberOfLines={1} style={{
+          color: colorsTheme.text,
+          fontSize: 18,
+          fontWeight: 'bold',
+          marginTop: -8,
+          marginRight: -16
+        }}>{item.name}</Text>
+      </TouchableOpacity>
+    );
+  }
 
   const renderSkis: ListRenderItem<Skis> = ({ item }) => {
     const needsSharp = toSharp.find(s => s.id === 'toSharp-' + item.id.replace('topSkis-', ''));
@@ -697,9 +734,9 @@ export default function Index() {
       <Separator />
       <Tile flex={2}>
         <TileIconTitle littleIconName={"star-full"} usersIconName={"skis"} textColor={colorsTheme.text}
-          pastilleValue={topSkis.length.toString()} pastilleColor={colorsTheme.pastille} />
-        {(topSkis) ?
-          <FlatList data={topSkis}
+          pastilleValue={filteredTopSkis.length.toString()} pastilleColor={colorsTheme.pastille} />
+        {(filteredTopSkis) ?
+          <FlatList data={filteredTopSkis}
             keyExtractor={(item) => item.id}
             style={{ width: "100%", padding: 0 }}
             renderItem={renderSkis}
@@ -1237,7 +1274,7 @@ export default function Index() {
         </Row>
         <Tile style={{ marginTop: 16 }}>
           <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
-            {toSharp.map((item) => (
+            {filteredToSharp.map((item) => (
               <View key={item.id}>
                 {renderToSharp({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })}
               </View>
@@ -1255,7 +1292,7 @@ export default function Index() {
         </Row>
         <Tile style={{ marginTop: 16 }}>
           <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
-            {toWax.map((item) => (
+            {filteredToWax.map((item) => (
               <View key={item.id}>
                 {renderToWax({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })}
               </View>
@@ -1422,19 +1459,19 @@ export default function Index() {
           }}>
             <ScrollView style={{ marginTop: 8 }}>
               {/* Liste des skis à affûter */}
-              {toSharp.length > 0 && (
+              {filteredToSharp.length > 0 && (
                 <Tile style={{ marginBottom: 16 }}>
                   <Row style={{ marginBottom: 12 }}>
                     <AppIcon name={"affuteuse"} color={colorsTheme.text} size={28} styles={{ marginRight: 8 }} />
                     <Text style={[appStyles.title, { flex: 1 }]}>{t("sharpening")}</Text>
                     <Pastille
                       size={24}
-                      name={toSharp.length.toString()}
+                      name={filteredToSharp.length.toString()}
                       color={colorsTheme.pastille}
                       textColor={colorsTheme.text}
                     />
                   </Row>
-                  {toSharp.map((item) => (
+                  {filteredToSharp.map((item) => (
                     <View key={item.id} style={{ marginBottom: 8 }}>
                       {renderToSharp({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })}
                     </View>
@@ -1443,24 +1480,24 @@ export default function Index() {
               )}
 
               {/* Séparateur si les deux listes sont présentes */}
-              {toSharp.length > 0 && toWax.length > 0 && (
+              {filteredToSharp.length > 0 && filteredToWax.length > 0 && (
                 <Separator />
               )}
 
               {/* Liste des skis à farter */}
-              {toWax.length > 0 && (
-                <Tile style={{ marginTop: toSharp.length > 0 ? 16 : 0 }}>
+              {filteredToWax.length > 0 && (
+                <Tile style={{ marginTop: filteredToSharp.length > 0 ? 16 : 0 }}>
                   <Row style={{ marginBottom: 12 }}>
                     <AppIcon name={"fartage"} color={colorsTheme.text} size={28} styles={{ marginRight: 8 }} />
                     <Text style={[appStyles.title, { flex: 1 }]}>{t("waxing")}</Text>
                     <Pastille
                       size={24}
-                      name={toWax.length.toString()}
+                      name={filteredToWax.length.toString()}
                       color={colorsTheme.pastille}
                       textColor={colorsTheme.text}
                     />
                   </Row>
-                  {toWax.map((item) => (
+                  {filteredToWax.map((item) => (
                     <View key={item.id} style={{ marginBottom: 8 }}>
                       {renderToWax({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })}
                     </View>
@@ -1473,7 +1510,7 @@ export default function Index() {
       )}
 
       {/* Onglet latéral pour les notifications d'entretien - au-dessus de tout */}
-      {(toSharp.length > 0 || toWax.length > 0) && (
+      {(filteredToSharp.length > 0 || filteredToWax.length > 0) && (
         <TouchableOpacity
           onPress={() => setMaintenanceDrawerOpen(!maintenanceDrawerOpen)}
           style={{
@@ -1500,7 +1537,7 @@ export default function Index() {
           <AppIcon name={"entretien"} color={colorsTheme.text} size={22} />
           <Pastille
             size={28}
-            name={(toSharp.length + toWax.length).toString()}
+            name={(filteredToSharp.length + filteredToWax.length).toString()}
             color={colorsTheme.pastille}
             textColor={colorsTheme.text}
           />
