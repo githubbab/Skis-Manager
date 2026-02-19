@@ -1311,7 +1311,7 @@ export default function Index() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
           }}
           onPress={() => {
             setFabOpen(false);
@@ -1346,20 +1346,22 @@ export default function Index() {
               backgroundColor: colorsTheme.cardBG,
               paddingHorizontal: 12,
               paddingVertical: 6,
-              borderRadius: 4,
+              borderRadius: 8,
+              borderWidth: 4,
+              borderColor: colorsTheme.activeButton,
               elevation: 2,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
             }}>
-              <Text style={[appStyles.text, { fontSize: 14 }]}>{t('add_outing')}</Text>
+              <Text style={[appStyles.text, { fontSize: 21 }]}>{t('add_outing')}</Text>
             </View>
             <View style={{
               backgroundColor: colorsTheme.activeButton,
-              width: 48,
-              height: 48,
-              borderRadius: 24,
+              width: 72,
+              height: 72,
+              borderRadius: 36,
               alignItems: 'center',
               justifyContent: 'center',
               elevation: 4,
@@ -1368,7 +1370,7 @@ export default function Index() {
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
             }}>
-              <AppIcon name={"sortie"} color={colorsTheme.text} size={24} />
+              <AppIcon name={"sortie"} color={colorsTheme.text} size={36} />
             </View>
           </TouchableOpacity>
 
@@ -1389,20 +1391,22 @@ export default function Index() {
               backgroundColor: colorsTheme.cardBG,
               paddingHorizontal: 12,
               paddingVertical: 6,
-              borderRadius: 4,
+              borderRadius: 8,
+              borderWidth: 4,
+              borderColor: colorsTheme.activeButton,
               elevation: 2,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
             }}>
-              <Text style={[appStyles.text, { fontSize: 14 }]}>{t('add_maintain')}</Text>
+              <Text style={[appStyles.text, { fontSize: 21 }]}>{t('add_maintain')}</Text>
             </View>
             <View style={{
               backgroundColor: colorsTheme.activeButton,
-              width: 48,
-              height: 48,
-              borderRadius: 24,
+              width: 72,
+              height: 72,
+              borderRadius: 36,
               alignItems: 'center',
               justifyContent: 'center',
               elevation: 4,
@@ -1411,7 +1415,7 @@ export default function Index() {
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
             }}>
-              <AppIcon name={"entretien"} color={colorsTheme.text} size={24} />
+              <AppIcon name={"entretien"} color={colorsTheme.text} size={36} />
             </View>
           </TouchableOpacity>
         </View>
