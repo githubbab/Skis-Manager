@@ -61,11 +61,12 @@ export default function OffpistesManagement() {
   }
 
   async function saveAction() {
-    if (!name.trim()) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
     if (editingOffpiste.id !== "not-an-id") {
-      await updateOffPiste(db, { id: editingOffpiste.id, name, count: 0 });
+      await updateOffPiste(db, { id: editingOffpiste.id, name: trimmedName, count: 0 });
     } else {
-      await insertOffPiste(db, { name });
+      await insertOffPiste(db, { name: trimmedName });
     }
     setModalVisible(false);
     setEditingOffpiste(initOffPiste());
