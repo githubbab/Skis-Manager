@@ -9,7 +9,7 @@ export type Outings = {
   idBoots?: string;
   idOutingType?: string;
   idFriends?: string[];
-  listOfOffPistes?: { id: string, nb: number }[];
+  listOfOffPistes?: { id: string, nb: number, rating?: number }[];
 };
 
 export function initOuting(): Outings {
@@ -34,7 +34,7 @@ export async function insertOuting(db: SQLiteDatabase, o: {
   idUser?: string,
   idBoots?: string,
   idFriends?: string[],
-  listOfOffPistes?: { id: string, nb: number }[]
+  listOfOffPistes?: { id: string, nb: number, rating?: number }[]
 }) {
   const id = createId();
   let query = insertQuery(TABLES.OUTINGS, ["id", "date", "idSkis", "idUser", "idBoots", "idOutingType"],
@@ -45,8 +45,9 @@ export async function insertOuting(db: SQLiteDatabase, o: {
     }
   }
   if (o.listOfOffPistes) {
-    for (const { id: idOffPiste, nb: nb } of o.listOfOffPistes) {
-      query += insertQuery(TABLES.JOIN_OUTINGS_OFFPISTES, ["idOuting", "idOffPiste", "count"], [id, idOffPiste, nb]);
+    for (const { id: idOffPiste, nb: nb, rating } of o.listOfOffPistes) {
+      query += insertQuery(TABLES.JOIN_OUTINGS_OFFPISTES, ["idOuting", "idOffPiste", "count", "rating"], 
+        [id, idOffPiste, nb, rating ?? 3]);
     }
   }
   await execQuery(db, query);
@@ -71,8 +72,9 @@ export async function updateOuting(db: SQLiteDatabase, o: Outings) {
 
   query += deleteQuery(TABLES.JOIN_OUTINGS_OFFPISTES, "idOuting = ?", [o.id]);
   if (o.listOfOffPistes) {
-    for (const { id: idOffPiste, nb: count } of o.listOfOffPistes) {
-      query += insertQuery(TABLES.JOIN_OUTINGS_OFFPISTES, ["idOuting", "idOffPiste", "count"], [o.id, idOffPiste, count]);
+    for (const { id: idOffPiste, nb: count, rating } of o.listOfOffPistes) {
+      query += insertQuery(TABLES.JOIN_OUTINGS_OFFPISTES, ["idOuting", "idOffPiste", "count", "rating"], 
+        [o.id, idOffPiste, count, rating ?? 3]);
     }
   }
   await execQuery(db, query);
@@ -94,7 +96,7 @@ export async function getAllOutings(db: SQLiteDatabase, seasonDate: number): Pro
       o.idBoots,
       o.idOutingType,
       GROUP_CONCAT(DISTINCT jof.idFriend) AS idFriends,
-      GROUP_CONCAT(DISTINCT(joo.idOffPiste || ':' || joo.count)) AS listOfOffPistes
+      GROUP_CONCAT(DISTINCT(joo.idOffPiste || ':' || joo.count || ':' || joo.rating)) AS listOfOffPistes
     FROM ${TABLES.OUTINGS} o
     LEFT JOIN ${TABLES.JOIN_OUTINGS_FRIENDS} jof ON o.id = jof.idOuting
     LEFT JOIN ${TABLES.JOIN_OUTINGS_OFFPISTES} joo ON o.id = joo.idOuting
@@ -111,8 +113,8 @@ export async function getAllOutings(db: SQLiteDatabase, seasonDate: number): Pro
     idOutingType: row.idOutingType,
     idFriends: (row.idFriends ?? '').split(',').filter(Boolean),
     listOfOffPistes: (row.listOfOffPistes ?? '').split(',').filter(Boolean).map((item: string) => {
-      const [id, nb] = item.split(':');
-      return { id, nb: Number(nb) };
+      const [id, nb, rating] = item.split(':');
+      return { id, nb: Number(nb), rating: rating ? Number(rating) : 3 };
     }),
   }));
 }

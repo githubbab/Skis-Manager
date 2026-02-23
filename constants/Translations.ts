@@ -185,6 +185,11 @@ const translations = {
     waxing: "Fartage",
     waxed: "Farté(s)",
     yesterday: "Hier",
+    rating_excellent: "Excellent",
+    rating_very_good: "Très bien",
+    rating_good: "Bien",
+    rating_not_great: "Pas terrible",
+    rating_very_bad: "Très mauvais",
   },
   en: {
     add_maintain: "Add maintain",
@@ -371,6 +376,11 @@ const translations = {
     waxing: "Waxing",
     waxed: "Waxed",
     yesterday: "Yesterday",
+    rating_excellent: "Excellent",
+    rating_very_good: "Very good",
+    rating_good: "Good",
+    rating_not_great: "Not great",
+    rating_very_bad: "Very bad",
   }
 } as const;
 

@@ -17,7 +17,7 @@ import { getTopUsers, Users } from "@/hooks/dbUsers";
 import { getOffPistesForSeason, OffPistes } from "@/hooks/dbOffPistes";
 import { getFriendsForSeason, Friends } from "@/hooks/dbFriends";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
-import { Logger } from "@/hooks/ToolsBox";
+import { Logger, RatingUtils } from "@/hooks/ToolsBox";
 import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useContext, useEffect, useMemo, useState } from "react";
@@ -416,6 +416,16 @@ export default function SeasonsStatistics() {
                         <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
                         <Text style={appStyles.text}>{item.count > 0 ? item.count : ""}</Text>
                       </Row>
+                      {item.ratingStats && item.ratingStats.length > 0 && (
+                        <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                          {item.ratingStats.map((stat) => (
+                            <View key={stat.rating} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <Text style={{ fontSize: 20 }}>{RatingUtils.ratingToEmoji(stat.rating)}</Text>
+                              <Text style={[appStyles.text, { fontSize: 14 }]}>×{stat.count}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </RowItem>
                   ))}
                 </Tile>

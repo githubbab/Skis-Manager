@@ -7,6 +7,7 @@ export type OffPistes = {
   name: string;
   // Optional fields, will be filled when fetching
   count: number;
+  ratingStats?: { rating: number; count: number }[];
 };
 
 export function initOffPiste(): OffPistes {
@@ -66,6 +67,24 @@ export async function getSeasonOffPistes(db: SQLiteDatabase): Promise<OffPistes[
       GROUP BY op.id
       ORDER BY count DESC, op.name
     `);
+  
+  // Récupérer les statistiques de ratings pour chaque off-piste
+  for (const offPiste of result) {
+    const ratingStats: { rating: number; count: number }[] = await db.getAllAsync(`
+      SELECT 
+        joop.rating,
+        SUM(joop.count) as count
+      FROM ${TABLES.JOIN_OUTINGS_OFFPISTES} joop
+        LEFT JOIN ${TABLES.OUTINGS} o ON joop.idOuting = o.id
+      WHERE joop.idOffPiste = ? 
+        AND o.date >= (SELECT begin FROM itemsSeasons ORDER BY begin DESC LIMIT 1)
+      GROUP BY joop.rating
+      ORDER BY joop.rating DESC
+    `, [offPiste.id]);
+    
+    offPiste.ratingStats = ratingStats;
+  }
+  
   return result;
 }
 
@@ -83,5 +102,24 @@ export async function getOffPistesForSeason(db: SQLiteDatabase, season: Seasons)
       HAVING count > 0
       ORDER BY count DESC, op.name
     `);
+  
+  // Récupérer les statistiques de ratings pour chaque off-piste
+  for (const offPiste of result) {
+    const ratingStats: { rating: number; count: number }[] = await db.getAllAsync(`
+      SELECT 
+        joop.rating,
+        SUM(joop.count) as count
+      FROM ${TABLES.JOIN_OUTINGS_OFFPISTES} joop
+        LEFT JOIN ${TABLES.OUTINGS} o ON joop.idOuting = o.id
+      WHERE joop.idOffPiste = ? 
+        AND o.date >= ${season.begin} 
+        AND o.date < ${season.end ?? 4102444800000}
+      GROUP BY joop.rating
+      ORDER BY joop.rating DESC
+    `, [offPiste.id]);
+    
+    offPiste.ratingStats = ratingStats;
+  }
+  
   return result;
 }

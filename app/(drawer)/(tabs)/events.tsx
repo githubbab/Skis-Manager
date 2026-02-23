@@ -20,7 +20,7 @@ import { deleteOuting, getAllOutings, initOuting, insertOuting, Outings, updateO
 import { getSeasonSkis, Skis } from "@/hooks/dbSkis";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
 import { getAllUsers, Users } from "@/hooks/dbUsers";
-import { Logger, smDate, PartOfDay, PartOfDayUtils } from "@/hooks/ToolsBox";
+import { Logger, smDate, PartOfDay, PartOfDayUtils, RatingUtils } from "@/hooks/ToolsBox";
 import PartOfDaySelector from "@/components/PartOfDaySelector";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from "expo-router";
@@ -67,6 +67,7 @@ const Events = () => {
   const [typeOfOutingVisible, setTypeOfOutingVisible] = useState<boolean>(false);
   const [maintainsVisible, setMaintainsVisible] = useState<boolean>(false);
   const [offPisteVisible, setOffPisteVisible] = useState<boolean>(false);
+  const [selectedOffPisteForRating, setSelectedOffPisteForRating] = useState<string | null>(null);
   const [partOfDay, setPartOfDay] = useState<PartOfDay>("morning");
   const [outingViewUser, setOutingViewUser] = useState<boolean>(false);
   const [outingViewSkis, setOutingViewSkis] = useState<boolean>(false);
@@ -285,16 +286,16 @@ const Events = () => {
     setViewTooFilter(false);
   };
 
-  const extractOffPistes = (listOfOffPistes: { id: string, nb: number }[]) => {
+  const extractOffPistes = (listOfOffPistes: { id: string, nb: number, rating?: number }[]) => {
     if (!listOfOffPistes || listOfOffPistes.length === 0) return [];
-    const extractedOffPistes: OffPistes[] = [];
+    const extractedOffPistes: (OffPistes & { rating?: number })[] = [];
     for (const off of listOfOffPistes) {
       const offPiste = listOffPistes.find(o => o.id === off.id);
       if (!offPiste) {
         Logger.debug("OffPiste not found:", off.id);
         continue;
       }
-      extractedOffPistes.push({ ...offPiste, count: off.nb });
+      extractedOffPistes.push({ ...offPiste, count: off.nb, rating: off.rating || 3 });
     }
     return extractedOffPistes;
   };
@@ -667,7 +668,7 @@ const Events = () => {
         return null;
       }
       const outingFriends: Friends[] = listFriends.filter(f => item.data.idFriends?.includes(f.id));
-      const outingOffPistes: OffPistes[] = extractOffPistes(item.data.listOfOffPistes);
+      const outingOffPistes: (OffPistes & { rating?: number })[] = extractOffPistes(item.data.listOfOffPistes);
       return (
         <RowItem
           key={item.data.id}
@@ -776,7 +777,7 @@ const Events = () => {
                 <Row>
                   <AppIcon name={"hors-piste"} color={colorsTheme.text} />
                   <Text style={[appStyles.text, { fontSize: 18, flex: 1 }]}>
-                    {outingOffPistes.map(off => `${off.name} (${off.count})`).join(', ')}
+                    {outingOffPistes.map(off => `${off.name} (${off.count}) ${RatingUtils.ratingToEmoji(off.rating || 3)}`).join(', ')}
                   </Text>
                 </Row>
               }
@@ -1294,9 +1295,14 @@ const Events = () => {
                 </TouchableOpacity>
                 {(outing2write.listOfOffPistes?.length || 0) > 0 ? (
                   <ScrollView style={{ flex: 1, maxHeight: 200 }} nestedScrollEnabled={true}>
-                    {(outing2write.listOfOffPistes ? listOffPistes.filter(offpiste => outing2write.listOfOffPistes?.find(op => op.id === offpiste.id)) : []).map((item) => (
+                    {(outing2write.listOfOffPistes ? listOffPistes.filter(offpiste => outing2write.listOfOffPistes?.find(op => op.id === offpiste.id)) : []).map((item) => {
+                      const rating = outing2write.listOfOffPistes?.find(op => op.id === item.id)?.rating || 3;
+                      return (
                       <Row key={item.id}>
                         <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
+                        <TouchableOpacity onPress={() => setSelectedOffPisteForRating(item.id)}>
+                          <Text style={[appStyles.text, { fontSize: 24, marginRight: 8 }]}>{RatingUtils.ratingToEmoji(rating)}</Text>
+                        </TouchableOpacity>
                         <Card>
                           <TouchableOpacity onPress={() => {
                             let myOP = outing2write.listOfOffPistes?.find(op => op.id === item.id);
@@ -1336,7 +1342,9 @@ const Events = () => {
                           </TouchableOpacity>
                         </Card>
                       </Row>
-                    ))}
+                    )
+                    })}
+                  
                   </ScrollView>
                 ) :
                   <Text style={[appStyles.inactiveText]}>{t('add_offpistes')}</Text>
@@ -1562,7 +1570,9 @@ const Events = () => {
       </ModalEditor>
       {
       }
-      <ModalEditor visible={offPisteVisible} center={true} onRequestClose={() => setOffPisteVisible(false)}>
+      <ModalEditor visible={offPisteVisible} center={true} onRequestClose={() => {
+        setOffPisteVisible(false);
+      }}>
         <Row>
           <Text style={appStyles.title}>{t("offpiste")}</Text>
         </Row>
@@ -1571,16 +1581,23 @@ const Events = () => {
             {listOffPistes.map((item) => (
               <TouchableOpacity key={item.id} onPress={() => {
                 if (outing2write.listOfOffPistes?.find(offPiste => offPiste.id === item.id)) {
+                  // Si déjà ajouté, on le retire
                   setOuting2Write({ ...outing2write, listOfOffPistes: outing2write.listOfOffPistes.filter(offPiste => offPiste.id !== item.id) });
                 } else {
-                  setOuting2Write({ ...outing2write, listOfOffPistes: [...outing2write.listOfOffPistes || [], { id: item.id, nb: 1 }] });
+                  // Sinon, on ajoute avec rating par défaut (3)
+                  setOuting2Write({ 
+                    ...outing2write, 
+                    listOfOffPistes: [...outing2write.listOfOffPistes || [], { id: item.id, nb: 1, rating: 3 }] 
+                  });
                 }
-                setOffPisteVisible(false);
               }}>
                 <Row>
-                  <Text style={[appStyles.text]}>{item.name}</Text>
+                  <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
                   {(item.count || 0) > 0 && (
                     <Text style={[appStyles.text]}>{item.count}</Text>
+                  )}
+                  {outing2write.listOfOffPistes?.find(offPiste => offPiste.id === item.id) && (
+                    <AppIcon name={"checkmark"} color={colorsTheme.primaryGreen} styles={{ marginLeft: 8 }} />
                   )}
                 </Row>
               </TouchableOpacity>
@@ -1588,6 +1605,52 @@ const Events = () => {
           </ScrollView>
         </Tile>
         <AppButton onPress={() => setOffPisteVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
+      </ModalEditor>
+      {/* Modal pour changer le rating d'un off-piste */}
+      <ModalEditor visible={selectedOffPisteForRating !== null} center={true} onRequestClose={() => setSelectedOffPisteForRating(null)}>
+        <Row>
+          <Text style={appStyles.title}>Évaluation</Text>
+        </Row>
+        <Tile>
+          <View style={{ marginTop: 16 }}>
+            <Text style={[appStyles.text, { textAlign: 'center', marginBottom: 16, fontSize: 18 }]}>
+              {listOffPistes.find(op => op.id === selectedOffPisteForRating)?.name}
+            </Text>
+            <View style={{ gap: 12 }}>
+              {RatingUtils.allRatings.map((rating) => (
+                <TouchableOpacity
+                  key={rating.value}
+                  onPress={() => {
+                    // Trouver l'off-piste et modifier son rating
+                    const updatedOffPistes = outing2write.listOfOffPistes?.map(op => 
+                      op.id === selectedOffPisteForRating ? { ...op, rating: rating.value } : op
+                    ) || [];
+                    setOuting2Write({ ...outing2write, listOfOffPistes: updatedOffPistes });
+                    setSelectedOffPisteForRating(null);
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: 12,
+                    backgroundColor: colorsTheme.cardBG,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: colorsTheme.separator,
+                  }}
+                >
+                  <Text style={{ fontSize: 32, marginRight: 12 }}>{rating.emoji}</Text>
+                  <Text style={[appStyles.text, { flex: 1 }]}>{t(rating.label)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Tile>
+        <AppButton 
+          onPress={() => setSelectedOffPisteForRating(null)} 
+          caption={t('cancel')} 
+          color={colorsTheme.transparentGray} 
+          style={{ marginTop: 16 }} 
+        />
       </ModalEditor>
     </Body>
   );

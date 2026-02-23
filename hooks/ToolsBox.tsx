@@ -162,3 +162,32 @@ export const PartOfDayUtils = {
    */
   allParts: ["morning", "noon", "afternoon", "evening"] as const,
 };
+
+// Utilitaires pour les évaluations de hors-pistes
+export const RatingUtils = {
+  /**
+   * Convertit une note numérique (1-5) en emoji
+   */
+  ratingToEmoji: (rating: number): string => {
+    switch (rating) {
+      case 1: return "🤮";
+      case 2: return "😕";
+      case 3: return "🙂";
+      case 4: return "😊";
+      case 5: return "😍";
+      default: return "🙂"; // Par défaut
+    }
+  },
+
+  /**
+   * Liste de toutes les évaluations possibles avec leurs émojis
+   * Le label est une clé de traduction à utiliser avec t()
+   */
+  allRatings: [
+    { value: 5, emoji: "😍", label: "rating_excellent" },
+    { value: 4, emoji: "😊", label: "rating_very_good" },
+    { value: 3, emoji: "🙂", label: "rating_good" },
+    { value: 2, emoji: "😕", label: "rating_not_great" },
+    { value: 1, emoji: "🤮", label: "rating_very_bad" },
+  ] as const,
+};

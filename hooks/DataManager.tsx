@@ -10,7 +10,7 @@ const imgStorePath = Paths.document.uri + "/images/";
 export const icoUnknownBrand = imgStorePath + "brand-init-unknown.png";
 export const imgStoreDir = new Directory(imgStorePath);
 // Database version
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 
 // Device ID
 let deviceID: string = "not-an-id";
@@ -329,6 +329,18 @@ export async function initDataManager(db: SQLiteDatabase): Promise<void> {
         INSERT OR REPLACE INTO syncMetadata (key, value) VALUES ('syncVersion', '1');
       `);
     currentDbVersion = 3;
+  }
+
+  if (currentDbVersion === 3) {
+    Logger.debug("initDB: Upgrading to version 4 - Adding rating to joinOutingsOffPistes");
+    await db.execAsync(`
+        -- Add rating column to joinOutingsOffPistes (1-5 scale: 1=🤮, 2=😕, 3=😐, 4=😊, 5=😍)
+        ALTER TABLE ${TABLES.JOIN_OUTINGS_OFFPISTES} ADD COLUMN rating INTEGER DEFAULT 3;
+        
+        -- Initialize existing rows with default rating (3 = 😐)
+        UPDATE ${TABLES.JOIN_OUTINGS_OFFPISTES} SET rating = 3 WHERE rating IS NULL;
+      `);
+    currentDbVersion = 4;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

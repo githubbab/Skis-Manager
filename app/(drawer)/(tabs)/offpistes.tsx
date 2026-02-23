@@ -8,10 +8,11 @@ import AppStyles from "@/constants/AppStyles";
 import AppContext from "@/context/AppContext";
 import { ThemeContext } from "@/context/ThemeContext";
 import { getSeasonOffPistes, OffPistes } from "@/hooks/dbOffPistes";
+import { RatingUtils } from "@/hooks/ToolsBox";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useContext, useState } from "react";
-import { Text , FlatList } from 'react-native';
+import { Text , FlatList, View } from 'react-native';
 
 export default function Offpistes() {
   const { colorsTheme } = useContext(ThemeContext);
@@ -51,9 +52,19 @@ export default function Offpistes() {
           renderItem={({ item }) => (
             <RowItem isActive={false}>
               <Row>
-                <Text style={appStyles.text}>{item.name}</Text>
+                <Text style={[appStyles.text, { flex: 1 }]}>{item.name}</Text>
                 <Text style={appStyles.text}>{item.count > 0 ? item.count : ""}</Text>
               </Row>
+              {item.ratingStats && item.ratingStats.length > 0 && (
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                  {item.ratingStats.map((stat) => (
+                    <View key={stat.rating} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontSize: 20 }}>{RatingUtils.ratingToEmoji(stat.rating)}</Text>
+                      <Text style={[appStyles.text, { fontSize: 14 }]}>×{stat.count}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </RowItem>
           )}
         />
