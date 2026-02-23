@@ -74,11 +74,12 @@ export default function TypeOfSkisManagementScreen() {
   }
 
   async function saveAction() {
-    if (!name.trim()) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
     if (editingTOS.id !== "not-an-id") {
-      await updateTypeOfSkis(db, { ...initTypeOfSkis(), id: editingTOS.id, name, waxNeed, sharpNeed });
+      await updateTypeOfSkis(db, { ...initTypeOfSkis(), id: editingTOS.id, name: trimmedName, waxNeed, sharpNeed });
     } else {
-      await insertTypeOfSkis(db, { name, waxNeed, sharpNeed });
+      await insertTypeOfSkis(db, { name: trimmedName, waxNeed, sharpNeed });
     }
     if (imageChanged && tosImage && tosImage.startsWith("file://")) {
       copyToSIco(editingTOS.id, tosImage);

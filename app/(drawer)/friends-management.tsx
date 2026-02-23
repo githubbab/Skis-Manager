@@ -62,11 +62,12 @@ export default function FriendsManagement() {
   }
 
   async function saveAction() {
-    if (!name.trim()) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
     if (editingFriend.id !== "not-an-id") {
-      await updateFriend(db, { id: editingFriend.id, name, nbOutings: 0 });
+      await updateFriend(db, { id: editingFriend.id, name: trimmedName, nbOutings: 0 });
     } else {
-      await insertFriend(db, { name });
+      await insertFriend(db, { name: trimmedName });
     }
     setModalVisible(false);
     setEditingFriend(initFriend());

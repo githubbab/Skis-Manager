@@ -53,7 +53,8 @@ const SeasonsManagement = () => {
   }, [lastWebDavSync]);
 
   const saveAction = async () => {
-    if (!name || !begin) {
+    const trimmedName = name.trim();
+    if (!trimmedName || !begin) {
       Alert.alert(t('error'), t('fill_all_fields'));
       return;
     }
@@ -63,9 +64,9 @@ const SeasonsManagement = () => {
       return;
     }
     if (editing === null) {
-      await insertSeason(db, { begin: beginInt, name });
+      await insertSeason(db, { begin: beginInt, name: trimmedName });
     } else {
-      await updateSeason(db, { id: editing, begin: beginInt, name });
+      await updateSeason(db, { id: editing, begin: beginInt, name: trimmedName });
       setEditing(null);
     }
     setName("");

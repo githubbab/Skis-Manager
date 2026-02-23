@@ -397,7 +397,7 @@ export default function SkisManagement() {
         skis2Write.idBrand = "init-unknown"; // Default brand if not set
       }
       insertSki(db, {
-        name: skis2Write.name,
+        name: skis2Write.name.trim(),
         idBrand: skis2Write.idBrand,
         idTypeOfSkis: skis2Write.idTypeOfSkis,
         begin: skis2Write.begin,

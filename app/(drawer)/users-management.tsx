@@ -83,10 +83,14 @@ export default function UsersManagementScreen() {
   }
 
   async function saveUser() {
+    if (!selectedUser.name.trim()) return;
+    const trimmedName = selectedUser.name.trim();
+    const userToSave = { ...selectedUser, name: trimmedName };
+    
     if (editingUser) {
-      await updateUser(db, selectedUser);
-    } else if (selectedUser) {
-      await insertUser(db, selectedUser);
+      await updateUser(db, userToSave);
+    } else {
+      await insertUser(db, userToSave);
     }
     setModalVisible(false);
     setSelectedUser(initUser());

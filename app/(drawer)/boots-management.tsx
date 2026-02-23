@@ -306,6 +306,9 @@ export default function BootsManagement() {
       });
       return;
     }
+    else {
+      boots2Write.brand = boots2Write.brand.trim();
+    }
     if (!boots2Write?.name?.trim()) {
       showMessage({
         message: "Please enter a name for the boots.",

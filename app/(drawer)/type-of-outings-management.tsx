@@ -63,11 +63,12 @@ export default function TypeOfOutingsManagementScreen() {
   }
 
   async function saveAction() {
-    if (!name.trim()) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
     if (editingType.id !== "not-an-id") {
-      await updateTypeOfOutings(db, { id: editingType.id, name, canOffPiste });
+      await updateTypeOfOutings(db, { id: editingType.id, name: trimmedName, canOffPiste });
     } else {
-      await insertTypeOfOutings(db, { name, canOffPiste });
+      await insertTypeOfOutings(db, { name: trimmedName, canOffPiste });
     }
     setModalVisible(false);
     setEditingType(initTypeOfOutings());

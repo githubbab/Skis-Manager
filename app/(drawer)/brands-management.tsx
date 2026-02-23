@@ -71,14 +71,15 @@ export default function BrandsManagementScreen() {
   }
 
   async function saveAction() {
-    if (!name.trim()) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
     let brandId = editingBrand.id;
     if (brandId !== "not-an-id") {
-      if (name !== editingBrand.name) {
-        await updateBrand(db, { id: editingBrand.id, name });
+      if (trimmedName !== editingBrand.name) {
+        await updateBrand(db, { id: editingBrand.id, name: trimmedName });
       }
     } else {
-      const res = await insertBrand(db, { name });
+      const res = await insertBrand(db, { name: trimmedName });
       brandId = res.id;
     }
     // Si une image a été sélectionnée, la sauvegarder dans le dossier local
