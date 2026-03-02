@@ -175,11 +175,13 @@ export default function Index() {
       return bNb - aNb;
     });
   };
-  const filterMaintainSkis = () => listSkis.sort((a, b) => {
-    const aScore = (a.nbOutingsSinceLastSharp || 0) * 10 + (a.nbOutingsSinceLastWax || 0);
-    const bScore = (b.nbOutingsSinceLastSharp || 0) * 10 + (b.nbOutingsSinceLastWax || 0);
-    return bScore - aScore;
-  });
+  const filterMaintainSkis = (date: number) => {
+    return listSkis.filter(ski => !ski.end || ski.end > date).sort((a, b) => {
+      const aScore = (a.nbOutingsSinceLastSharp || 0) * 10 + (a.nbOutingsSinceLastWax || 0);
+      const bScore = (b.nbOutingsSinceLastSharp || 0) * 10 + (b.nbOutingsSinceLastWax || 0);
+      return bScore - aScore;
+    });
+  };
 
   // Filter skis by selected user
   const filterSkisBySelectedUser = (skis: Skis[]): Skis[] => {
@@ -1100,7 +1102,7 @@ export default function Index() {
               })()
             ) : (
               <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
-                {filterMaintainSkis().map((item) =>
+                {filterMaintainSkis(maintain2write.date).map((item) =>
                   renderMaintainSkis({ item, index: 0, separators: { highlight: () => { }, unhighlight: () => { }, updateProps: () => { } } })
                 )}
               </ScrollView>
