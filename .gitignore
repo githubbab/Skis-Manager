@@ -70,3 +70,6 @@ ios/DerivedData/
 ios/*.ipa
 ios/*.dSYM.zip
 ios/*.dSYM
+
+# Documentation
+GUIDE_FDROID.md

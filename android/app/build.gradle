@@ -92,8 +92,8 @@ android {
         applicationId 'fr.babouscorp.SkisManager'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 916
-        versionName "0.9.16"
+        versionCode 1000
+        versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
