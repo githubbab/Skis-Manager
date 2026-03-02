@@ -1,0 +1,55 @@
+Skis-Manager est une application de gestion complète de votre matériel de ski et de vos sorties en montagne.
+
+Fonctionnalités principales :
+
+GESTION DU MATÉRIEL
+• Enregistrez tous vos skis avec leurs caractéristiques (marque, modèle, taille, rayon, patin, type)
+• Gérez vos chaussures de ski (marque, modèle, taille, flex, longueur de coque)
+• Associez vos skis et chaussures aux utilisateurs
+• Base de données personnalisable des marques d'équipement
+• Catégorisez vos skis (Piste, Freeride, Course, Slalom, GS, Surf, Skating, Touring, etc.)
+
+SUIVI DES SORTIES
+• Journal de sorties détaillé avec date, utilisateur, matériel utilisé
+• Types de sorties : Piste, Hors-piste, Course, Entraînement, Touring
+• Enregistrez les amis présents et les hors-pistes effectués
+• Options pour matériel de location ou prêté
+• Historique complet avec filtres par utilisateur ou paire de skis
+
+ENTRETIEN DU MATÉRIEL
+• Suivi des opérations d'entretien (affûtage, fartage, réparations)
+• Alertes automatiques : nombre de sorties depuis le dernier affûtage/fartage
+• Historique complet des entretiens
+
+GESTION DES HORS-PISTES
+• Créez votre bibliothèque de hors-pistes favoris
+• Évaluez chaque descente
+• Enregistrez les conditions (poudreuse, cailloux, etc.)
+• Statistiques : nombre de passages par hors-piste
+
+MULTI-UTILISATEURS
+• Gérez plusieurs profils d'utilisateurs (famille, amis)
+• Statistiques individuelles pour chaque skieur
+• Enregistrez avec qui vous skiez
+
+STATISTIQUES PAR SAISON
+• Vue globale : nombre total de sorties, de hors-pistes
+• Par utilisateur : statistiques détaillées
+• Par paire de skis : utilisation de chaque paire
+• Suivi des entretiens par paire
+
+SAUVEGARDE ET SYNCHRONISATION
+• Base de données SQLite locale embarquée
+• Synchronisation optionnelle via WebDAV
+• Export/Import de la base de données
+• Aucune connexion requise pour utiliser l'application
+• Toutes vos données restent sous votre contrôle
+
+CONFIDENTIALITÉ
+• Aucun tracker
+• Aucune publicité
+• Aucun compte requis
+• Fonctionne complètement hors ligne
+• 100% gratuit et open source
+
+L'application supporte le mode clair/sombre automatique selon les préférences système.

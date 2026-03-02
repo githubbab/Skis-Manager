@@ -1,0 +1,55 @@
+Skis-Manager is a comprehensive application for managing your ski equipment and mountain outings.
+
+Main features:
+
+EQUIPMENT MANAGEMENT
+• Record all your skis with their characteristics (brand, model, size, radius, waist, type)
+• Manage your ski boots (brand, model, size, flex, shell length)
+• Link your skis and boots to users
+• Customizable equipment brand database
+• Categorize your skis (Piste, Freeride, Race, Slalom, GS, Surf, Skating, Touring, etc.)
+
+OUTING TRACKING
+• Detailed outing log with date, user, equipment used
+• Outing types: Piste, Off-piste, Race, Training, Touring
+• Record friends present and off-pistes done
+• Options for rental or loaned equipment
+• Complete history with filters by user or ski pair
+
+EQUIPMENT MAINTENANCE
+• Maintenance operations tracking (sharpening, waxing, repairs)
+• Automatic alerts: number of outings since last sharpening/waxing
+• Complete maintenance history
+
+OFF-PISTE MANAGEMENT
+• Create your favorite off-piste library
+• Rate each descent
+• Record conditions (powder, rocks, etc.)
+• Statistics: number of runs per off-piste
+
+MULTI-USER
+• Manage multiple user profiles (family, friends)
+• Individual statistics for each skier
+• Record who you ski with
+
+SEASON STATISTICS
+• Global view: total number of outings, off-pistes
+• Per user: detailed statistics
+• Per ski pair: usage of each pair
+• Maintenance tracking per pair
+
+BACKUP AND SYNC
+• Embedded local SQLite database
+• Optional WebDAV synchronization
+• Database export/import
+• No connection required to use the app
+• All your data remains under your control
+
+PRIVACY
+• No trackers
+• No ads
+• No account required
+• Works completely offline
+• 100% free and open source
+
+The application supports automatic light/dark mode according to system preferences.
