@@ -73,7 +73,7 @@ export async function getSeasonOffPistes(db: SQLiteDatabase): Promise<OffPistes[
     const ratingStats: { rating: number; count: number }[] = await db.getAllAsync(`
       SELECT 
         joop.rating,
-        SUM(joop.count) as count
+        COUNT(DISTINCT joop.idOuting) as count
       FROM ${TABLES.JOIN_OUTINGS_OFFPISTES} joop
         LEFT JOIN ${TABLES.OUTINGS} o ON joop.idOuting = o.id
       WHERE joop.idOffPiste = ? 
@@ -108,7 +108,7 @@ export async function getOffPistesForSeason(db: SQLiteDatabase, season: Seasons)
     const ratingStats: { rating: number; count: number }[] = await db.getAllAsync(`
       SELECT 
         joop.rating,
-        SUM(joop.count) as count
+        COUNT(DISTINCT joop.idOuting) as count
       FROM ${TABLES.JOIN_OUTINGS_OFFPISTES} joop
         LEFT JOIN ${TABLES.OUTINGS} o ON joop.idOuting = o.id
       WHERE joop.idOffPiste = ? 

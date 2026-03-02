@@ -56,11 +56,11 @@ export default function Offpistes() {
                 <Text style={appStyles.text}>{item.count > 0 ? item.count : ""}</Text>
               </Row>
               {item.ratingStats && item.ratingStats.length > 0 && (
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: -4, flexWrap: 'wrap' }}>
                   {item.ratingStats.map((stat) => (
                     <View key={stat.rating} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                       <Text style={{ fontSize: 20 }}>{RatingUtils.ratingToEmoji(stat.rating)}</Text>
-                      <Text style={[appStyles.text, { fontSize: 14 }]}>×{stat.count}</Text>
+                      <Text style={[appStyles.text, { fontSize: 14, margin: 0 }]}>×{stat.count}</Text>
                     </View>
                   ))}
                 </View>
