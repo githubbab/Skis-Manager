@@ -46,7 +46,27 @@ web-build/
 
 .idea
 .vscode
-android
-ios
 *.apk
 package-lock.json
+
+# Android - Ignorer uniquement les fichiers de build, pas les sources
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/.cxx/
+android/captures/
+android/*.iml
+android/.externalNativeBuild
+android/.cxx
+
+# iOS - Ignorer uniquement les fichiers de build, pas les sources
+ios/Pods/
+ios/build/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+ios/DerivedData/
+ios/*.ipa
+ios/*.dSYM.zip
+ios/*.dSYM

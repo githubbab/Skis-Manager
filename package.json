@@ -2,6 +2,7 @@
   "name": "skis-manager",
   "main": "expo-router/entry",
   "version": "0.9.16",
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
