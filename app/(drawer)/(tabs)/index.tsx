@@ -366,14 +366,16 @@ export default function Index() {
     const colorSharp = needsSharp ? getCountColor(needsSharp.nbMaintains || 0) : colorsTheme.text;
     const needsWax = toWax.find(w => w.id === 'toWax-' + item.id.replace('topSkis-', ''));
     const colorWax = needsWax ? getCountColor(needsWax.nbMaintains || 0) : colorsTheme.text;
+    const isArchived = item.end !== undefined && item.end > 0;
     return (
       <View style={{
         marginVertical: 4,
         padding: 8,
-        backgroundColor: colorsTheme.cardBG,
+        backgroundColor: isArchived ? 'rgba(255, 0, 0, 0.1)' : colorsTheme.cardBG,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: colorsTheme.separator
+        borderColor: isArchived ? 'rgba(255, 0, 0, 0.7)' : colorsTheme.separator,
+        position: 'relative'
       }}>
         {/* Ligne principale avec infos du ski */}
         <Row style={{ marginBottom: 6 }}>
@@ -454,6 +456,18 @@ export default function Index() {
             )}
           </View>
         </Row>
+
+        {/* Icône de corbeille pour les skis archivés */}
+        {isArchived && (
+          <View style={{
+            position: 'absolute',
+            bottom: 4,
+            right: 4,
+            zIndex: 10
+          }}>
+            <AppIcon name={'bin'} color={'rgba(255, 0, 0, 0.7)'} size={20} />
+          </View>
+        )}
       </View>
     );
   }
