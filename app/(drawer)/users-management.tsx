@@ -39,18 +39,32 @@ export default function UsersManagementScreen() {
   const [selectedUser, setSelectedUser] = useState<Users>(initUser());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [hideColorPicker, setHideColorPicker] = useState(true);
+  const [keyword, setKeyword] = useState("");
   const inputRef = useRef<TextInput>(null);
   const [order_by, setOrderBy] = useState<"order_by_name" | "order_by_outings">("order_by_name");
 
-  const sortedUsers = users.sort((a, b) => {
-    if (order_by === "order_by_name") {
-      return a.name.localeCompare(b.name);
-    }
-    if (order_by === "order_by_outings") {
-      return (b.nbOutings || 0) - (a.nbOutings || 0);
-    }
-    return 0;
-  });
+  const normalizedKeyword = keyword
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  const filteredUsers = users
+    .filter((user) =>
+      user.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .includes(normalizedKeyword)
+    )
+    .sort((a, b) => {
+      if (order_by === "order_by_name") {
+        return a.name.localeCompare(b.name);
+      }
+      if (order_by === "order_by_outings") {
+        return (b.nbOutings || 0) - (a.nbOutings || 0);
+      }
+      return 0;
+    });
 
   useFocusEffect(
     useCallback(() => {
@@ -248,10 +262,32 @@ export default function UsersManagementScreen() {
           </TouchableOpacity>
         </Card>
       </Row>
+      <Tile>
+        <Row>
+          <AppIcon name={"search"} color={colorsTheme.text} styles={{ fontSize: 28, width: "auto" }} />
+          <TextInput
+            value={keyword}
+            onChangeText={setKeyword}
+            style={{ color: colorsTheme.text, fontSize: 20, flex: 1 }}
+            placeholder={t("name")}
+            placeholderTextColor={colorsTheme.inactiveText}
+          />
+          <TouchableOpacity onPress={() => setKeyword("")}>
+            <AppIcon name={"cancel-circle"} color={colorsTheme.inactiveText} styles={{ fontSize: 20 }} />
+          </TouchableOpacity>
+        </Row>
+      </Tile>
+      <Separator />
       <Tile flex={1} >
-        <TileIconTitle littleIconName={order_by === "order_by_name" ? "pencil" : "slope"} usersIconName={"users"} textColor={colorsTheme.text} />
+        <TileIconTitle
+          littleIconName={order_by === "order_by_name" ? "pencil" : "slope"}
+          usersIconName={"users"}
+          textColor={colorsTheme.text}
+          pastilleColor={colorsTheme.pastille}
+          pastilleValue={filteredUsers.length.toString()}
+        />
         <FlatList
-          data={sortedUsers}
+          data={filteredUsers}
           onRefresh={loadData}
           refreshing={false}
           keyExtractor={u => u.id}

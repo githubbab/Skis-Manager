@@ -6,6 +6,7 @@ import Card from "@/components/Card";
 import ModalEditor from "@/components/ModalEditor";
 import Row from "@/components/Row";
 import RowItem from "@/components/RowItem";
+import Separator from "@/components/Separator";
 import Tile from "@/components/Tile";
 import TileIconTitle from "@/components/TileIconTitle";
 import AppStyles from "@/constants/AppStyles";
@@ -15,7 +16,7 @@ import { Friends, deleteFriend, getFriendsWithOutingsCount, initFriend, insertFr
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Alert, FlatList, Text, TextInput } from "react-native";
+import { Alert, FlatList, Text, TextInput, TouchableOpacity } from "react-native";
 
 export default function FriendsManagement() {
   const { colorsTheme } = useContext(ThemeContext);
@@ -26,6 +27,7 @@ export default function FriendsManagement() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingFriend, setEditingFriend] = useState<Friends>(initFriend());
   const [name, setName] = useState("");
+  const [keyword, setKeyword] = useState("");
   const inputRef = useRef<TextInput>(null);
 
   const { t, webDavSync, lastWebDavSync } = useContext(AppContext);
@@ -134,15 +136,50 @@ export default function FriendsManagement() {
     );
   }
 
+  const normalizedKeyword = keyword
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  const filteredFriends = friends.filter((friend) =>
+    friend.name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .includes(normalizedKeyword)
+  );
+
   return (
     <Body>
       <Text style={[appStyles.title, { marginBottom: 8 }]}>
         {t("menu_friends")}
       </Text>
+      <Tile>
+        <Row>
+          <AppIcon name={"search"} color={colorsTheme.text} styles={{ fontSize: 28, width: "auto" }} />
+          <TextInput
+            value={keyword}
+            onChangeText={setKeyword}
+            style={{ color: colorsTheme.text, fontSize: 20, flex: 1 }}
+            placeholder={t("name")}
+            placeholderTextColor={colorsTheme.inactiveText}
+          />
+          <TouchableOpacity onPress={() => setKeyword("")}>
+            <AppIcon name={"cancel-circle"} color={colorsTheme.inactiveText} styles={{ fontSize: 20 }} />
+          </TouchableOpacity>
+        </Row>
+      </Tile>
+      <Separator />
       <Tile flex={1}>
-        <TileIconTitle littleIconName={"star-full"} usersIconName={"accessibility"} textColor={colorsTheme.text} />
+        <TileIconTitle
+          littleIconName={"star-full"}
+          usersIconName={"accessibility"}
+          textColor={colorsTheme.text}
+          pastilleColor={colorsTheme.pastille}
+          pastilleValue={filteredFriends.length.toString()}
+        />
         <FlatList
-          data={friends}
+          data={filteredFriends}
           onRefresh={loadData}
           refreshing={false}
           keyExtractor={f => f.id}
