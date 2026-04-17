@@ -82,8 +82,9 @@ export default function Index() {
   const [fabOpen, setFabOpen] = useState<boolean>(false);
   const [maintenanceDrawerOpen, setMaintenanceDrawerOpen] = useState<boolean>(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [order_by_topSkis, setOrderByTopSkis] = useState<"order_by_outings" | "order_by_sharp" | "order_by_wax">("order_by_outings");
 
-  const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, lastWebDavSync } = useContext(AppContext)!;
+  const { t, localeDate, seasonDate, viewFriends, viewOuting, webDavSync, webDavSyncEnabled, lastWebDavSync } = useContext(AppContext)!
 
   const filterOutingSkis = (idUser: string, date: number) => {
     // Si c'est un prêt, retourner tous les skis
@@ -197,7 +198,26 @@ export default function Index() {
   };
 
   // Filtered lists based on selected user
-  const filteredTopSkis = filterSkisBySelectedUser(topSkis);
+  const filteredTopSkis = filterSkisBySelectedUser(topSkis).sort((a, b) => {
+    if (order_by_topSkis === "order_by_sharp") {
+      // Tri par affûtage : prioriser les skis avec needsSharp.nbMaintains, puis par nbOutingsSinceLastSharp
+      const aSharp = toSharp.find(s => s.id === 'toSharp-' + a.id.replace('topSkis-', ''));
+      const bSharp = toSharp.find(s => s.id === 'toSharp-' + b.id.replace('topSkis-', ''));
+      const aScore = (aSharp?.nbMaintains || 0) * 10000 + (a.nbOutingsSinceLastSharp || 0);
+      const bScore = (bSharp?.nbMaintains || 0) * 10000 + (b.nbOutingsSinceLastSharp || 0);
+      return bScore - aScore;
+    } else if (order_by_topSkis === "order_by_wax") {
+      // Tri par fartage : prioriser les skis avec needsWax.nbMaintains, puis par nbOutingsSinceLastWax
+      const aWax = toWax.find(w => w.id === 'toWax-' + a.id.replace('topSkis-', ''));
+      const bWax = toWax.find(w => w.id === 'toWax-' + b.id.replace('topSkis-', ''));
+      const aScore = (aWax?.nbMaintains || 0) * 10000 + (a.nbOutingsSinceLastWax || 0);
+      const bScore = (bWax?.nbMaintains || 0) * 10000 + (b.nbOutingsSinceLastWax || 0);
+      return bScore - aScore;
+    } else {
+      // Tri par défaut : par nombre de sorties
+      return (b.nbOutings || 0) - (a.nbOutings || 0);
+    }
+  });
   const filteredToSharp = filterSkisBySelectedUser(toSharp);
   const filteredToWax = filterSkisBySelectedUser(toWax);
 
@@ -750,7 +770,11 @@ export default function Index() {
       </Tile>
       <Separator />
       <Tile flex={2}>
-        <TileIconTitle littleIconName={"star-full"} usersIconName={"skis"} textColor={colorsTheme.text}
+        <TileIconTitle littleIconName={
+          order_by_topSkis === "order_by_outings" ? "star-full" :
+          order_by_topSkis === "order_by_sharp" ? "affuteuse" :
+          "fartage"
+        } usersIconName={"skis"} textColor={colorsTheme.text}
           pastilleValue={filteredTopSkis.length.toString()} pastilleColor={colorsTheme.pastille} />
         {(filteredTopSkis) ?
           <FlatList data={filteredTopSkis}
@@ -1301,7 +1325,7 @@ export default function Index() {
       {/* Modal pour changer le rating d'un off-piste */}
       <ModalEditor visible={selectedOffPisteForRating !== null} center={true} onRequestClose={() => setSelectedOffPisteForRating(null)}>
         <Row>
-          <Text style={appStyles.title}>Évaluation</Text>
+          <Text style={appStyles.title}>{t("rating")}</Text>
         </Row>
         <Tile>
           <View style={{ marginTop: 16 }}>
@@ -1381,7 +1405,7 @@ export default function Index() {
         <AppButton onPress={() => setToWaxVisible(false)} caption={t('ok')} color={colorsTheme.activeButton} style={{ marginTop: 16 }} />
       </ModalEditor>
 
-      {/* Overlay semi-transparent quand un FAB est ouvert */}
+      {/* Overlay semi-transparent quand le menu est ouvert */}
       {fabOpen && (
         <TouchableOpacity
           style={{
@@ -1392,14 +1416,12 @@ export default function Index() {
             bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.4)',
           }}
-          onPress={() => {
-            setFabOpen(false);
-          }}
+          onPress={() => setFabOpen(false)}
           activeOpacity={1}
         />
       )}
 
-      {/* Menu d'ajout (sortie/entretien) */}
+      {/* Menu principal (tri + ajout) */}
       {fabOpen && (
         <View style={{
           position: 'absolute',
@@ -1408,6 +1430,106 @@ export default function Index() {
           alignItems: 'flex-end',
           gap: 12,
         }}>
+          {/* --- Section Tri --- */}
+          {/* Bouton Sorties */}
+          <TouchableOpacity
+            onPress={() => { setOrderByTopSkis("order_by_outings"); setFabOpen(false); }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+          >
+            <View style={{
+              backgroundColor: colorsTheme.cardBG,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 8,
+              borderWidth: 4,
+              borderColor: order_by_topSkis === "order_by_outings" ? colorsTheme.primary : colorsTheme.separator,
+              elevation: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            }}>
+              <Text style={[appStyles.text, { fontSize: 21 }]}>{t("sort_by_outings")}</Text>
+            </View>
+            <View style={{
+              backgroundColor: order_by_topSkis === "order_by_outings" ? colorsTheme.primary : colorsTheme.cardBG,
+              width: 72, height: 72, borderRadius: 36,
+              borderWidth: 4,
+              borderColor: order_by_topSkis === "order_by_outings" ? colorsTheme.primary : colorsTheme.separator,
+              alignItems: 'center', justifyContent: 'center',
+              elevation: 4, shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
+            }}>
+              <AppIcon name={"slope"} color={colorsTheme.text} size={36} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Bouton Affûtage */}
+          <TouchableOpacity
+            onPress={() => { setOrderByTopSkis("order_by_sharp"); setFabOpen(false); }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+          >
+            <View style={{
+              backgroundColor: colorsTheme.cardBG,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 8,
+              borderWidth: 4,
+              borderColor: order_by_topSkis === "order_by_sharp" ? colorsTheme.primary : colorsTheme.separator,
+              elevation: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
+            }}>
+              <Text style={[appStyles.text, { fontSize: 21 }]}>{t("sort_by_sharpening")}</Text>
+            </View>
+            <View style={{
+              backgroundColor: order_by_topSkis === "order_by_sharp" ? colorsTheme.primary : colorsTheme.cardBG,
+              width: 72, height: 72, borderRadius: 36,
+              borderWidth: 4,
+              borderColor: order_by_topSkis === "order_by_sharp" ? colorsTheme.primary : colorsTheme.separator,
+              alignItems: 'center', justifyContent: 'center',
+              elevation: 4, shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
+            }}>
+              <AppIcon name={"affuteuse"} color={colorsTheme.text} size={36} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Bouton Fartage */}
+          <TouchableOpacity
+            onPress={() => { setOrderByTopSkis("order_by_wax"); setFabOpen(false); }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+          >
+            <View style={{
+              backgroundColor: colorsTheme.cardBG,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 8,
+              borderWidth: 4,
+              borderColor: order_by_topSkis === "order_by_wax" ? colorsTheme.primary : colorsTheme.separator,
+              elevation: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
+            }}>
+              <Text style={[appStyles.text, { fontSize: 21 }]}>{t("sort_by_waxing")}</Text>
+            </View>
+            <View style={{
+              backgroundColor: order_by_topSkis === "order_by_wax" ? colorsTheme.primary : colorsTheme.cardBG,
+              width: 72, height: 72, borderRadius: 36,
+              borderWidth: 4,
+              borderColor: order_by_topSkis === "order_by_wax" ? colorsTheme.primary : colorsTheme.separator,
+              alignItems: 'center', justifyContent: 'center',
+              elevation: 4, shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
+            }}>
+              <AppIcon name={"fartage"} color={colorsTheme.text} size={36} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Séparateur */}
+          <View style={{ height: 4, width: 260, backgroundColor: colorsTheme.primary, borderRadius: 2, alignSelf: 'flex-end', marginVertical: 8 }} />
+
+          {/* --- Section Ajout --- */}
           {/* Bouton Ajouter sortie */}
           <TouchableOpacity
             onPress={() => {
@@ -1415,11 +1537,7 @@ export default function Index() {
               setPartOfDay("morning");
               setAddOutingMode(true);
             }}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
           >
             <View style={{
               backgroundColor: colorsTheme.cardBG,
@@ -1430,24 +1548,16 @@ export default function Index() {
               borderColor: colorsTheme.activeButton,
               elevation: 2,
               shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
+              shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
             }}>
               <Text style={[appStyles.text, { fontSize: 21 }]}>{t('add_outing')}</Text>
             </View>
             <View style={{
               backgroundColor: colorsTheme.activeButton,
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              alignItems: 'center',
-              justifyContent: 'center',
-              elevation: 4,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
+              width: 72, height: 72, borderRadius: 36,
+              alignItems: 'center', justifyContent: 'center',
+              elevation: 4, shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
             }}>
               <AppIcon name={"sortie"} color={colorsTheme.text} size={36} />
             </View>
@@ -1460,11 +1570,7 @@ export default function Index() {
               setPartOfDay("evening");
               setAddMaintainMode(true);
             }}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
           >
             <View style={{
               backgroundColor: colorsTheme.cardBG,
@@ -1475,24 +1581,16 @@ export default function Index() {
               borderColor: colorsTheme.activeButton,
               elevation: 2,
               shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
+              shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
             }}>
               <Text style={[appStyles.text, { fontSize: 21 }]}>{t('add_maintain')}</Text>
             </View>
             <View style={{
               backgroundColor: colorsTheme.activeButton,
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              alignItems: 'center',
-              justifyContent: 'center',
-              elevation: 4,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
+              width: 72, height: 72, borderRadius: 36,
+              alignItems: 'center', justifyContent: 'center',
+              elevation: 4, shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
             }}>
               <AppIcon name={"entretien"} color={colorsTheme.text} size={36} />
             </View>
@@ -1630,9 +1728,7 @@ export default function Index() {
       {/* FAB principal (droite) - visible seulement si la modale n'est pas ouverte */}
       {!maintenanceDrawerOpen && (
         <TouchableOpacity
-          onPress={() => {
-            setFabOpen(!fabOpen);
-          }}
+          onPress={() => setFabOpen(!fabOpen)}
           style={{
             position: 'absolute',
             bottom: 16,
@@ -1651,7 +1747,7 @@ export default function Index() {
           }}
         >
           <AppIcon
-            name={fabOpen ? "cross" : "plus"}
+            name={fabOpen ? "cross" : "menu"}
             color={colorsTheme.text}
             size={24}
           />

@@ -1609,7 +1609,7 @@ const Events = () => {
       {/* Modal pour changer le rating d'un off-piste */}
       <ModalEditor visible={selectedOffPisteForRating !== null} center={true} onRequestClose={() => setSelectedOffPisteForRating(null)}>
         <Row>
-          <Text style={appStyles.title}>Évaluation</Text>
+          <Text style={appStyles.title}>{t("rating")}</Text>
         </Row>
         <Tile>
           <View style={{ marginTop: 16 }}>
