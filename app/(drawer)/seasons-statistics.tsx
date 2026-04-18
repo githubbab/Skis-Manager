@@ -17,6 +17,7 @@ import { getTopUsers, Users } from "@/hooks/dbUsers";
 import { getOffPistesForSeason, OffPistes } from "@/hooks/dbOffPistes";
 import { getFriendsForSeason, Friends } from "@/hooks/dbFriends";
 import { getAllTypeOfOutings, TOO } from "@/hooks/dbTypeOfOuting";
+import { getBootsForSeason, Boots } from "@/hooks/dbBoots";
 import { Logger, RatingUtils } from "@/hooks/ToolsBox";
 import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -38,11 +39,13 @@ export default function SeasonsStatistics() {
   const [seasonSkisStats, setSeasonSkisStats] = useState<Skis[]>([]);
   const [seasonOffPistesStats, setSeasonOffPistesStats] = useState<OffPistes[]>([]);
   const [seasonFriendsStats, setSeasonFriendsStats] = useState<Friends[]>([]);
+  const [seasonBootsStats, setSeasonBootsStats] = useState<Boots[]>([]);
   const [typeOfOutingList, setTypeOfOutingList] = useState<TOO[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [modaleVisible, setModaleVisible] = useState<boolean>(false);
   const [offPistesDrawerOpen, setOffPistesDrawerOpen] = useState<boolean>(false);
   const [friendsDrawerOpen, setFriendsDrawerOpen] = useState<boolean>(false);
+  const [bootsDrawerOpen, setBootsDrawerOpen] = useState<boolean>(false);
 
   // Créer un mapping nom d'utilisateur -> couleur
   const userColorMap = useMemo(() => {
@@ -62,6 +65,11 @@ export default function SeasonsStatistics() {
   const uniqueFriendIds = useMemo(() => {
     return Array.from(new Set(seasonFriendsStats.map(f => f.id)));
   }, [seasonFriendsStats]);
+
+  // Calculer le nombre total d'utilisations des chaussures
+  const numberOfBootsUsages = useMemo(() => {
+    return seasonBootsStats.reduce((acc, boots) => acc + (boots.nbOutings ?? 0), 0);
+  }, [seasonBootsStats]);
 
   const loadSeasons = async () => {
     try {
@@ -92,6 +100,8 @@ export default function SeasonsStatistics() {
       setSeasonOffPistesStats(seasonOffPistes);
       const seasonFriends = await getFriendsForSeason(db, season);
       setSeasonFriendsStats(seasonFriends);
+      const seasonBoots = await getBootsForSeason(db, season);
+      setSeasonBootsStats(seasonBoots);
       const tooData = await getAllTypeOfOutings(db);
       // Filtre uniquement les types de sorties utilisés par les amis
       const usedTooIds = new Set(seasonFriends.map(f => f.typeOfOuting).filter(id => id !== undefined));
@@ -272,6 +282,88 @@ export default function SeasonsStatistics() {
         </Tile>
       </ModalEditor>
 
+      {/* Drawer des chaussures coulissant depuis la gauche */}
+      {bootsDrawerOpen && (
+        <>
+          {/* Overlay */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 5,
+            }}
+            onPress={() => setBootsDrawerOpen(false)}
+            activeOpacity={1}
+          />
+
+          {/* Drawer */}
+          <View style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: '80%',
+            maxWidth: 400,
+            maxHeight: '100%',
+            backgroundColor: colorsTheme.background,
+            borderRightWidth: 4,
+            borderRightColor: '#6E9D7A',
+            borderTopWidth: 4,
+            borderTopColor: '#6E9D7A',
+            borderTopRightRadius: 8,
+            borderBottomRightRadius: 8,
+            elevation: 8,
+            zIndex: 6,
+            shadowColor: '#000',
+            shadowOffset: { width: 2, height: 0 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            padding: 16,
+          }}>
+            <ScrollView style={{ marginTop: 8 }}>
+              {/* Liste des chaussures */}
+              {seasonBootsStats.length > 0 && (
+                <Tile>
+                  <Row style={{ marginBottom: 12 }}>
+                    <AppIcon name={"ski-boot"} color={colorsTheme.text} size={28} styles={{ marginRight: 8 }} />
+                    <Text style={[appStyles.title, { flex: 1 }]}>{t("menu_boots")}</Text>
+                    <Pastille
+                      size={24}
+                      name={numberOfBootsUsages.toString()}
+                      color={colorsTheme.pastille}
+                      textColor={colorsTheme.text}
+                    />
+                  </Row>
+                  {seasonBootsStats.map((item) => (
+                    <RowItem key={item.id} isActive={false}>
+                      <Row>
+                        <Image source={{ uri: item.icoBrandUri }}
+                          style={{ width: iconSize, height: iconSize }} />
+                        <Text style={[appStyles.text, { flex: 1 }]}>
+                          {item.flex ? item.flex + " " : ""}
+                          {item.size ? "T" + item.size + " " : ""}
+                          {item.name}
+                        </Text>
+                        {item.listUserNames?.map((value: string, index: number) => {
+                          const userColor = userColorMap.get(value);
+                          return <Pastille key={"BOOTS" + value + index} name={value} size={iconSize}
+                            color={userColor}
+                            style={{ marginRight: -10, zIndex: index * -1 }} />;
+                        })}
+                        <Text style={[appStyles.text, { marginLeft: 16 }]}>{item.nbOutings > 0 ? item.nbOutings : ""}</Text>
+                      </Row>
+                    </RowItem>
+                  ))}
+                </Tile>
+              )}
+            </ScrollView>
+          </View>
+        </>
+      )}
+
       {/* Drawer des amis coulissant depuis la gauche */}
       {friendsDrawerOpen && (
         <>
@@ -436,13 +528,20 @@ export default function SeasonsStatistics() {
       )}
 
       {/* Onglet latéral pour les amis */}
-      {seasonFriendsStats.length > 0 && uniqueFriendIds.length > 0 && !offPistesDrawerOpen && (
+      {seasonFriendsStats.length > 0 && uniqueFriendIds.length > 0 && !offPistesDrawerOpen && !bootsDrawerOpen && (
         <TouchableOpacity
-          onPress={() => setFriendsDrawerOpen(!friendsDrawerOpen)}
+          onPress={() => {
+            const isOpening = !friendsDrawerOpen;
+            setFriendsDrawerOpen(isOpening);
+            if (isOpening) {
+              setOffPistesDrawerOpen(false);
+              setBootsDrawerOpen(false);
+            }
+          }}
           style={{
             position: 'absolute',
             left: friendsDrawerOpen ? '80%' : 0,
-            bottom: friendsDrawerOpen ? 16 : 100,
+            bottom: friendsDrawerOpen ? 16 : 184,
             backgroundColor: '#B8A4D4',
             paddingVertical: 8,
             paddingHorizontal: 6,
@@ -471,13 +570,20 @@ export default function SeasonsStatistics() {
       )}
 
       {/* Onglet latéral pour les hors-pistes */}
-      {seasonOffPistesStats.length > 0 && numberOfOffPistes > 0 && !friendsDrawerOpen && (
+      {seasonOffPistesStats.length > 0 && numberOfOffPistes > 0 && !friendsDrawerOpen && !bootsDrawerOpen && (
         <TouchableOpacity
-          onPress={() => setOffPistesDrawerOpen(!offPistesDrawerOpen)}
+          onPress={() => {
+            const isOpening = !offPistesDrawerOpen;
+            setOffPistesDrawerOpen(isOpening);
+            if (isOpening) {
+              setFriendsDrawerOpen(false);
+              setBootsDrawerOpen(false);
+            }
+          }}
           style={{
             position: 'absolute',
             left: offPistesDrawerOpen ? '80%' : 0,
-            bottom: 16,
+            bottom: 100,
             backgroundColor: colorsTheme.primary,
             paddingVertical: 8,
             paddingHorizontal: 6,
@@ -499,6 +605,48 @@ export default function SeasonsStatistics() {
           <Pastille
             size={28}
             name={numberOfOffPistes.toString()}
+            color={colorsTheme.pastille}
+            textColor={colorsTheme.text}
+          />
+        </TouchableOpacity>
+      )}
+
+      {/* Onglet latéral pour les chaussures */}
+      {seasonBootsStats.length > 0 && numberOfBootsUsages > 0 && !friendsDrawerOpen && !offPistesDrawerOpen && (
+        <TouchableOpacity
+          onPress={() => {
+            const isOpening = !bootsDrawerOpen;
+            setBootsDrawerOpen(isOpening);
+            if (isOpening) {
+              setFriendsDrawerOpen(false);
+              setOffPistesDrawerOpen(false);
+            }
+          }}
+          style={{
+            position: 'absolute',
+            left: bootsDrawerOpen ? '80%' : 0,
+            bottom: 16,
+            backgroundColor: '#6E9D7A',
+            paddingVertical: 8,
+            paddingHorizontal: 6,
+            paddingLeft: 8,
+            borderTopRightRadius: 8,
+            borderBottomRightRadius: 8,
+            elevation: 10,
+            zIndex: 7,
+            shadowColor: '#000',
+            shadowOffset: { width: 2, height: 0 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <AppIcon name={"ski-boot"} color={colorsTheme.text} size={22} />
+          <Pastille
+            size={28}
+            name={numberOfBootsUsages.toString()}
             color={colorsTheme.pastille}
             textColor={colorsTheme.text}
           />

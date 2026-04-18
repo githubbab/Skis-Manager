@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'; // or the correct module you use for SQLite
 import { createId, deleteQuery, diffAndGenerateQueries, execQuery, formatSQL, insertQuery, TABLES, updateQuery, getDistinctBrandIcoURIs, icoUnknownBrand } from './DataManager';
+import type { Seasons } from './dbSeasons';
 
 export type Boots = {
   id: string;
@@ -129,6 +130,34 @@ export async function getBoots4Skis(db: SQLiteDatabase, idSkis: string): Promise
         GROUP BY b.id
         ORDER BY b.end ASC, begin DESC, nbOutings DESC
     `, [idSkis]);
+  const arrayIcoBrandURI = await getDistinctBrandIcoURIs(data);
+  return data.map((row: any) => ({
+    ...row,
+    listUsers: row.listUsers ? row.listUsers.split(',') : [],
+    listUserNames: row.listUserNames ? row.listUserNames.split(',') : [],
+    icoBrandUri: arrayIcoBrandURI[row.idBrand],
+  } as Boots));
+}
+
+export async function getBootsForSeason(db: SQLiteDatabase, season: Seasons): Promise<Boots[]> {
+  const seasonEnd = season.end ?? 4102444800000;
+  const data: Boots[] = await db.getAllAsync(`
+        SELECT b.id, b.name, b.idBrand, b.size, b.length, b.flex, b.begin, b.end,
+            br.name as brand,
+            GROUP_CONCAT(DISTINCT ju.idUser) as listUsers,
+            GROUP_CONCAT(DISTINCT u.name) as listUserNames,
+            COUNT(DISTINCT jo.date / 86400000) AS nbOutings,
+            COUNT(DISTINCT js.idSkis) AS nbSkis
+        FROM ${TABLES.BOOTS} b
+        LEFT JOIN ${TABLES.JOIN_BOOTS_USERS} ju ON b.id = ju.idBoots
+        LEFT JOIN ${TABLES.JOIN_SKIS_BOOTS} js ON js.idBoots = b.id
+        LEFT JOIN ${TABLES.OUTINGS} jo ON jo.idBoots = b.id
+        LEFT JOIN ${TABLES.USERS} u ON ju.idUser = u.id
+        LEFT JOIN ${TABLES.BRANDS} br ON b.idBrand = br.id
+        WHERE jo.date >= ? AND jo.date < ?
+        GROUP BY b.id
+        ORDER BY nbOutings DESC, b.end ASC, b.begin DESC
+    `, [season.begin, seasonEnd]);
   const arrayIcoBrandURI = await getDistinctBrandIcoURIs(data);
   return data.map((row: any) => ({
     ...row,
