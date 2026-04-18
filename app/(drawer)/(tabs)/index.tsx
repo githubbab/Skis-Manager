@@ -1226,7 +1226,7 @@ export default function Index() {
       }
       {
       }
-      <ModalEditor visible={friendsVisible} center={true} onRequestClose={() => setFriendsVisible(false)}>
+      <ModalEditor visible={friendsVisible} center={true} onRequestClose={() => setFriendsVisible(false)} scrollable={false}>
         <Tile>
           <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
             {listFriends.map((item) => (
@@ -1249,7 +1249,7 @@ export default function Index() {
       </ModalEditor>
       {
       }
-      <ModalEditor visible={outingVisible} center={true} onRequestClose={() => setOutingVisible(false)}>
+      <ModalEditor visible={outingVisible} center={true} onRequestClose={() => setOutingVisible(false)} scrollable={false}>
         <Row>
           <Text style={appStyles.title}>{t("add_outing")}</Text>
         </Row>
@@ -1288,7 +1288,7 @@ export default function Index() {
       }
       <ModalEditor visible={offPisteVisible} center={true} onRequestClose={() => {
         setOffPisteVisible(false);
-      }}>
+      }} scrollable={false}>
         <Row>
           <Text style={appStyles.title}>{t("offpiste")}</Text>
         </Row>
@@ -1370,7 +1370,7 @@ export default function Index() {
       </ModalEditor>
       {
       }
-      <ModalEditor visible={toSharpVisible} center={true} onRequestClose={() => setToSharpVisible(false)}>
+      <ModalEditor visible={toSharpVisible} center={true} onRequestClose={() => setToSharpVisible(false)} scrollable={false}>
         <Row>
           <AppIcon name={"affuteuse"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={32} />
           <Text style={appStyles.title}>{t("sharpening")}</Text>
@@ -1388,7 +1388,7 @@ export default function Index() {
       </ModalEditor>
       {
       }
-      <ModalEditor visible={toWaxVisible} center={true} onRequestClose={() => setToWaxVisible(false)}>
+      <ModalEditor visible={toWaxVisible} center={true} onRequestClose={() => setToWaxVisible(false)} scrollable={false}>
         <Row>
           <AppIcon name={"fartage"} color={colorsTheme.text} styles={{ marginRight: 8 }} size={32} />
           <Text style={appStyles.title}>{t("waxing")}</Text>

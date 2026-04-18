@@ -1,8 +1,8 @@
 import { ThemeContext } from "@/context/ThemeContext";
 import { ReactNode, useContext } from "react";
-import { Modal, StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from "react-native";
+import { Modal, StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 
-export default function ModalEditor({ children, visible, center, onRequestClose }: { children: ReactNode; visible: boolean; center?: boolean; onRequestClose?: () => void; }) {
+export default function ModalEditor({ children, visible, center, onRequestClose, scrollable = true }: { children: ReactNode; visible: boolean; center?: boolean; onRequestClose?: () => void; scrollable?: boolean; }) {
     const { colorsTheme } = useContext(ThemeContext);
     const modalStyle = StyleSheet.create({
         modalOverlay: {
@@ -29,11 +29,12 @@ export default function ModalEditor({ children, visible, center, onRequestClose 
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -100}
                 style={{ flex: 1 }}
             >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <View style={modalStyle.modalOverlay}>
-                        <View style={modalStyle.modalContainer}>
-                            <ScrollView 
+                <View style={modalStyle.modalOverlay}>
+                    <View style={modalStyle.modalContainer}>
+                        {scrollable ? (
+                            <ScrollView
                                 keyboardShouldPersistTaps="handled"
+                                keyboardDismissMode="on-drag"
                                 showsVerticalScrollIndicator={false}
                                 nestedScrollEnabled={true}
                             >
@@ -41,9 +42,13 @@ export default function ModalEditor({ children, visible, center, onRequestClose 
                                     {children}
                                 </View>
                             </ScrollView>
-                        </View>
+                        ) : (
+                            <View style={modalStyle.modalContent}>
+                                {children}
+                            </View>
+                        )}
                     </View>
-                </TouchableWithoutFeedback>
+                </View>
             </KeyboardAvoidingView>
         </Modal>
     );

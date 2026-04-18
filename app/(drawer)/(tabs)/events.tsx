@@ -1011,7 +1011,7 @@ const Events = () => {
       </Tile>
       {
       }
-      <ModalEditor visible={viewSkisFilter}>
+      <ModalEditor visible={viewSkisFilter} scrollable={false}>
         <Text style={appStyles.title}>{t("filter_skis")}</Text>
         <Tile style={{ marginBottom: 16 }}>
           <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
@@ -1041,7 +1041,7 @@ const Events = () => {
       </ModalEditor>
       {
       }
-      <ModalEditor visible={viewUserFilter}>
+      <ModalEditor visible={viewUserFilter} scrollable={false}>
         <Text style={appStyles.title}>{t("filter_users")}</Text>
         <Tile style={{ marginBottom: 16 }}>
           <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
@@ -1064,7 +1064,7 @@ const Events = () => {
       </ModalEditor>
       {
       }
-      <ModalEditor visible={viewTooFilter}>
+      <ModalEditor visible={viewTooFilter} scrollable={false}>
         <Text style={appStyles.title}>{t("filter_too")}</Text>
         <Tile style={{ marginBottom: 16 }}>
           <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
@@ -1510,7 +1510,7 @@ const Events = () => {
       }
       {
       }
-      <ModalEditor visible={friendsVisible} center={true} onRequestClose={() => setFriendsVisible(false)}>
+      <ModalEditor visible={friendsVisible} center={true} onRequestClose={() => setFriendsVisible(false)} scrollable={false}>
         <Tile>
           <ScrollView style={{ maxHeight: 400, width: '100%' }} nestedScrollEnabled={true}>
             {listFriends.map((item) => (
@@ -1533,7 +1533,7 @@ const Events = () => {
       </ModalEditor>
       {
       }
-      <ModalEditor visible={typeOfOutingVisible} center={true} onRequestClose={() => setTypeOfOutingVisible(false)}>
+      <ModalEditor visible={typeOfOutingVisible} center={true} onRequestClose={() => setTypeOfOutingVisible(false)} scrollable={false}>
         <Row>
           <Text style={appStyles.title}>{t("modify_outing")}</Text>
         </Row>
@@ -1572,7 +1572,7 @@ const Events = () => {
       }
       <ModalEditor visible={offPisteVisible} center={true} onRequestClose={() => {
         setOffPisteVisible(false);
-      }}>
+      }} scrollable={false}>
         <Row>
           <Text style={appStyles.title}>{t("offpiste")}</Text>
         </Row>
